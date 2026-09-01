@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Withdraw Cash{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">Withdraw Funds</h2>
+      <p class="text-muted mb-0">Withdraw funds securely from your available bank account balances.</p>
+    </div>
+    <div>
+      <a href="{{ url_for('customer.accounts') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-wallet2 me-1"></i> Back to Accounts
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-7">
+      <div class="fin-card">
+        <form id="withdrawPageForm">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-uppercase text-muted">Select Debit Account</label>
+            <select class="form-select form-select-lg" id="pageWithdrawAccountId" required onchange="calculateWithdrawPreview()">
+              {% for acc in accounts %}
+              <option value="{{ acc.id }}" data-balance="{{ acc.available_balance }}">
+                {{ acc.account_type }} &bull; {{ acc.account_number }} (Available: ₹{{ "{:,.2f}".format(acc.available_balance) }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-uppercase text-muted">Withdrawal Amount (₹)</label>
+            <div class="input-group input-group-lg">
+              <span class="input-group-text bg-light fw-bold">₹</span>
+              <input type="number" step="0.01" min="1" class="form-control fw-bold" id="pageWithdrawAmount" placeholder="e.g. 2000.00" required oninput="calculateWithdrawPreview()">
+            </div>
+            <div class="text-danger small mt-1 d-none" id="pageWithdrawErr">Amount exceeds available account balance.</div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-bold small text-uppercase text-muted">Purpose / Memo</label>
+            <input type="text" class="form-control" id="pageWithdrawDesc" placeholder="ATM cash, shopping, personal expenses...">
+          </div>
+
+          <!-- Preview Card -->
+          <div class="p-3 bg-light rounded-3 mb-4 border">
+            <div class="row text-center">
+              <div class="col-4">
+                <div class="text-muted small">Available Balance</div>
+                <div class="fw-bold fs-6 text-dark" id="previewWithdrawCurBal">₹0.00</div>
+              </div>
+              <div class="col-4">
+                <div class="text-muted small">Withdraw Amount</div>
+                <div class="fw-bold fs-6 text-danger" id="previewWithdrawAmt">-₹0.00</div>
+              </div>
+              <div class="col-4">
+                <div class="text-muted small">Remaining Balance</div>
+                <div class="fw-bold fs-6 text-primary" id="previewWithdrawRemBal">₹0.00</div>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-danger btn-lg w-100 shadow-sm" id="pageWithdrawSubmitBtn">
+            <i class="bi bi-arrow-up-circle-fill me-2"></i> Confirm Withdrawal
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+      <div class="fin-card">
+        <h5 class="fw-bold mb-3"><i class="bi bi-shield-lock text-danger me-2"></i> Withdrawal Policy</h5>
+        <p class="text-muted small">
+          Withdrawals verify available funds in real-time. Overdraft attempts are strictly rejected by the banking service.
+        </p>
+        <div class="p-3 bg-light rounded-3 small">
+          <div class="fw-bold text-dark mb-1"><i class="bi bi-clock-history text-primary me-1"></i> Audit Trail Entry</div>
+          <p class="text-muted mb-0">Every withdrawal records an immutable audit log timestamped with your active session.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function calculateWithdrawPreview() {
+    const sel = document.getElementById('pageWithdrawAccountId');
+    const opt = sel.options[sel.selectedIndex];
+    const curBal = opt ? parseFloat(opt.getAttribute('data-balance') || 0) : 0;
+    const wdAmt = parseFloat(document.getElementById('pageWithdrawAmount').value || 0);
+    const remBal = curBal - wdAmt;
+
+    const err = document.getElementById('pageWithdrawErr');
+    const btn = document.getElementById('pageWithdrawSubmitBtn');
+
+    if (wdAmt > curBal) {
+      err.classList.remove('d-none');
+      btn.disabled = true;
+    } else {
+      err.classList.add('d-none');
+      btn.disabled = false;
+    }
+
+    document.getElementById('previewWithdrawCurBal').innerText = '₹' + curBal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    document.getElementById('previewWithdrawAmt').innerText = '-₹' + wdAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    document.getElementById('previewWithdrawRemBal').innerText = '₹' + (remBal >= 0 ? remBal : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const acc = urlParams.get('acc');
+    if (acc) {
+      document.getElementById('pageWithdrawAccountId').value = acc;
+    }
+    calculateWithdrawPreview();
+  });
+
+  document.getElementById('withdrawPageForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('pageWithdrawSubmitBtn');
+    btn.disabled = true;
+    btn.innerText = 'Processing Withdrawal...';
+
+    const account_id = document.getElementById('pageWithdrawAccountId').value;
+    const amount = document.getElementById('pageWithdrawAmount').value;
+    const description = document.getElementById('pageWithdrawDesc').value || 'Account Withdrawal';
+
+    try {
+      const res = await fetch('/api/transactions/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_id, amount, description })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`Successfully withdrew ₹${amount}!`, 'success');
+        setTimeout(() => {
+          window.location.href = "{{ url_for('customer.dashboard') }}";
+        }, 1200);
+      } else {
+        showToast(data.error || 'Withdrawal failed', 'danger');
+        btn.disabled = false;
+        btn.innerText = 'Confirm Withdrawal';
+      }
+    } catch (err) {
+      showToast('Network error during withdrawal', 'danger');
+      btn.disabled = false;
+      btn.innerText = 'Confirm Withdrawal';
+    }
+  });
+</script>
+{% endblock %}

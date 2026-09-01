@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Beneficiaries{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">Beneficiary Management</h2>
+      <p class="text-muted mb-0">Save and manage payee accounts. Every beneficiary change is tracked in version control.</p>
+    </div>
+    <div>
+      <button class="btn btn-primary d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#addBeneficiaryModal">
+        <i class="bi bi-person-plus-fill"></i> Add Beneficiary
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4" id="beneficiaryCardsContainer">
+    {% if beneficiaries and beneficiaries|length > 0 %}
+      {% for b in beneficiaries %}
+      <div class="col-12 col-md-6 col-xl-4" id="bene-card-{{ b.id }}">
+        <div class="fin-card">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="avatar-circle-sm bg-primary-subtle text-primary">
+                {{ b.name[0]|upper }}
+              </div>
+              <div>
+                <h5 class="fw-bold mb-0 text-truncate" style="max-width: 170px;">{{ b.name }}</h5>
+                <span class="text-muted small">{{ b.bank_name }}</span>
+              </div>
+            </div>
+            {% if b.status == 'ACTIVE' %}
+              <span class="badge bg-success-subtle text-success">ACTIVE</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary">INACTIVE</span>
+            {% endif %}
+          </div>
+
+          <div class="p-3 bg-light rounded-3 mb-3 small">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Account Number:</span>
+              <span class="font-monospace fw-semibold">&bull;&bull;&bull;&bull; {{ b.account_number[-4:] if b.account_number|length >= 4 else b.account_number }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">IFSC Code:</span>
+              <span class="fw-semibold text-uppercase">{{ b.ifsc }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Entity Version:</span>
+              <span class="badge bg-primary text-white">v{{ b.version_number }}</span>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('customer.transfer') }}" class="btn btn-primary btn-sm flex-fill">
+              <i class="bi bi-send me-1"></i> Send Money
+            </a>
+            <button class="btn btn-outline-secondary btn-sm" onclick='openEditBeneficiaryModal({{ b.id }}, "{{ b.name }}", "{{ b.account_number }}", "{{ b.bank_name }}", "{{ b.ifsc }}")'>
+              <i class="bi bi-pencil"></i>
+            </button>
+            {% if b.status == 'ACTIVE' %}
+            <button class="btn btn-outline-danger btn-sm" onclick="deactivateBeneficiary({{ b.id }}, '{{ b.name }}')">
+              <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="fin-card text-center py-5">
+          <div class="stat-icon-wrapper stat-icon-info mx-auto mb-3">
+            <i class="bi bi-people"></i>
+          </div>
+          <h4 class="fw-bold">No Beneficiaries Added</h4>
+          <p class="text-muted">Save your frequent payees for faster, seamless money transfers.</p>
+          <button class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#addBeneficiaryModal">
+            <i class="bi bi-person-plus-fill me-1"></i> Add Your First Beneficiary
+          </button>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Add Beneficiary Modal -->
+<div class="modal fade" id="addBeneficiaryModal" tabindex="-1" aria-labelledby="addBeneficiaryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold" id="addBeneficiaryModalLabel">
+          <i class="bi bi-person-plus-fill text-primary me-2"></i> Add New Beneficiary
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="addBeneficiaryForm">
+        <div class="modal-body py-4">
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Payee Full Name</label>
+            <input type="text" class="form-control" id="addBeneName" placeholder="e.g. Ramesh Sharma" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Bank Name</label>
+            <input type="text" class="form-control" id="addBeneBank" placeholder="e.g. State Bank of India" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Account Number</label>
+            <input type="text" class="form-control font-monospace" id="addBeneAccount" placeholder="10-18 digit account number" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">IFSC Code</label>
+            <input type="text" class="form-control font-monospace text-uppercase" id="addBeneIfsc" placeholder="e.g. SBIN0001234" maxlength="11" required>
+            <div class="form-text">Standard 11-character bank code (e.g. SBIN0001234).</div>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-4" id="submitAddBeneBtn">Save Beneficiary</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Beneficiary Modal -->
+<div class="modal fade" id="editBeneficiaryModal" tabindex="-1" aria-labelledby="editBeneficiaryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold" id="editBeneficiaryModalLabel">
+          <i class="bi bi-pencil-square text-primary me-2"></i> Update Beneficiary
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editBeneficiaryForm">
+        <input type="hidden" id="editBeneId">
+        <div class="modal-body py-4">
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Payee Full Name</label>
+            <input type="text" class="form-control" id="editBeneName" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Bank Name</label>
+            <input type="text" class="form-control" id="editBeneBank" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Account Number</label>
+            <input type="text" class="form-control font-monospace" id="editBeneAccount" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">IFSC Code</label>
+            <input type="text" class="form-control font-monospace text-uppercase" id="editBeneIfsc" required>
+          </div>
+          <div class="alert alert-warning py-2 small mb-0">
+            <i class="bi bi-git me-1"></i> Modifying beneficiary details creates a new version (vN+1) with a field-level diff record.
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-4" id="submitEditBeneBtn">Save &amp; Version</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Add Beneficiary Handler
+  document.getElementById('addBeneficiaryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitAddBeneBtn');
+    btn.disabled = true;
+    btn.innerText = 'Saving...';
+
+    const name = document.getElementById('addBeneName').value;
+    const bank_name = document.getElementById('addBeneBank').value;
+    const account_number = document.getElementById('addBeneAccount').value;
+    const ifsc = document.getElementById('addBeneIfsc').value.toUpperCase();
+
+    try {
+      const res = await fetch('/api/beneficiaries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, bank_name, account_number, ifsc })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`Beneficiary "${name}" added!`, 'success');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(data.error || 'Failed to add beneficiary', 'danger');
+        btn.disabled = false;
+        btn.innerText = 'Save Beneficiary';
+      }
+    } catch (err) {
+      showToast('Network error saving beneficiary', 'danger');
+      btn.disabled = false;
+      btn.innerText = 'Save Beneficiary';
+    }
+  });
+
+  // Edit Beneficiary Modal Helper
+  function openEditBeneficiaryModal(id, name, accNum, bankName, ifsc) {
+    document.getElementById('editBeneId').value = id;
+    document.getElementById('editBeneName').value = name;
+    document.getElementById('editBeneBank').value = bankName;
+    document.getElementById('editBeneAccount').value = accNum;
+    document.getElementById('editBeneIfsc').value = ifsc;
+    new bootstrap.Modal(document.getElementById('editBeneficiaryModal')).show();
+  }
+
+  // Submit Edit Beneficiary Handler
+  document.getElementById('editBeneficiaryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editBeneId').value;
+    const name = document.getElementById('editBeneName').value;
+    const bank_name = document.getElementById('editBeneBank').value;
+    const account_number = document.getElementById('editBeneAccount').value;
+    const ifsc = document.getElementById('editBeneIfsc').value.toUpperCase();
+
+    const btn = document.getElementById('submitEditBeneBtn');
+    btn.disabled = true;
+    btn.innerText = 'Updating...';
+
+    try {
+      const res = await fetch(`/api/beneficiaries/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, bank_name, account_number, ifsc })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Beneficiary updated and version incremented!', 'success');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(data.error || 'Update failed', 'danger');
+        btn.disabled = false;
+        btn.innerText = 'Save & Version';
+      }
+    } catch (err) {
+      showToast('Network error updating beneficiary', 'danger');
+      btn.disabled = false;
+      btn.innerText = 'Save & Version';
+    }
+  });
+
+  // Deactivate Beneficiary Handler
+  async function deactivateBeneficiary(id, name) {
+    if (!confirm(`Are you sure you want to deactivate beneficiary "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/beneficiaries/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast(`Beneficiary "${name}" deactivated!`, 'info');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Deactivation failed', 'danger');
+      }
+    } catch (err) {
+      showToast('Network error deactivating beneficiary', 'danger');
+    }
+  }
+</script>
+{% endblock %}

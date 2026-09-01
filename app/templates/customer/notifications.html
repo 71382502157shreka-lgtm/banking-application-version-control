@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Notifications Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-bell text-primary me-2"></i> Notifications Center</h2>
+      <p class="text-muted mb-0">Stay informed about your transaction alerts, security events, and account updates.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary btn-sm" onclick="markAllAsReadPage()">
+        <i class="bi bi-check2-all me-1"></i> Mark All as Read
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-8 mx-auto">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-primary" id="btnFilterAll" onclick="filterNotifs('ALL')">All</button>
+            <button class="btn btn-sm btn-outline-secondary" id="btnFilterUnread" onclick="filterNotifs('UNREAD')">Unread</button>
+            <button class="btn btn-sm btn-outline-secondary" id="btnFilterTxn" onclick="filterNotifs('TRANSACTION')">Transactions</button>
+            <button class="btn btn-sm btn-outline-secondary" id="btnFilterSec" onclick="filterNotifs('SECURITY')">Security</button>
+          </div>
+          <span class="small text-muted" id="notifTotalCounter">0 notifications</span>
+        </div>
+
+        <div class="notif-feed-list" id="notifFullFeed">
+          <div class="text-center py-5 text-muted">
+            <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+            Loading notifications...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let allNotifs = [];
+  let currentFilter = 'ALL';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadFullNotifications();
+  });
+
+  async function loadFullNotifications() {
+    try {
+      const res = await fetch('/api/notifications');
+      if (!res.ok) {
+        document.getElementById('notifFullFeed').innerHTML = '<div class="text-center py-4 text-danger">Failed to load notifications</div>';
+        return;
+      }
+      const data = await res.json();
+      allNotifs = data.notifications || [];
+      renderNotifs();
+    } catch (e) {
+      document.getElementById('notifFullFeed').innerHTML = '<div class="text-center py-4 text-danger">Network error loading notifications</div>';
+    }
+  }
+
+  function filterNotifs(filterType) {
+    currentFilter = filterType;
+    ['btnFilterAll', 'btnFilterUnread', 'btnFilterTxn', 'btnFilterSec'].forEach(id => {
+      document.getElementById(id).className = 'btn btn-sm btn-outline-secondary';
+    });
+    if (filterType === 'ALL') document.getElementById('btnFilterAll').className = 'btn btn-sm btn-primary';
+    else if (filterType === 'UNREAD') document.getElementById('btnFilterUnread').className = 'btn btn-sm btn-primary';
+    else if (filterType === 'TRANSACTION') document.getElementById('btnFilterTxn').className = 'btn btn-sm btn-primary';
+    else if (filterType === 'SECURITY') document.getElementById('btnFilterSec').className = 'btn btn-sm btn-primary';
+
+    renderNotifs();
+  }
+
+  function renderNotifs() {
+    const list = document.getElementById('notifFullFeed');
+    const counter = document.getElementById('notifTotalCounter');
+
+    let filtered = allNotifs;
+    if (currentFilter === 'UNREAD') filtered = allNotifs.filter(n => !n.is_read);
+    else if (currentFilter === 'TRANSACTION') filtered = allNotifs.filter(n => n.notification_type === 'TRANSACTION');
+    else if (currentFilter === 'SECURITY') filtered = allNotifs.filter(n => n.notification_type === 'SECURITY');
+
+    counter.innerText = `${filtered.length} notification(s)`;
+
+    if (filtered.length === 0) {
+      list.innerHTML = `
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-bell-slash fs-2 d-block mb-2"></i>
+          <div class="fw-bold">No Notifications Found</div>
+          <div class="small">You're all caught up with your banking activities.</div>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = filtered.map(n => {
+      let icon = 'bi-info-circle';
+      let iconBg = 'bg-primary-subtle text-primary';
+      if (n.notification_type === 'SECURITY') { icon = 'bi-shield-exclamation'; iconBg = 'bg-danger-subtle text-danger'; }
+      else if (n.notification_type === 'TRANSACTION') { icon = 'bi-currency-exchange'; iconBg = 'bg-success-subtle text-success'; }
+
+      const dateStr = n.created_at ? new Date(n.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recent';
+
+      return `
+        <div class="p-3 mb-2 rounded-3 border d-flex align-items-start gap-3 ${n.is_read ? 'bg-white' : 'bg-light border-primary-subtle'}" onclick="markSingleRead(${n.id})">
+          <div class="stat-icon-wrapper ${iconBg} flex-shrink-0" style="width: 42px; height: 42px; font-size: 1.2rem; margin-bottom: 0;">
+            <i class="bi ${icon}"></i>
+          </div>
+          <div class="flex-grow-1 overflow-hidden">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <h6 class="fw-bold mb-0">${n.title}</h6>
+              <span class="text-muted small" style="font-size: 0.75rem;">${dateStr}</span>
+            </div>
+            <div class="text-muted small">${n.message}</div>
+          </div>
+          <div>
+            ${!n.is_read ? '<span class="badge bg-primary rounded-pill">NEW</span>' : '<i class="bi bi-check-all text-muted"></i>'}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function markSingleRead(id) {
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
+      const item = allNotifs.find(n => n.id === id);
+      if (item) item.is_read = true;
+      renderNotifs();
+      loadHeaderNotifications();
+    } catch (e) { console.error(e); }
+  }
+
+  async function markAllAsReadPage() {
+    try {
+      await fetch('/api/notifications/read-all', { method: 'POST' });
+      allNotifs.forEach(n => n.is_read = true);
+      renderNotifs();
+      showToast('All notifications marked as read', 'success');
+      loadHeaderNotifications();
+    } catch (e) { console.error(e); }
+  }
+</script>
+{% endblock %}

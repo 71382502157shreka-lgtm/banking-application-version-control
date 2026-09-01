@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Account Statement{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">Account Statement</h2>
+      <p class="text-muted mb-0">Generate, view, and export official statement records for any date range.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" onclick="exportStatementCSV()">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i> Print / Save PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Statement Filters -->
+  <div class="fin-card mb-4 p-3 no-print">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="form-label fw-bold small text-muted">Select Account</label>
+        <select class="form-select" id="statementAccountId" onchange="loadStatementData()">
+          {% for acc in accounts %}
+          <option value="{{ acc.id }}">{{ acc.account_type }} &bull; {{ acc.account_number }} (Bal: ₹{{ "{:,.2f}".format(acc.balance) }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label fw-bold small text-muted">Start Date</label>
+        <input type="date" class="form-control" id="statementStartDate" onchange="loadStatementData()">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label fw-bold small text-muted">End Date</label>
+        <input type="date" class="form-control" id="statementEndDate" onchange="loadStatementData()">
+      </div>
+      <div class="col-12 col-md-2">
+        <button class="btn btn-outline-primary w-100" onclick="loadStatementData()">
+          <i class="bi bi-funnel me-1"></i> Filter
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Printable Statement Document -->
+  <div class="fin-card p-4" id="statementPrintableCard">
+    <!-- Header info -->
+    <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <div class="brand-icon" style="width: 32px; height: 32px; font-size: 1rem;">
+            <i class="bi bi-bank2"></i>
+          </div>
+          <h4 class="fw-bold mb-0">BankVCS</h4>
+        </div>
+        <div class="text-muted small">Banking Version Control System &bull; Official Account Ledger</div>
+      </div>
+      <div class="text-end">
+        <div class="fw-bold text-uppercase fs-5 text-primary">Statement of Account</div>
+        <div class="text-muted small" id="statementGeneratedDate">Generated: 01 Sep 2026</div>
+      </div>
+    </div>
+
+    <!-- Customer & Account Details Row -->
+    <div class="row g-3 mb-4 p-3 bg-light rounded-3">
+      <div class="col-12 col-md-6">
+        <div class="text-muted small">Account Holder</div>
+        <div class="fw-bold fs-6">{{ current_user.full_name or current_user.username }}</div>
+        <div class="text-muted small">Email: {{ current_user.email }}</div>
+      </div>
+      <div class="col-12 col-md-6 text-md-end">
+        <div class="text-muted small">Account Number</div>
+        <div class="fw-bold fs-6 font-monospace" id="statementAccountNumDisplay">-</div>
+        <div class="text-muted small">Status: <span class="badge bg-success-subtle text-success">ACTIVE</span></div>
+      </div>
+    </div>
+
+    <!-- Statement Table -->
+    <div class="table-responsive">
+      <table class="fin-table" id="statementTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Reference No</th>
+            <th>Description</th>
+            <th>Type</th>
+            <th class="text-end">Debit (₹)</th>
+            <th class="text-end">Credit (₹)</th>
+            <th class="text-end">Closing Balance (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="statementTableBody">
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">Select an account to load statement</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Statement Summary Footer -->
+    <div class="row g-3 mt-4 pt-3 border-top">
+      <div class="col-6 col-md-4">
+        <div class="text-muted small">Total Deposits (Credits)</div>
+        <div class="fw-bold text-success fs-5" id="statTotalCredits">₹0.00</div>
+      </div>
+      <div class="col-6 col-md-4">
+        <div class="text-muted small">Total Withdrawals (Debits)</div>
+        <div class="fw-bold text-danger fs-5" id="statTotalDebits">₹0.00</div>
+      </div>
+      <div class="col-12 col-md-4 text-md-end">
+        <div class="text-muted small">Closing Balance</div>
+        <div class="fw-bold text-primary fs-5" id="statClosingBalance">₹0.00</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let currentStatementTxns = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Set default dates
+    const today = new Date();
+    const pastMonth = new Date(today);
+    pastMonth.setMonth(pastMonth.getMonth() - 1);
+
+    document.getElementById('statementEndDate').value = today.toISOString().split('T')[0];
+    document.getElementById('statementStartDate').value = pastMonth.toISOString().split('T')[0];
+    document.getElementById('statementGeneratedDate').innerText = 'Generated: ' + today.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    // Check URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const acc = urlParams.get('account_id');
+    if (acc) {
+      document.getElementById('statementAccountId').value = acc;
+    }
+    loadStatementData();
+  });
+
+  async function loadStatementData() {
+    const accId = document.getElementById('statementAccountId').value;
+    if (!accId) return;
+
+    const accSelect = document.getElementById('statementAccountId');
+    const accText = accSelect.options[accSelect.selectedIndex].text;
+    document.getElementById('statementAccountNumDisplay').innerText = accText;
+
+    const start = document.getElementById('statementStartDate').value;
+    const end = document.getElementById('statementEndDate').value;
+
+    try {
+      const res = await fetch(`/api/transactions?account_id=${accId}`);
+      if (!res.ok) return;
+      let txns = await res.json();
+
+      // Filter by dates if provided
+      if (start) {
+        txns = txns.filter(t => new Date(t.created_at) >= new Date(start));
+      }
+      if (end) {
+        const endDateObj = new Date(end);
+        endDateObj.setHours(23, 59, 59, 999);
+        txns = txns.filter(t => new Date(t.created_at) <= endDateObj);
+      }
+
+      currentStatementTxns = txns;
+      renderStatementTable(txns);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  function renderStatementTable(txns) {
+    const tbody = document.getElementById('statementTableBody');
+    if (!txns || txns.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No transactions found for the selected account and date range.</td></tr>';
+      document.getElementById('statTotalCredits').innerText = '₹0.00';
+      document.getElementById('statTotalDebits').innerText = '₹0.00';
+      document.getElementById('statClosingBalance').innerText = '₹0.00';
+      return;
+    }
+
+    let totalCredits = 0;
+    let totalDebits = 0;
+    let closingBal = txns[0].balance_after || 0;
+
+    tbody.innerHTML = txns.map(t => {
+      const isCredit = t.transaction_type === 'DEPOSIT' || t.transaction_type === 'REVERSAL';
+      const amt = parseFloat(t.amount);
+      if (isCredit) totalCredits += amt;
+      else totalDebits += amt;
+
+      const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+      const debitStr = !isCredit ? '₹' + amt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
+      const creditStr = isCredit ? '₹' + amt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
+      const balStr = t.balance_after ? '₹' + parseFloat(t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
+
+      return `
+        <tr>
+          <td><span class="small">${dateStr}</span></td>
+          <td><span class="font-monospace small">${t.reference_number}</span></td>
+          <td><span class="fw-medium">${t.description || 'Transaction'}</span></td>
+          <td><span class="badge bg-light text-dark">${t.transaction_type}</span></td>
+          <td class="text-end text-danger">${debitStr}</td>
+          <td class="text-end text-success">${creditStr}</td>
+          <td class="text-end fw-semibold">${balStr}</td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('statTotalCredits').innerText = '₹' + totalCredits.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    document.getElementById('statTotalDebits').innerText = '₹' + totalDebits.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    document.getElementById('statClosingBalance').innerText = '₹' + parseFloat(closingBal).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  }
+
+  function exportStatementCSV() {
+    if (!currentStatementTxns || currentStatementTxns.length === 0) {
+      showToast('No statement data to export', 'warning');
+      return;
+    }
+    const headers = ['Date', 'Reference Number', 'Description', 'Type', 'Amount', 'Balance After', 'Status'];
+    const rows = currentStatementTxns.map(t => [
+      t.created_at || '',
+      t.reference_number || '',
+      `"${(t.description || '').replace(/"/g, '""')}"`,
+      t.transaction_type || '',
+      t.amount || '',
+      t.balance_after || '',
+      t.status || ''
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Statement_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Statement CSV exported successfully!', 'success');
+  }
+</script>
+{% endblock %}

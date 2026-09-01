@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block title %}Transfer Money{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">Transfer Money</h2>
+      <p class="text-muted mb-0">Send funds instantly between your accounts or to registered beneficiaries.</p>
+    </div>
+    <div>
+      <a href="{{ url_for('customer.beneficiaries') }}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-people me-1"></i> Manage Beneficiaries
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Transfer Form Card -->
+    <div class="col-12 col-lg-7">
+      <div class="fin-card">
+        <form id="transferForm">
+          <!-- Source Account -->
+          <div class="mb-4">
+            <label class="form-label fw-bold small text-uppercase text-muted">1. Select Source Account</label>
+            <select class="form-select form-select-lg" id="sourceAccountId" required onchange="updateSourceBalance()">
+              <option value="" disabled selected>Choose debit account...</option>
+              {% for acc in accounts %}
+              <option value="{{ acc.id }}" data-balance="{{ acc.available_balance }}">
+                {{ acc.account_type }} &bull; {{ acc.account_number }} (Avail: ₹{{ "{:,.2f}".format(acc.available_balance) }})
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text text-success fw-medium mt-1" id="sourceBalanceText"></div>
+          </div>
+
+          <!-- Destination Type Tab -->
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-uppercase text-muted">2. Transfer Destination</label>
+            <ul class="nav nav-pills mb-3" id="transferTypeTab" role="tablist">
+              <li class="nav-item flex-fill text-center" role="presentation">
+                <button class="nav-link active w-100 py-2" id="own-account-tab" data-bs-toggle="pill" data-bs-target="#own-account" type="button" role="tab">
+                  <i class="bi bi-wallet2 me-1"></i> Own Accounts
+                </button>
+              </li>
+              <li class="nav-item flex-fill text-center" role="presentation">
+                <button class="nav-link w-100 py-2" id="beneficiary-tab" data-bs-toggle="pill" data-bs-target="#beneficiary" type="button" role="tab">
+                  <i class="bi bi-person-check me-1"></i> Beneficiary / Other
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content" id="transferTabContent">
+              <!-- Own Accounts Selector -->
+              <div class="tab-pane fade show active" id="own-account" role="tabpanel">
+                <select class="form-select" id="ownDestinationId">
+                  <option value="" disabled selected>Select destination account...</option>
+                  {% for acc in accounts %}
+                  <option value="{{ acc.id }}">
+                    {{ acc.account_type }} &bull; {{ acc.account_number }} (Current: ₹{{ "{:,.2f}".format(acc.balance) }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Beneficiary / Other Account Input -->
+              <div class="tab-pane fade" id="beneficiary" role="tabpanel">
+                <div class="mb-3">
+                  <label class="form-label small">Select Saved Beneficiary</label>
+                  <select class="form-select" id="beneficiarySelect" onchange="applyBeneficiaryToDest()">
+                    <option value="">-- Choose Beneficiary --</option>
+                    {% if beneficiaries %}
+                      {% for b in beneficiaries %}
+                      <option value="{{ b.account_number }}" data-name="{{ b.name }}" data-bank="{{ b.bank_name }}" data-ifsc="{{ b.ifsc }}">
+                        {{ b.name }} &bull; {{ b.bank_name }} ({{ b.account_number }})
+                      </option>
+                      {% endfor %}
+                    {% endif %}
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label small">Or Enter Destination Account ID / Number</label>
+                  <input type="number" class="form-control" id="customDestAccountId" placeholder="Enter target account ID">
+                  <div class="form-text">For testing transfer within system, specify destination account ID.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Amount -->
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-uppercase text-muted">3. Amount (₹)</label>
+            <div class="input-group input-group-lg">
+              <span class="input-group-text bg-light fw-bold">₹</span>
+              <input type="number" step="0.01" min="1" class="form-control fw-bold" id="transferAmount" placeholder="0.00" required oninput="validateTransferAmount()">
+            </div>
+            <div class="text-danger small mt-1 d-none" id="amountErrorText">Amount exceeds available account balance.</div>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-4">
+            <label class="form-label fw-bold small text-uppercase text-muted">4. Remarks / Purpose</label>
+            <input type="text" class="form-control" id="transferDescription" placeholder="Rent, family transfer, bill payment..." maxlength="200">
+          </div>
+
+          <button type="button" class="btn btn-primary btn-lg w-100 shadow-sm" onclick="showTransferConfirmationModal()">
+            <i class="bi bi-shield-lock-fill me-2"></i> Review &amp; Confirm Transfer
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Instructions / Version Control Guarantee -->
+    <div class="col-12 col-lg-5">
+      <div class="fin-card mb-3">
+        <h5 class="fw-bold mb-3"><i class="bi bi-info-circle text-primary me-2"></i> Transfer Guidelines</h5>
+        <ul class="list-unstyled d-flex flex-column gap-3 small text-muted mb-0">
+          <li class="d-flex align-items-start gap-2">
+            <i class="bi bi-lightning-charge-fill text-warning fs-5"></i>
+            <div><strong class="text-dark">Instant Settlement:</strong> Transfers between accounts are processed synchronously with atomic transactions.</div>
+          </li>
+          <li class="d-flex align-items-start gap-2">
+            <i class="bi bi-git text-primary fs-5"></i>
+            <div><strong class="text-dark">Double-Entry VCS:</strong> Both source and destination accounts are version-incremented (`Account vN+1`) and signed into the audit log.</div>
+          </li>
+          <li class="d-flex align-items-start gap-2">
+            <i class="bi bi-shield-check text-success fs-5"></i>
+            <div><strong class="text-dark">Zero-Trust Immutability:</strong> Financial transactions cannot be modified after completion. Corrections require explicit reversal transactions.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Confirmation Modal -->
+<div class="modal fade" id="transferConfirmModal" tabindex="-1" aria-labelledby="transferConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold" id="transferConfirmModalLabel">
+          <i class="bi bi-shield-check text-primary me-2"></i> Confirm Money Transfer
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4">
+        <div class="text-center p-3 bg-light rounded-3 mb-3">
+          <span class="text-muted small text-uppercase">Transfer Amount</span>
+          <h2 class="fw-bold text-primary mb-0" id="confirmAmountDisplay">₹0.00</h2>
+          <span class="badge bg-success-subtle text-success mt-2">Zero Fee &bull; Instant</span>
+        </div>
+
+        <table class="table table-sm table-borderless">
+          <tr>
+            <td class="text-muted">Debit Account:</td>
+            <td class="fw-semibold text-end" id="confirmSourceDisplay">-</td>
+          </tr>
+          <tr>
+            <td class="text-muted">Credit Destination:</td>
+            <td class="fw-semibold text-end" id="confirmDestDisplay">-</td>
+          </tr>
+          <tr>
+            <td class="text-muted">Remarks:</td>
+            <td class="fw-semibold text-end" id="confirmDescDisplay">-</td>
+          </tr>
+        </table>
+      </div>
+      <div class="modal-footer border-top-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary px-4" id="executeTransferBtn" onclick="submitTransferExecution()">
+          <i class="bi bi-check2-circle me-1"></i> Authorize &amp; Transfer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let selectedDestinationAccountId = null;
+
+  function updateSourceBalance() {
+    const sel = document.getElementById('sourceAccountId');
+    const opt = sel.options[sel.selectedIndex];
+    const bal = opt ? opt.getAttribute('data-balance') : 0;
+    const txt = document.getElementById('sourceBalanceText');
+    if (txt && bal) {
+      txt.innerText = `Available to transfer: ₹${parseFloat(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    }
+  }
+
+  function validateTransferAmount() {
+    const sel = document.getElementById('sourceAccountId');
+    const opt = sel.options[sel.selectedIndex];
+    const avail = opt ? parseFloat(opt.getAttribute('data-balance') || 0) : 0;
+    const amt = parseFloat(document.getElementById('transferAmount').value || 0);
+    const err = document.getElementById('amountErrorText');
+    if (amt > avail) {
+      err.classList.remove('d-none');
+      return false;
+    } else {
+      err.classList.add('d-none');
+      return true;
+    }
+  }
+
+  function applyBeneficiaryToDest() {
+    const sel = document.getElementById('beneficiarySelect');
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.value) {
+      document.getElementById('customDestAccountId').value = opt.value;
+    }
+  }
+
+  function showTransferConfirmationModal() {
+    const srcSel = document.getElementById('sourceAccountId');
+    if (!srcSel.value) {
+      showToast('Please select a source account', 'warning');
+      return;
+    }
+    const amt = parseFloat(document.getElementById('transferAmount').value || 0);
+    if (!amt || amt <= 0) {
+      showToast('Please enter a valid transfer amount', 'warning');
+      return;
+    }
+    if (!validateTransferAmount()) {
+      showToast('Insufficient funds in source account', 'danger');
+      return;
+    }
+
+    // Check destination
+    let destId = null;
+    let destLabel = '';
+    const activeTab = document.querySelector('#transferTypeTab .nav-link.active').id;
+    if (activeTab === 'own-account-tab') {
+      destId = document.getElementById('ownDestinationId').value;
+      if (!destId) {
+        showToast('Please select a destination account', 'warning');
+        return;
+      }
+      if (destId === srcSel.value) {
+        showToast('Source and destination accounts must be different', 'warning');
+        return;
+      }
+      destLabel = 'Own Account #' + destId;
+    } else {
+      destId = document.getElementById('customDestAccountId').value;
+      if (!destId) {
+        showToast('Please specify a destination account or select a beneficiary', 'warning');
+        return;
+      }
+      destLabel = 'Beneficiary / Account #' + destId;
+    }
+
+    selectedDestinationAccountId = destId;
+
+    document.getElementById('confirmAmountDisplay').innerText = '₹' + amt.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    document.getElementById('confirmSourceDisplay').innerText = 'Account #' + srcSel.value;
+    document.getElementById('confirmDestDisplay').innerText = destLabel;
+    document.getElementById('confirmDescDisplay').innerText = document.getElementById('transferDescription').value || 'Funds Transfer';
+
+    new bootstrap.Modal(document.getElementById('transferConfirmModal')).show();
+  }
+
+  async function submitTransferExecution() {
+    const btn = document.getElementById('executeTransferBtn');
+    btn.disabled = true;
+    btn.innerText = 'Processing Transfer...';
+
+    const source_account_id = document.getElementById('sourceAccountId').value;
+    const destination_account_id = selectedDestinationAccountId;
+    const amount = document.getElementById('transferAmount').value;
+    const description = document.getElementById('transferDescription').value || 'Funds Transfer';
+
+    try {
+      const res = await fetch('/api/transactions/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_account_id, destination_account_id, amount, description })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('transferConfirmModal')).hide();
+        showToast(`Transfer of ₹${amount} successful! Ref: ${data.debit.reference_number}`, 'success');
+        setTimeout(() => {
+          window.location.href = "{{ url_for('customer.transactions') }}";
+        }, 1200);
+      } else {
+        showToast(data.error || 'Transfer failed', 'danger');
+        btn.disabled = false;
+        btn.innerText = 'Authorize & Transfer';
+      }
+    } catch (err) {
+      showToast('Network error processing transfer', 'danger');
+      btn.disabled = false;
+      btn.innerText = 'Authorize & Transfer';
+    }
+  }
+
+  // Pre-select source if URL query param present
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const src = urlParams.get('src');
+    if (src) {
+      const sel = document.getElementById('sourceAccountId');
+      if (sel) {
+        sel.value = src;
+        updateSourceBalance();
+      }
+    }
+  });
+</script>
+{% endblock %}

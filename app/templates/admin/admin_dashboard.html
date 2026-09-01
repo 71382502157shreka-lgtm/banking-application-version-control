@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">System Administration Console</h2>
+      <p class="text-muted mb-0">System health, version control metrics, security monitoring, and global governance.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('admin.manage_users') }}" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm">
+        <i class="bi bi-people-fill"></i> Manage Users
+      </a>
+      <a href="{{ url_for('admin.version_history') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-sm">
+        <i class="bi bi-git"></i> Version Control
+      </a>
+    </div>
+  </div>
+
+  <!-- Key Metrics Row (4x2 or 4x1) -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-icon-wrapper stat-icon-primary">
+            <i class="bi bi-people"></i>
+          </div>
+        </div>
+        <div class="stat-value text-primary">{{ total_users }}</div>
+        <div class="small text-muted">{{ total_customers }} Customers &bull; {{ total_employees }} Staff</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Total Volume</div>
+          <div class="stat-icon-wrapper stat-icon-success">
+            <i class="bi bi-cash-coin"></i>
+          </div>
+        </div>
+        <div class="stat-value text-success">₹{{ "{:,.2f}".format(total_volume) }}</div>
+        <div class="small text-muted">{{ total_txns }} Completed Transactions</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Entity Versions</div>
+          <div class="stat-icon-wrapper stat-icon-info">
+            <i class="bi bi-git"></i>
+          </div>
+        </div>
+        <div class="stat-value text-info">{{ total_versions }}</div>
+        <div class="small text-muted">Immutable State Snapshots</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Audit Logs</div>
+          <div class="stat-icon-wrapper stat-icon-warning">
+            <i class="bi bi-shield-check"></i>
+          </div>
+        </div>
+        <div class="stat-value text-warning">{{ total_audit_logs }}</div>
+        <div class="small text-muted">{{ failed_logins }} Failed Login Attempts Tracked</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent System Versions and Audit Logs -->
+  <div class="row g-4 mb-4">
+    <!-- Versions -->
+    <div class="col-12 col-lg-6">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-git text-primary me-2"></i> Recent Entity Versions</h5>
+          <a href="{{ url_for('admin.version_history') }}" class="btn btn-sm btn-link p-0 text-decoration-none">Inspect All</a>
+        </div>
+        <div class="table-responsive">
+          <table class="fin-table align-middle">
+            <thead>
+              <tr>
+                <th>Entity</th>
+                <th>Ver</th>
+                <th>Action</th>
+                <th>Summary</th>
+                <th>By</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in recent_versions %}
+              <tr>
+                <td><span class="badge bg-secondary-subtle text-secondary">{{ v.entity_type }} #{{ v.entity_id }}</span></td>
+                <td><span class="badge bg-primary text-white">v{{ v.version_number }}</span></td>
+                <td><span class="badge bg-light text-dark">{{ v.change_type }}</span></td>
+                <td><span class="small fw-medium text-truncate d-inline-block" style="max-width: 140px;">{{ v.change_summary or v.change_type }}</span></td>
+                <td><span class="small text-muted">User #{{ v.changed_by or 'System' }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center py-4 text-muted">No versions recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Logs -->
+    <div class="col-12 col-lg-6">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-shield-lock text-success me-2"></i> Recent Security Audit</h5>
+          <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-sm btn-link p-0 text-decoration-none">View All Logs</a>
+        </div>
+        <div class="table-responsive">
+          <table class="fin-table align-middle">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Description</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for l in recent_logs %}
+              <tr>
+                <td><span class="small">{{ l.created_at.strftime('%d %b %H:%M') if l.created_at else 'Recent' }}</span></td>
+                <td><span class="badge bg-light text-dark">{{ l.action }}</span></td>
+                <td><span class="small fw-medium text-truncate d-inline-block" style="max-width: 160px;">{{ l.description or '-' }}</span></td>
+                <td><span class="font-monospace small text-muted">{{ l.ip_address or '127.0.0.1' }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="text-center py-4 text-muted">No audit logs recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

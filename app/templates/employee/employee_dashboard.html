@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Employee Portal{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">Staff Operations Dashboard</h2>
+      <p class="text-muted mb-0">Welcome, {{ current_user.full_name or current_user.username }} &bull; Branch Operational Console</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('employee.customers') }}" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-people-fill"></i> Customer Accounts
+      </a>
+      <a href="{{ url_for('employee.versions') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-git"></i> Review Versions
+      </a>
+    </div>
+  </div>
+
+  <!-- Operational Metrics -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-4">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Total Customers</div>
+          <div class="stat-icon-wrapper stat-icon-primary">
+            <i class="bi bi-people"></i>
+          </div>
+        </div>
+        <div class="stat-value text-primary">{{ total_customers }}</div>
+        <div class="small text-muted">Registered Customer Profiles</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-4">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Active Accounts</div>
+          <div class="stat-icon-wrapper stat-icon-success">
+            <i class="bi bi-credit-card"></i>
+          </div>
+        </div>
+        <div class="stat-value text-success">{{ total_accounts }}</div>
+        <div class="small text-muted">Savings &amp; Current Accounts</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-4">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Ledger Transactions</div>
+          <div class="stat-icon-wrapper stat-icon-info">
+            <i class="bi bi-receipt"></i>
+          </div>
+        </div>
+        <div class="stat-value text-info">{{ total_txns }}</div>
+        <div class="small text-muted">Immutable Ledger Entries</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operational Tables Row -->
+  <div class="row g-4">
+    <div class="col-12 col-lg-7">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">Recent Branch Transactions</h5>
+          <span class="badge bg-light text-dark">Live Feed</span>
+        </div>
+        <div class="table-responsive">
+          <table class="fin-table align-middle">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Reference</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for txn in recent_txns %}
+              <tr>
+                <td><span class="small">{{ txn.created_at.strftime('%d %b %H:%M') if txn.created_at else 'Recent' }}</span></td>
+                <td><span class="font-monospace small">{{ txn.reference_number }}</span></td>
+                <td><span class="badge bg-light text-dark">{{ txn.transaction_type }}</span></td>
+                <td><span class="fw-bold">₹{{ "{:,.2f}".format(txn.amount) }}</span></td>
+                <td><span class="badge bg-success-subtle text-success">{{ txn.status }}</span></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center py-4 text-muted">No transactions recorded yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">Recent Entity Versions</h5>
+          <a href="{{ url_for('employee.versions') }}" class="btn btn-sm btn-link p-0 text-decoration-none">View All</a>
+        </div>
+        <div class="timeline-feed">
+          {% for v in recent_versions %}
+          <div class="d-flex align-items-start gap-2 mb-3 pb-2 border-bottom">
+            <div class="stat-icon-wrapper stat-icon-primary flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.9rem; margin-bottom: 0;">
+              <i class="bi bi-git"></i>
+            </div>
+            <div class="flex-grow-1 overflow-hidden">
+              <div class="d-flex justify-content-between">
+                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.7rem;">{{ v.entity_type }} #{{ v.entity_id }}</span>
+                <span class="badge bg-primary text-white" style="font-size: 0.65rem;">v{{ v.version_number }}</span>
+              </div>
+              <div class="small fw-medium text-truncate mt-1">{{ v.change_summary or v.change_type }}</div>
+              <div class="text-muted" style="font-size: 0.7rem;">Changed by User #{{ v.changed_by or 'System' }} &bull; {{ v.created_at.strftime('%d %b, %H:%M') if v.created_at else '' }}</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted small">No versions created yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

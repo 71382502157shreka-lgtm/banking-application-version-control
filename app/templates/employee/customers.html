@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Customer Accounts{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">Customer Directory</h2>
+      <p class="text-muted mb-0">Inspect customer profiles, accounts, balances, and version histories.</p>
+    </div>
+  </div>
+
+  <!-- Search Filter -->
+  <div class="fin-card mb-4 p-3">
+    <div class="input-group">
+      <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+      <input type="text" class="form-control border-start-0 ps-0" id="customerSearchInput" placeholder="Search customer by name, username, email..." oninput="filterCustomerList()">
+    </div>
+  </div>
+
+  <div class="fin-card">
+    <div class="table-responsive">
+      <table class="fin-table align-middle">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Contact</th>
+            <th>Status</th>
+            <th>Accounts Count</th>
+            <th>Joined Date</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody id="customerTableBody">
+          {% for c in customers %}
+          <tr class="customer-row">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle-sm bg-primary-subtle text-primary">
+                  {{ (c.full_name or c.username)[0]|upper }}
+                </div>
+                <div>
+                  <div class="fw-bold text-dark customer-name">{{ c.full_name or c.username }}</div>
+                  <div class="text-muted small">@{{ c.username }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="small customer-email">{{ c.email }}</div>
+              <div class="text-muted small">{{ c.phone or 'No phone' }}</div>
+            </td>
+            <td>
+              <span class="badge bg-success-subtle text-success">{{ c.status }}</span>
+            </td>
+            <td>
+              <span class="badge bg-primary text-white">{{ c.accounts|length }} Account(s)</span>
+            </td>
+            <td>
+              <span class="small text-muted">{{ c.created_at.strftime('%d %b %Y') if c.created_at else 'Recent' }}</span>
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-primary" onclick="viewCustomerAccounts({{ c.id }}, '{{ c.full_name or c.username }}')">
+                <i class="bi bi-wallet2 me-1"></i> View Accounts
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center py-4 text-muted">No customers found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Accounts Modal -->
+<div class="modal fade" id="customerAccountsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold" id="customerModalTitle">
+          <i class="bi bi-wallet2 text-primary me-2"></i> Customer Accounts
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4" id="customerAccountsModalBody">
+        <div class="text-center py-4 text-muted">Loading account data...</div>
+      </div>
+      <div class="modal-footer border-top-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function filterCustomerList() {
+    const q = document.getElementById('customerSearchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('.customer-row');
+    rows.forEach(row => {
+      const name = row.querySelector('.customer-name').innerText.toLowerCase();
+      const email = row.querySelector('.customer-email').innerText.toLowerCase();
+      if (!q || name.includes(q) || email.includes(q)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  async function viewCustomerAccounts(userId, name) {
+    document.getElementById('customerModalTitle').innerText = `${name}'s Accounts`;
+    const body = document.getElementById('customerAccountsModalBody');
+    body.innerHTML = '<div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Loading accounts...</div>';
+
+    new bootstrap.Modal(document.getElementById('customerAccountsModal')).show();
+
+    try {
+      const res = await fetch(`/api/accounts?user_id=${userId}`);
+      if (!res.ok) {
+        body.innerHTML = '<div class="alert alert-danger">Failed to fetch customer accounts</div>';
+        return;
+      }
+      const accounts = await res.json();
+      if (!accounts || accounts.length === 0) {
+        body.innerHTML = '<div class="text-center py-4 text-muted">No accounts open for this customer yet.</div>';
+        return;
+      }
+
+      body.innerHTML = `
+        <div class="table-responsive">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <th>Account Number</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Ledger Balance</th>
+                <th>Available</th>
+                <th>Version</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${accounts.map(a => `
+                <tr>
+                  <td><span class="font-monospace fw-bold">${a.account_number}</span></td>
+                  <td><span class="badge bg-light text-dark">${a.account_type}</span></td>
+                  <td><span class="badge bg-success-subtle text-success">${a.status}</span></td>
+                  <td><span class="fw-bold text-primary">₹${parseFloat(a.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></td>
+                  <td><span class="fw-bold text-success">₹${parseFloat(a.available_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></td>
+                  <td><span class="badge bg-secondary-subtle text-dark">v${a.version_number}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } catch (e) {
+      body.innerHTML = '<div class="alert alert-danger">Network error loading accounts</div>';
+    }
+  }
+</script>
+{% endblock %}

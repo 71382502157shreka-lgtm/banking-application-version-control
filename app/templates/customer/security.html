@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Security &amp; Activity{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1">Security &amp; Activity</h2>
+      <p class="text-muted mb-0">Manage your credentials, monitor session events, and view security audit logs.</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Security Status & Change Password -->
+    <div class="col-12 col-lg-5">
+      <!-- Status Card -->
+      <div class="fin-card mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-shield-check text-success me-2"></i> Account Protection</h5>
+        <div class="list-group list-group-flush small">
+          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+            <span>Account Status</span>
+            <span class="badge bg-success-subtle text-success">ACTIVE &bull; UNLOCKED</span>
+          </div>
+          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+            <span>CSRF Defense</span>
+            <span class="badge bg-primary-subtle text-primary">ENABLED</span>
+          </div>
+          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+            <span>Password Protection</span>
+            <span class="badge bg-info-subtle text-info">PBKDF2 SHA-256</span>
+          </div>
+          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+            <span>Failed Attempt Lockout</span>
+            <span class="text-muted">Active (Max 5 attempts)</span>
+          </div>
+          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+            <span>Last Successful Login</span>
+            <span class="text-muted">{{ current_user.last_login_at.strftime('%d %b %Y, %H:%M') if current_user.last_login_at else 'Current Session' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Password Form -->
+      <div class="fin-card">
+        <h5 class="fw-bold mb-3"><i class="bi bi-key text-primary me-2"></i> Change Password</h5>
+        <form id="changePasswordForm">
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Current Password</label>
+            <input type="password" class="form-control" id="currentPassword" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">New Password</label>
+            <input type="password" class="form-control" id="newPassword" required minlength="8">
+            <div class="form-text">Must be &ge;8 chars with uppercase, lowercase, and a digit.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Confirm New Password</label>
+            <input type="password" class="form-control" id="confirmNewPassword" required minlength="8">
+          </div>
+          <button type="submit" class="btn btn-primary w-100 shadow-sm" id="changePasswordSubmitBtn">
+            Update Password
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Security Audit Logs Table -->
+    <div class="col-12 col-lg-7">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">Security Audit Trail</h5>
+            <small class="text-muted">Immutable events recorded for your user ID</small>
+          </div>
+          <span class="badge bg-light text-dark">User #{{ current_user.id }}</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="fin-table align-middle">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>Description</th>
+                <th>IP Address</th>
+              </tr>
+            </thead>
+            <tbody id="userAuditTableBody">
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted">
+                  <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                  Loading security events...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    loadUserSecurityAudit();
+  });
+
+  async function loadUserSecurityAudit() {
+    try {
+      const res = await fetch('/api/audit-logs');
+      if (!res.ok) {
+        document.getElementById('userAuditTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No security activity logged.</td></tr>';
+        return;
+      }
+      const logs = await res.json();
+      renderUserAudit(logs);
+    } catch (e) {
+      document.getElementById('userAuditTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Security logs active.</td></tr>';
+    }
+  }
+
+  function renderUserAudit(logs) {
+    const tbody = document.getElementById('userAuditTableBody');
+    if (!logs || logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No audit events recorded yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = logs.slice(0, 15).map(l => {
+      const dateStr = l.created_at ? new Date(l.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : 'Recent';
+      let badgeClass = 'bg-secondary-subtle text-secondary';
+      if (l.action.includes('LOGIN')) badgeClass = 'bg-primary-subtle text-primary';
+      else if (l.action.includes('PASSWORD')) badgeClass = 'bg-danger-subtle text-danger';
+      else if (l.action.includes('TRANSFER') || l.action.includes('DEPOSIT')) badgeClass = 'bg-success-subtle text-success';
+
+      return `
+        <tr>
+          <td><span class="small">${dateStr}</span></td>
+          <td><span class="badge ${badgeClass}">${l.action}</span></td>
+          <td><span class="small fw-medium">${l.description || '-'}</span></td>
+          <td><span class="font-monospace small text-muted">${l.ip_address || '127.0.0.1'}</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const old_password = document.getElementById('currentPassword').value;
+    const new_password = document.getElementById('newPassword').value;
+    const confirm_password = document.getElementById('confirmNewPassword').value;
+
+    if (new_password !== confirm_password) {
+      showToast('New passwords do not match', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('changePasswordSubmitBtn');
+    btn.disabled = true;
+    btn.innerText = 'Updating...';
+
+    try {
+      const res = await fetch('/api/security/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old_password, new_password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Password changed successfully!', 'success');
+        document.getElementById('changePasswordForm').reset();
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(data.error || 'Failed to change password', 'danger');
+        btn.disabled = false;
+        btn.innerText = 'Update Password';
+      }
+    } catch (err) {
+      showToast('Network error changing password', 'danger');
+      btn.disabled = false;
+      btn.innerText = 'Update Password';
+    }
+  });
+</script>
+{% endblock %}

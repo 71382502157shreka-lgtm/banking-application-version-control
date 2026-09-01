@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Version Control Review{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-git text-primary me-2"></i> Version Control Inspector</h2>
+      <p class="text-muted mb-0">Review entity snapshot history across all banking entities with field-level diffs.</p>
+    </div>
+  </div>
+
+  <div class="fin-card">
+    <div class="table-responsive">
+      <table class="fin-table align-middle">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Entity Type</th>
+            <th>ID</th>
+            <th>Version</th>
+            <th>Change Type</th>
+            <th>Change Summary</th>
+            <th>Changed By</th>
+            <th class="text-end">Compare</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in versions %}
+          <tr>
+            <td><span class="small">{{ v.created_at.strftime('%d %b %Y, %H:%M') if v.created_at else 'Recent' }}</span></td>
+            <td><span class="badge bg-secondary-subtle text-secondary">{{ v.entity_type }}</span></td>
+            <td><span class="font-monospace small">#{{ v.entity_id }}</span></td>
+            <td><span class="badge bg-primary text-white">v{{ v.version_number }}</span></td>
+            <td><span class="badge bg-light text-dark">{{ v.change_type }}</span></td>
+            <td><span class="small fw-medium">{{ v.change_summary or v.change_type }}</span></td>
+            <td><span class="small text-muted">User #{{ v.changed_by or 'System' }}</span></td>
+            <td class="text-end">
+              {% if v.version_number > 1 %}
+              <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="compareVersionsStaff('{{ v.entity_type }}', {{ v.entity_id }}, {{ v.version_number - 1 }}, {{ v.version_number }})">
+                <i class="bi bi-file-diff me-1"></i> Diff v{{ v.version_number - 1 }} &harr; v{{ v.version_number }}
+              </button>
+              {% else %}
+              <span class="text-muted small">v1 Initial</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center py-4 text-muted">No version history records found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Diff Modal -->
+<div class="modal fade" id="staffDiffModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-file-diff text-primary me-2"></i> Version Diff Inspection
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4">
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Field</th>
+                <th>Old Version Value</th>
+                <th>New Version Value</th>
+                <th>Diff Status</th>
+              </tr>
+            </thead>
+            <tbody id="staffDiffTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer border-top-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function compareVersionsStaff(entity_type, entity_id, v1, v2) {
+    try {
+      const res = await fetch(`/api/versions/compare?entity_type=${entity_type}&entity_id=${entity_id}&v1=${v1}&v2=${v2}`);
+      if (!res.ok) {
+        showToast('Failed to load version diff', 'danger');
+        return;
+      }
+      const data = await res.json();
+      const tbody = document.getElementById('staffDiffTableBody');
+      const fields = data.fields || {};
+
+      tbody.innerHTML = Object.entries(fields).map(([fieldName, diffInfo]) => {
+        let rowClass = '';
+        let badge = '<span class="badge bg-light text-dark">SAME</span>';
+
+        if (diffInfo.status === 'modified') {
+          rowClass = 'diff-row-modified';
+          badge = '<span class="badge bg-warning text-dark">MODIFIED</span>';
+        } else if (diffInfo.status === 'added') {
+          rowClass = 'diff-row-added';
+          badge = '<span class="badge bg-success">ADDED</span>';
+        } else if (diffInfo.status === 'removed') {
+          rowClass = 'diff-row-removed';
+          badge = '<span class="badge bg-danger">REMOVED</span>';
+        }
+
+        const oldVal = diffInfo.old !== null && diffInfo.old !== undefined ? JSON.stringify(diffInfo.old) : 'null';
+        const newVal = diffInfo.new !== null && diffInfo.new !== undefined ? JSON.stringify(diffInfo.new) : 'null';
+
+        return `
+          <tr class="${rowClass}">
+            <td class="fw-bold font-monospace small">${fieldName}</td>
+            <td><span class="${diffInfo.status === 'modified' ? 'diff-val-old' : 'small'}">${oldVal}</span></td>
+            <td><span class="${diffInfo.status === 'modified' ? 'diff-val-new' : 'small'}">${newVal}</span></td>
+            <td>${badge}</td>
+          </tr>
+        `;
+      }).join('');
+
+      new bootstrap.Modal(document.getElementById('staffDiffModal')).show();
+    } catch (e) {
+      showToast('Network error loading diff', 'danger');
+    }
+  }
+</script>
+{% endblock %}

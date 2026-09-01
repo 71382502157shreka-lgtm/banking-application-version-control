@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-sliders text-primary me-2"></i> System Configuration</h2>
+      <p class="text-muted mb-0">Configure banking parameters, security policies, and versioning engines.</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-lg-8">
+      <div class="fin-card">
+        <h5 class="fw-bold mb-3">Banking &amp; Security Policies</h5>
+        <form onsubmit="event.preventDefault(); showToast('System configuration saved & versioned!', 'success');">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold small">Institution Name</label>
+              <input type="text" class="form-control" value="BankVCS Digital Core" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold small">Currency Code</label>
+              <input type="text" class="form-control" value="INR (₹)" disabled>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold small">Daily Transfer Limit (₹)</label>
+              <input type="number" class="form-control" value="500000" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold small">Max Failed Login Attempts</label>
+              <input type="number" class="form-control" value="5" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold small">Session Timeout (Minutes)</label>
+              <input type="number" class="form-control" value="30" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold small">Version Control Diff Engine</label>
+              <select class="form-select">
+                <option selected>Deep JSON State Diff (Active)</option>
+                <option>Line-by-line Text Diff</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="alert alert-info py-2 small mb-4">
+            <i class="bi bi-shield-lock me-1"></i> Changes to critical system parameters automatically log an administrative audit trail.
+          </div>
+
+          <button type="submit" class="btn btn-primary px-4 shadow-sm">
+            <i class="bi bi-save me-1"></i> Save Configuration
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <div class="fin-card">
+        <h5 class="fw-bold mb-3"><i class="bi bi-info-circle text-primary me-2"></i> Engine Status</h5>
+        <div class="list-group list-group-flush small">
+          <div class="list-group-item px-0 d-flex justify-content-between">
+            <span>VCS Engine</span>
+            <span class="badge bg-success-subtle text-success">OPERATIONAL</span>
+          </div>
+          <div class="list-group-item px-0 d-flex justify-content-between">
+            <span>Audit Subsystem</span>
+            <span class="badge bg-success-subtle text-success">IMMUTABLE</span>
+          </div>
+          <div class="list-group-item px-0 d-flex justify-content-between">
+            <span>CSRF Shield</span>
+            <span class="badge bg-primary-subtle text-primary">ENFORCED</span>
+          </div>
+          <div class="list-group-item px-0 d-flex justify-content-between">
+            <span>Database Backend</span>
+            <span class="text-muted">SQLite3 (Thread-Safe)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

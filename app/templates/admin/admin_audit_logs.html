@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}System Audit Logs{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-journal-code text-primary me-2"></i> System Audit Trail</h2>
+      <p class="text-muted mb-0">Immutable, signed activity stream capturing every security, banking, and administrative action.</p>
+    </div>
+  </div>
+
+  <div class="fin-card">
+    <div class="table-responsive">
+      <table class="fin-table align-middle">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>Entity</th>
+            <th>Entity ID</th>
+            <th>Actor (User)</th>
+            <th>Description</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in logs %}
+          <tr>
+            <td><span class="small">{{ l.created_at.strftime('%d %b %Y, %H:%M:%S') if l.created_at else 'Recent' }}</span></td>
+            <td>
+              {% if 'LOGIN' in l.action %}
+                <span class="badge bg-primary-subtle text-primary">{{ l.action }}</span>
+              {% elif 'PASSWORD' in l.action or 'FAIL' in l.action %}
+                <span class="badge bg-danger-subtle text-danger">{{ l.action }}</span>
+              {% elif 'TRANSFER' in l.action or 'DEPOSIT' in l.action or 'WITHDRAW' in l.action %}
+                <span class="badge bg-success-subtle text-success">{{ l.action }}</span>
+              {% else %}
+                <span class="badge bg-light text-dark">{{ l.action }}</span>
+              {% endif %}
+            </td>
+            <td><span class="badge bg-secondary-subtle text-secondary">{{ l.entity_type or '-' }}</span></td>
+            <td><span class="font-monospace small">{{ '#' ~ l.entity_id if l.entity_id else '-' }}</span></td>
+            <td><span class="small text-primary">User #{{ l.user_id or 'System' }}</span></td>
+            <td><span class="small fw-medium">{{ l.description or '-' }}</span></td>
+            <td><span class="font-monospace small text-muted">{{ l.ip_address or '127.0.0.1' }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center py-4 text-muted">No audit logs recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-people text-primary me-2"></i> User Directory &amp; RBAC</h2>
+      <p class="text-muted mb-0">Manage customer and staff access, activate/deactivate accounts, and inspect roles.</p>
+    </div>
+  </div>
+
+  <div class="fin-card">
+    <div class="table-responsive">
+      <table class="fin-table align-middle">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Name &amp; Username</th>
+            <th>Email &amp; Phone</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Failed Logins</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td><span class="font-monospace small">#{{ u.id }}</span></td>
+            <td>
+              <div class="fw-bold">{{ u.full_name or u.username }}</div>
+              <div class="text-muted small">@{{ u.username }}</div>
+            </td>
+            <td>
+              <div class="small">{{ u.email }}</div>
+              <div class="text-muted small">{{ u.phone or 'N/A' }}</div>
+            </td>
+            <td>
+              <span class="role-badge role-{{ u.role }}">{{ u.role|upper }}</span>
+            </td>
+            <td>
+              {% if u.status == 'active' %}
+              <span class="badge bg-success-subtle text-success">ACTIVE</span>
+              {% else %}
+              <span class="badge bg-danger-subtle text-danger">{{ u.status|upper }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.failed_login_attempts > 0 %}
+              <span class="badge bg-warning text-dark">{{ u.failed_login_attempts }} failed</span>
+              {% else %}
+              <span class="text-muted small">0</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="text-muted small">{{ u.created_at.strftime('%d %b %Y') if u.created_at else 'Recent' }}</span>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center py-4 text-muted">No users found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
