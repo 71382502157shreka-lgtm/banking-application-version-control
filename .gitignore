@@ -1,25 +1,48 @@
-# Python & Bytecode
+# Python bytecode & cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-.env
 
-# Testing & Cache
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
+.nox/
 
-# Local databases & instances
+# SQLite & Databases
 instance/
+instance/*.db
+*.sqlite
 *.sqlite3
+*.db
 *.db-journal
 
-# IDEs
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Logs
+*.log
+logs/
+
+# IDE & OS Specific
 .vscode/
 .idea/
 *.swp
+*.swo
+.DS_Store
+Thumbs.db
