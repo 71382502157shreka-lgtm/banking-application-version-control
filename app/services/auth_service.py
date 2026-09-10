@@ -40,6 +40,10 @@ def register_user(username, email, password, full_name=None, phone=None, role=Ro
         change_summary="Account registered",
         audit_action=AuditAction.REGISTER,
     )
+    if role == Role.CUSTOMER:
+        from app.services.banking_service import create_account
+        create_account(user.id, "Savings")
+
     db.session.commit()
     return user
 

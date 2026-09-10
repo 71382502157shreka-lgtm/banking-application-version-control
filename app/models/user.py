@@ -43,6 +43,10 @@ class User(db.Model, UserMixin):
     def check_password(self, raw_password: str) -> bool:
         return check_password_hash(self.password_hash, raw_password)
 
+    @property
+    def is_active(self):
+        return self.status == "active" and not self.is_locked()
+
     # -- lockout logic --------------------------------------------------
     def is_locked(self) -> bool:
         return bool(self.locked_until and self.locked_until > datetime.utcnow())

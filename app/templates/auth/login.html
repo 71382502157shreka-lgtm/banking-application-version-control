@@ -1,63 +1,155 @@
 {% extends "base.html" %}
-{% block title %}Sign In{% endblock %}
+{% block title %}Sign In — BankVCS 2.0 Cyber Edition{% endblock %}
 
 {% block public_body %}
-<div class="row justify-content-center align-items-center py-4">
-  <div class="col-12 col-md-8 col-lg-5">
-    <div class="auth-card">
-      <div class="text-center mb-4">
-        <div class="brand-icon mx-auto mb-3" style="width: 48px; height: 48px; font-size: 1.5rem;">
-          <i class="bi bi-bank2"></i>
-        </div>
-        <h3 class="fw-bold mb-1">Welcome to BankVCS</h3>
-        <p class="text-muted small">Sign in to your secure, version-controlled banking portal</p>
-      </div>
+<div class="row g-0 justify-content-center align-items-center min-vh-80 py-3">
+  <div class="col-12 col-md-11 col-lg-9 col-xl-8">
+    <!-- Non-Rectangular Organic Cyber Shape Container (Size Decreased & Curved Cuts) -->
+    <div class="fin-card p-0 overflow-hidden shadow-lg border-0" style="border-radius: 40px 14px 40px 14px; border: 1px solid rgba(139, 92, 246, 0.35) !important;">
+      <div class="row g-0">
+        <!-- Left Branding & Animated Cyber Hero -->
+        <div class="col-12 col-lg-6 p-3 p-md-4 text-white d-flex flex-column justify-content-between position-relative" style="background: linear-gradient(135deg, #0a0515 0%, #2e1065 50%, #701a75 100%);">
+          <!-- Animated Background Grid -->
+          <div class="position-absolute top-0 start-0 w-100 h-100 opacity-20 pointer-events-none" style="background-image: radial-gradient(rgba(245, 158, 11, 0.2) 1px, transparent 1px); background-size: 22px 22px;"></div>
+          
+          <div class="position-relative z-1 mb-3">
+            <!-- Animated Mascot Badge -->
+            <div class="anime-mascot-container mb-3">
+              <div class="anime-mascot-avatar" style="width: 32px; height: 32px;">
+                <i class="bi bi-robot text-dark fs-6"></i>
+              </div>
+              <span class="small fw-bold text-white tracking-wide" style="font-size: 0.78rem;">
+                <i class="bi bi-shield-lock-fill text-warning me-1"></i> BankVCS Sentinel AI
+              </span>
+            </div>
 
-      <form method="post" id="loginForm">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        
-        <div class="mb-3">
-          <label class="form-label fw-semibold small">Username</label>
-          <div class="input-group">
-            <span class="input-group-text bg-light text-muted"><i class="bi bi-person"></i></span>
-            <input type="text" class="form-control" name="username" id="loginUsername" placeholder="Enter your username" required autofocus>
+            <div class="d-flex align-items-center gap-2.5 mb-3">
+              <div class="brand-icon shadow-lg" style="width: 42px; height: 42px; font-size: 1.3rem; border-radius: 12px; background: var(--primary-gradient);">
+                <i class="bi bi-cpu-fill"></i>
+              </div>
+              <div>
+                <h4 class="fw-extrabold mb-0 tracking-tight" style="font-family: var(--font-heading);">BankVCS 2.0</h4>
+                <span class="badge bg-white-10 text-warning border border-warning-subtle px-2 py-0.5 rounded-pill small" style="font-size: 0.65rem;">
+                  <i class="bi bi-git me-1"></i> Database Version Control
+                </span>
+              </div>
+            </div>
+
+            <h2 class="fw-bold h4 mb-2" style="font-family: var(--font-heading);">
+              Next-Gen Cyber Banking &amp; Version Control
+            </h2>
+            <p class="text-white-50 small mb-3 leading-relaxed" style="font-size: 0.84rem;">
+              Secure multi-role portal access with cryptographic audit chain protection, Maker-Checker rollback capabilities, and live transaction ledger verification.
+            </p>
+
+            <div class="p-2.5 mb-3 position-relative z-1" style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(10px); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 18px 8px 18px 8px;">
+              <div class="small text-warning fw-bold mb-0.5" style="font-size: 0.75rem;"><i class="bi bi-quote me-1"></i> Sentinel Security Motto:</div>
+              <div class="small italic text-white-90" style="font-size: 0.8rem;">"Trust is built on immutable auditability and transparent version control."</div>
+            </div>
+          </div>
+
+          <!-- Organic Cyber Feature Pills (Non-Rectangular) -->
+          <div class="position-relative z-1 d-flex flex-column gap-2 mb-3">
+            <div class="d-flex align-items-start gap-2.5 p-2.5" style="background: rgba(255, 255, 255, 0.06); backdrop-filter: blur(10px); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 20px 8px 20px 8px;">
+              <div class="stat-icon-wrapper text-white flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.95rem; border-radius: 10px; background: var(--gold-gradient);">
+                <i class="bi bi-git"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0.5 text-white" style="font-size: 0.82rem;">Database Version Control</h6>
+                <p class="small text-white-50 mb-0" style="font-size: 0.75rem;">Git-like automatic snapshotting with field-level side-by-side diffing.</p>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-start gap-2.5 p-2.5" style="background: rgba(255, 255, 255, 0.06); backdrop-filter: blur(10px); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px 20px 8px 20px;">
+              <div class="stat-icon-wrapper text-white flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.95rem; border-radius: 10px; background: var(--plum-gradient);">
+                <i class="bi bi-shield-check"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0.5 text-white" style="font-size: 0.82rem;">Tamper-Evident Audit Chain</h6>
+                <p class="small text-white-50 mb-0" style="font-size: 0.75rem;">Cryptographic SHA-256 hash pointer chain ensuring zero log tampering.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="position-relative z-1 d-flex justify-content-between align-items-center pt-2 border-top border-white-10 text-white-50 small" style="font-size: 0.72rem;">
+            <span>&copy; 2026 BankVCS Inc.</span>
+            <span class="d-flex align-items-center gap-1 text-warning fw-semibold"><i class="bi bi-shield-lock-fill"></i> FIPS 140-2 Engine</span>
           </div>
         </div>
 
-        <div class="mb-4">
-          <div class="d-flex justify-content-between">
-            <label class="form-label fw-semibold small">Password</label>
+        <!-- Right Login Form Section (Compact & Styled Background) -->
+        <div class="col-12 col-lg-6 p-3 p-md-4 d-flex flex-column justify-content-center" style="background: var(--card-bg);">
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <h4 class="fw-bold mb-0" style="font-family: var(--font-heading);">Sign In to Account</h4>
+              <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-2 py-1 rounded-pill small" style="font-size: 0.68rem;">
+                <i class="bi bi-stars me-1"></i> Cyber Edition
+              </span>
+            </div>
+            <p class="text-muted small mb-0" style="font-size: 0.8rem;">Select your portal role and enter credentials to continue</p>
           </div>
-          <div class="input-group">
-            <span class="input-group-text bg-light text-muted"><i class="bi bi-lock"></i></span>
-            <input type="password" class="form-control" name="password" id="loginPassword" placeholder="Enter your password" required>
+
+          <form method="post" id="loginForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="mb-2.5">
+              <label class="form-label fw-semibold small text-uppercase text-muted" style="font-size: 0.7rem;">Username</label>
+              <div class="input-group">
+                <span class="input-group-text bg-body-tertiary text-muted" style="border-radius: 12px 0 0 12px;"><i class="bi bi-person"></i></span>
+                <input type="text" class="form-control" name="username" id="loginUsername" placeholder="Enter username (e.g. sarika, staff1, admin1)" style="border-radius: 0 12px 12px 0; font-size: 0.85rem;" required autofocus>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold small text-uppercase text-muted" style="font-size: 0.7rem;">Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-body-tertiary text-muted" style="border-radius: 12px 0 0 12px;"><i class="bi bi-lock"></i></span>
+                <input type="password" class="form-control" name="password" id="loginPassword" placeholder="Enter account password" style="border-radius: 0 12px 12px 0; font-size: 0.85rem;" required>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 shadow-sm mb-3 fw-bold py-2" style="background: var(--primary-gradient); border: none; border-radius: 14px; font-size: 0.9rem;">
+              <i class="bi bi-box-arrow-in-right me-1.5"></i> Authenticate &amp; Access Portal
+            </button>
+          </form>
+
+          <!-- Quick Demo Credentials Selection -->
+          <div class="p-2.5 bg-body-tertiary border mb-2.5" style="border-radius: 16px;">
+            <div class="d-flex justify-content-between align-items-center mb-1.5">
+              <span class="small fw-bold text-uppercase text-muted" style="font-size: 0.68rem;">Quick Demo Test Accounts</span>
+              <span class="badge bg-purple-subtle text-purple" style="font-size: 0.62rem;">Auto-fill</span>
+            </div>
+            <div class="d-flex flex-wrap gap-1.5">
+              <button type="button" class="btn btn-xs btn-outline-warning flex-fill fw-semibold py-1 px-2" style="border-radius: 10px; font-size: 0.75rem;" onclick="fillLogin('sarika', 'Password123')">
+                <i class="bi bi-person-fill me-1"></i> Customer (sarika)
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-secondary flex-fill fw-semibold py-1 px-2" style="border-radius: 10px; font-size: 0.75rem;" onclick="fillLogin('staff1', 'Password123')">
+                <i class="bi bi-person-badge-fill me-1"></i> Employee (staff1)
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-danger flex-fill fw-semibold py-1 px-2" style="border-radius: 10px; font-size: 0.75rem;" onclick="fillLogin('admin1', 'Password123')">
+                <i class="bi bi-shield-lock-fill me-1"></i> Admin (admin1)
+              </button>
+            </div>
+          </div>
+
+          <!-- Account Registration Options for All Three Roles -->
+          <div class="p-2.5 bg-body-tertiary border" style="border-radius: 16px;">
+            <div class="text-center small text-muted mb-1.5 fw-semibold" style="font-size: 0.75rem;">
+              <i class="bi bi-person-plus-fill me-1 text-warning"></i> Create a New Account:
+            </div>
+            <div class="d-flex flex-wrap gap-1.5">
+              <a href="{{ url_for('auth.register') }}" class="btn btn-xs btn-outline-warning flex-fill text-decoration-none fw-semibold py-1 px-2" style="border-radius: 10px; font-size: 0.75rem;">
+                <i class="bi bi-person-fill me-1"></i> Customer
+              </a>
+              <a href="{{ url_for('auth.employee_register') }}" class="btn btn-xs btn-outline-secondary flex-fill text-decoration-none fw-semibold py-1 px-2" style="border-radius: 10px; font-size: 0.75rem;">
+                <i class="bi bi-person-badge-fill me-1"></i> Employee
+              </a>
+              <a href="{{ url_for('auth.admin_register') }}" class="btn btn-xs btn-outline-danger flex-fill text-decoration-none fw-semibold py-1 px-2" style="border-radius: 10px; font-size: 0.75rem;">
+                <i class="bi bi-shield-lock-fill me-1"></i> Admin
+              </a>
+            </div>
           </div>
         </div>
-
-        <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm mb-3">
-          <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Account
-        </button>
-      </form>
-
-      <!-- Quick Demo Credentials Fill -->
-      <div class="p-3 bg-light rounded-3 mb-3 border">
-        <div class="small fw-bold text-muted text-uppercase mb-2" style="font-size: 0.7rem;">Demo Test Accounts</div>
-        <div class="d-flex flex-wrap gap-1">
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillLogin('sarika', 'Password123')">
-            <i class="bi bi-person me-1"></i> Customer
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillLogin('staff1', 'Password123')">
-            <i class="bi bi-shield me-1"></i> Employee
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillLogin('admin1', 'Password123')">
-            <i class="bi bi-gear me-1"></i> Admin
-          </button>
-        </div>
-      </div>
-
-      <div class="text-center small text-muted">
-        Don't have an account yet? 
-        <a href="{{ url_for('auth.register') }}" class="text-primary fw-bold text-decoration-none">Open an Account</a>
       </div>
     </div>
   </div>
