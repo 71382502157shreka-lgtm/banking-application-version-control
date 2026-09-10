@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Open Customer Account — BankVCS 2.0{% endblock %}
+{% block title %}{{ role_title }} Registration — BankVCS 2.0{% endblock %}
 
 {% block public_body %}
 <div class="row g-0 justify-content-center align-items-center min-vh-80 py-3">
@@ -7,80 +7,89 @@
     <div class="fin-card p-0 overflow-hidden shadow-lg border-0" style="border-radius: 40px 14px 40px 14px; border: 1px solid rgba(139, 92, 246, 0.35) !important;">
       <div class="row g-0">
         <!-- Left Hero Section -->
-        <div class="col-12 col-lg-5 p-3 p-md-4 text-white d-flex flex-column justify-content-between position-relative" style="background: linear-gradient(135deg, #0b1329 0%, #064e3b 50%, #065f46 100%);">
+        <div class="col-12 col-lg-5 p-3 p-md-4 text-white d-flex flex-column justify-content-between position-relative" style="background: linear-gradient(135deg, #0b1329 0%, #311b92 50%, #4c1d95 100%);">
           <div class="position-relative z-1 mb-3">
             <div class="d-flex align-items-center gap-2.5 mb-3">
-              <div class="brand-icon shadow-lg" style="width: 42px; height: 42px; font-size: 1.3rem; border-radius: 12px; background: var(--emerald-gradient);">
-                <i class="bi bi-person-plus-fill"></i>
+              <div class="brand-icon shadow-lg" style="width: 42px; height: 42px; font-size: 1.3rem; border-radius: 12px; background: var(--plum-gradient);">
+                <i class="bi bi-shield-lock-fill"></i>
               </div>
               <div>
                 <h4 class="fw-extrabold mb-0 tracking-tight" style="font-family: var(--font-heading);">BankVCS 2.0</h4>
                 <span class="badge bg-white-10 text-white border border-white-20 px-2 py-0.5 rounded-pill small" style="font-size: 0.65rem;">
-                  Customer Onboarding
+                  Staff &amp; Admin Enrollment
                 </span>
               </div>
             </div>
 
             <h2 class="fw-bold h4 mb-2" style="font-family: var(--font-heading);">
-              Open Your Instant Version-Controlled Account
+              {{ role_title }} Restricted Registration
             </h2>
             <p class="text-white-50 small leading-relaxed mb-3" style="font-size: 0.84rem;">
-              Get immediate access to digital savings, real-time fund transfers, transparent rule risk checks, and full immutable audit history.
+              Authorized onboarding portal for bank officers, auditors, and system administrators. Requires valid role secret key verification.
             </p>
           </div>
 
           <div class="position-relative z-1 d-flex flex-column gap-2 mb-3">
             <div class="d-flex align-items-center gap-2.5 p-2" style="background: rgba(255, 255, 255, 0.1); border-radius: 16px 8px 16px 8px;">
               <div class="stat-icon-wrapper text-white flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.9rem; border-radius: 10px; background: rgba(255, 255, 255, 0.15);">
-                <i class="bi bi-shield-check"></i>
+                <i class="bi bi-key-fill"></i>
               </div>
-              <span class="small text-white-80 fw-medium" style="font-size: 0.78rem;">Zero Fee Instant Account Provisioning</span>
+              <span class="small text-white-80 fw-medium" style="font-size: 0.78rem;">Master Authorization Key Verified</span>
             </div>
             <div class="d-flex align-items-center gap-2.5 p-2" style="background: rgba(255, 255, 255, 0.1); border-radius: 8px 16px 8px 16px;">
               <div class="stat-icon-wrapper text-white flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.9rem; border-radius: 10px; background: rgba(255, 255, 255, 0.15);">
-                <i class="bi bi-git"></i>
+                <i class="bi bi-journal-code"></i>
               </div>
-              <span class="small text-white-80 fw-medium" style="font-size: 0.78rem;">Automated Version Snapshots</span>
+              <span class="small text-white-80 fw-medium" style="font-size: 0.78rem;">Full Audit Trail &amp; Signatures</span>
             </div>
           </div>
 
           <div class="position-relative z-1 pt-2 border-top border-white-10 text-white-50 small" style="font-size: 0.72rem;">
-            <span>&copy; 2026 BankVCS Inc. &bull; Secure Digital Onboarding</span>
+            <span>&copy; 2026 BankVCS Inc. &bull; Enterprise Staff Portal</span>
           </div>
         </div>
 
-        <!-- Right Register Form Section -->
+        <!-- Right Form Section -->
         <div class="col-12 col-lg-7 p-3 p-md-4 d-flex flex-column justify-content-center" style="background: var(--card-bg);">
           <div class="mb-3">
-            <h4 class="fw-bold mb-1" style="font-family: var(--font-heading);">Create Customer Profile</h4>
-            <p class="text-muted small mb-0" style="font-size: 0.8rem;">Fill in your information to open a new digital banking account</p>
+            <h4 class="fw-bold mb-1" style="font-family: var(--font-heading);">Register {{ role_title }} Account</h4>
+            <p class="text-muted small mb-0" style="font-size: 0.8rem;">Enter master key and official details to enroll as {{ target_role|upper }}</p>
           </div>
 
-          <form method="post" id="registerForm">
+          <form method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold small text-uppercase text-danger">Authorization Key *</label>
+              <div class="input-group">
+                <span class="input-group-text bg-danger-subtle text-danger"><i class="bi bi-key-fill"></i></span>
+                <input type="password" class="form-control border-danger-subtle" name="auth_key" placeholder="Enter {{ role_title }} secret authorization key" required>
+              </div>
+              <div class="form-text text-muted small mt-1">Secret key required to grant {{ target_role|upper }} system permissions.</div>
+            </div>
 
             <div class="row g-3 mb-3">
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small text-uppercase text-muted">Full Name</label>
+                <label class="form-label fw-semibold small text-uppercase text-muted">Official Full Name</label>
                 <div class="input-group">
                   <span class="input-group-text bg-body-tertiary text-muted"><i class="bi bi-person"></i></span>
-                  <input type="text" class="form-control" name="full_name" placeholder="e.g. Sarika M" required>
+                  <input type="text" class="form-control" name="full_name" placeholder="Official Full Name">
                 </div>
               </div>
 
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small text-uppercase text-muted">Username</label>
+                <label class="form-label fw-semibold small text-uppercase text-muted">Username *</label>
                 <div class="input-group">
                   <span class="input-group-text bg-body-tertiary text-muted"><i class="bi bi-at"></i></span>
-                  <input type="text" class="form-control" name="username" placeholder="e.g. sarika_m" required>
+                  <input type="text" class="form-control" name="username" placeholder="Choose a username" required>
                 </div>
               </div>
 
               <div class="col-12 col-sm-6">
-                <label class="form-label fw-semibold small text-uppercase text-muted">Email Address</label>
+                <label class="form-label fw-semibold small text-uppercase text-muted">Email Address *</label>
                 <div class="input-group">
                   <span class="input-group-text bg-body-tertiary text-muted"><i class="bi bi-envelope"></i></span>
-                  <input type="email" class="form-control" name="email" placeholder="sarika@example.com" required>
+                  <input type="email" class="form-control" name="email" placeholder="Official Email Address" required>
                 </div>
               </div>
 
@@ -88,27 +97,26 @@
                 <label class="form-label fw-semibold small text-uppercase text-muted">Phone Number</label>
                 <div class="input-group">
                   <span class="input-group-text bg-body-tertiary text-muted"><i class="bi bi-telephone"></i></span>
-                  <input type="tel" class="form-control" name="phone" placeholder="10-digit mobile">
+                  <input type="text" class="form-control" name="phone" placeholder="+1234567890">
                 </div>
               </div>
             </div>
 
             <div class="mb-4">
-              <label class="form-label fw-semibold small text-uppercase text-muted">Create Password</label>
+              <label class="form-label fw-semibold small text-uppercase text-muted">Password *</label>
               <div class="input-group">
-                <span class="input-group-text bg-body-tertiary text-muted"><i class="bi bi-key"></i></span>
-                <input type="password" class="form-control" name="password" placeholder="Min 8 chars with uppercase, lowercase & digit" required>
+                <span class="input-group-text bg-body-tertiary text-muted"><i class="bi bi-lock"></i></span>
+                <input type="password" class="form-control" name="password" placeholder="At least 8 chars with upper, lower &amp; number" required>
               </div>
-              <div class="form-text text-muted small mt-1">Must be &ge;8 characters, containing uppercase, lowercase, and a number.</div>
             </div>
 
-            <button type="submit" class="btn btn-success btn-lg w-100 shadow-sm mb-3 fw-bold py-2.5">
-              <i class="bi bi-check-circle-fill me-2"></i> Register &amp; Open Banking Profile
+            <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm mb-3 fw-bold py-2.5">
+              <i class="bi bi-check-circle-fill me-2"></i> Register {{ role_title }} Account
             </button>
           </form>
 
           <div class="text-center small text-muted">
-            Already have an account? 
+            Already registered? 
             <a href="{{ url_for('auth.login') }}" class="text-primary fw-bold text-decoration-none ms-1">Sign In Here</a>
           </div>
         </div>
