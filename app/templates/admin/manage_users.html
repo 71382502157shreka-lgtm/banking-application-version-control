@@ -6,13 +6,28 @@
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
       <h2 class="font-display fw-bold mb-1"><i class="bi bi-people-fill text-emerald-600 me-2"></i> User Directory &amp; Access Governance</h2>
-      <p class="text-muted small mb-0">Role-based access control (RBAC), user directory, and security lock telemetry.</p>
+      <p class="text-muted small mb-0">Role-based access control (RBAC), user directory, customer search, and security lock telemetry.</p>
     </div>
   </div>
 
-  <div class="card-custom p-0 overflow-hidden">
+  <!-- Search Card -->
+  <div class="card-custom p-3 mb-4">
+    <form method="GET" action="{{ request.path }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-8 col-lg-6">
+        <div class="input-group">
+          <span class="input-group-text bg-surface-elevated border-end-0"><i class="bi bi-search"></i></span>
+          <input type="text" name="search" class="form-control form-control-custom border-start-0" placeholder="Search by name, email, phone or username..." value="{{ search or '' }}">
+        </div>
+      </div>
+      <div class="col-12 col-md-4 col-lg-2">
+        <button type="submit" class="btn btn-emerald w-100">Search</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card-custom p-0 overflow-hidden mb-4">
     <div class="table-responsive">
-      <table class="table-custom align-middle">
+      <table class="table-custom align-middle mb-0">
         <thead>
           <tr>
             <th>User ID</th>
@@ -58,7 +73,12 @@
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="7" class="text-center py-5 text-muted">No registered users found.</td></tr>
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-person-x fs-2 d-block mb-2 text-secondary opacity-50"></i>
+              No registered users found matching the search criteria.
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>

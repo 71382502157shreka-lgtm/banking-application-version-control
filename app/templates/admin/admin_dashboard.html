@@ -6,69 +6,158 @@
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
       <h2 class="font-display fw-bold mb-1">System Administration Console</h2>
-      <p class="text-muted small mb-0">System metrics, version control engine status, SHA-256 audit verification, and global governance.</p>
+      <p class="text-muted small mb-0">System metrics, transaction monitoring, version control engine status, and governance.</p>
     </div>
     <div class="d-flex gap-2">
-      <a href="{{ url_for('admin.manage_users') }}" class="btn btn-emerald btn-sm d-flex align-items-center gap-1 shadow-sm">
+      <a href="{{ url_for('admin.transactions') }}" class="btn btn-emerald btn-sm d-flex align-items-center gap-1 shadow-sm">
+        <i class="bi bi-clock-history"></i> Monitor Transactions
+      </a>
+      <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline-custom btn-sm d-flex align-items-center gap-1">
         <i class="bi bi-people-fill"></i> Manage Users
       </a>
       <a href="{{ url_for('admin.version_history') }}" class="btn btn-outline-custom btn-sm d-flex align-items-center gap-1">
-        <i class="bi bi-git"></i> Version Control Board
+        <i class="bi bi-git"></i> Version History
       </a>
     </div>
   </div>
 
-  <!-- Key Metrics Row -->
-  <div class="row g-3 mb-4">
+  <!-- Key Statistics Grid Row 1 (Core Counts & Volumes) -->
+  <div class="row g-3 mb-3">
     <div class="col-12 col-sm-6 col-xl-3">
-      <div class="card-custom p-3">
+      <div class="card-custom p-3 h-100">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="text-muted text-xs text-uppercase font-semibold">Total System Users</span>
+          <span class="text-muted text-xs text-uppercase font-semibold">Total Customers</span>
           <div class="p-2 rounded-2 bg-emerald-50 text-emerald-600">
             <i class="bi bi-people fs-5"></i>
           </div>
         </div>
-        <div class="financial-num fs-3 text-emerald-600 mb-1">{{ total_users }}</div>
-        <div class="text-xs text-muted">{{ total_customers }} Customers &bull; {{ total_employees }} Staff</div>
+        <div class="financial-num fs-3 text-emerald-600 mb-1">{{ total_customers }}</div>
+        <div class="text-xs text-muted">{{ total_users }} Total System Accounts</div>
       </div>
     </div>
 
     <div class="col-12 col-sm-6 col-xl-3">
-      <div class="card-custom p-3">
+      <div class="card-custom p-3 h-100">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="text-muted text-xs text-uppercase font-semibold">System Volume</span>
+          <span class="text-muted text-xs text-uppercase font-semibold">Active vs Inactive Accounts</span>
           <div class="p-2 rounded-2 bg-purple-50 text-plum-600">
-            <i class="bi bi-cash-coin fs-5"></i>
+            <i class="bi bi-wallet2 fs-5"></i>
           </div>
         </div>
-        <div class="financial-num fs-3 text-plum-600 mb-1">₹{{ "{:,.2f}".format(total_volume) }}</div>
-        <div class="text-xs text-muted">{{ total_txns }} Ledger Transactions</div>
+        <div class="financial-num fs-3 text-plum-600 mb-1">{{ total_active_accounts }} <span class="fs-6 text-muted font-normal">Active</span></div>
+        <div class="text-xs text-muted">{{ total_inactive_accounts }} Inactive / Frozen Accounts</div>
       </div>
     </div>
 
     <div class="col-12 col-sm-6 col-xl-3">
-      <div class="card-custom p-3">
+      <div class="card-custom p-3 h-100">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="text-muted text-xs text-uppercase font-semibold">Entity Version Snapshots</span>
+          <span class="text-muted text-xs text-uppercase font-semibold">Total Transfer Volume</span>
           <div class="p-2 rounded-2 bg-amber-50 text-gold-600">
-            <i class="bi bi-git fs-5"></i>
+            <i class="bi bi-currency-rupee fs-5"></i>
           </div>
         </div>
-        <div class="financial-num fs-3 text-gold-600 mb-1">{{ total_versions }}</div>
-        <div class="text-xs text-muted">Immutable State Versions</div>
+        <div class="financial-num fs-3 text-gold-600 mb-1">₹{{ "{:,.2f}".format(total_transfer_amount) }}</div>
+        <div class="text-xs text-muted">Settled Fund Transfers</div>
       </div>
     </div>
 
     <div class="col-12 col-sm-6 col-xl-3">
-      <div class="card-custom p-3">
+      <div class="card-custom p-3 h-100">
         <div class="d-flex justify-content-between align-items-start mb-2">
-          <span class="text-muted text-xs text-uppercase font-semibold">SHA-256 Audit Logins</span>
+          <span class="text-muted text-xs text-uppercase font-semibold">Active Beneficiaries</span>
+          <div class="p-2 rounded-2 bg-emerald-50 text-emerald-600">
+            <i class="bi bi-person-check-fill fs-5"></i>
+          </div>
+        </div>
+        <div class="financial-num fs-3 text-emerald-600 mb-1">{{ total_active_beneficiaries }}</div>
+        <div class="text-xs text-muted">Verified Payee Connections</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Statistics Grid Row 2 (Transaction Performance) -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Total Transactions</span>
+          <div class="p-2 rounded-2 bg-purple-50 text-plum-600">
+            <i class="bi bi-receipt fs-5"></i>
+          </div>
+        </div>
+        <div class="financial-num fs-3 text-plum-600 mb-1">{{ total_txns }}</div>
+        <div class="text-xs text-muted">Double-Entry Ledger Entries</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Successful Transactions</span>
+          <div class="p-2 rounded-2 bg-emerald-50 text-emerald-600">
+            <i class="bi bi-check-circle fs-5"></i>
+          </div>
+        </div>
+        <div class="financial-num fs-3 text-emerald-600 mb-1">{{ total_successful_txns }}</div>
+        <div class="text-xs text-muted">Settled Cleanly</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Failed / Flagged Txns</span>
+          <div class="p-2 rounded-2 bg-rose-50 text-rose-600">
+            <i class="bi bi-exclamation-triangle fs-5"></i>
+          </div>
+        </div>
+        <div class="financial-num fs-3 text-rose-600 mb-1">{{ total_failed_txns }}</div>
+        <div class="text-xs text-muted">Blocked / Under Review</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Audit &amp; Security</span>
           <div class="p-2 rounded-2 bg-emerald-50 text-emerald-600">
             <i class="bi bi-shield-check fs-5"></i>
           </div>
         </div>
         <div class="financial-num fs-3 text-emerald-600 mb-1">{{ total_audit_logs }}</div>
-        <div class="text-xs text-muted">{{ failed_logins }} Failed Login Attempts Tracked</div>
+        <div class="text-xs text-muted">{{ failed_logins }} Security Events Logged</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Responsive Charts Row -->
+  <div class="row g-4 mb-4">
+    <!-- Chart 1: Status Distribution -->
+    <div class="col-12 col-lg-5">
+      <div class="card-custom p-4 h-100">
+        <h5 class="font-display fw-bold mb-3"><i class="bi bi-pie-chart text-emerald-600 me-2"></i> Transaction Status Distribution</h5>
+        <div class="position-relative" style="height: 250px;">
+          <canvas id="statusChart"
+                  data-completed="{{ chart_status.completed }}"
+                  data-pending="{{ chart_status.pending }}"
+                  data-blocked="{{ chart_status.blocked }}"
+                  data-failed="{{ chart_status.failed }}"
+                  data-reversed="{{ chart_status.reversed }}"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 2: Volume & Amount Summary -->
+    <div class="col-12 col-lg-7">
+      <div class="card-custom p-4 h-100">
+        <h5 class="font-display fw-bold mb-3"><i class="bi bi-bar-chart-line text-plum-600 me-2"></i> Transaction Volume &amp; Settlement Amount</h5>
+        <div class="position-relative" style="height: 250px;">
+          <canvas id="volumeChart"
+                  data-transfer="{{ chart_volume.transfer }}"
+                  data-deposit="{{ chart_volume.deposit }}"
+                  data-withdrawal="{{ chart_volume.withdrawal }}"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -79,14 +168,14 @@
     <div class="col-12 col-lg-6">
       <div class="card-custom p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="font-display fw-bold mb-0"><i class="bi bi-git text-emerald-600 me-2"></i> Entity Version Stream</h5>
+          <h5 class="font-display fw-bold mb-0"><i class="bi bi-git text-emerald-600 me-2"></i> Version Control Stream</h5>
           <a href="{{ url_for('admin.version_history') }}" class="btn btn-sm btn-link text-emerald-600 text-decoration-none fw-semibold">Inspect All</a>
         </div>
         <div class="table-responsive">
           <table class="table-custom align-middle">
             <thead>
               <tr>
-                <th>Entity Target</th>
+                <th>Target</th>
                 <th>Version</th>
                 <th>Action</th>
                 <th>Summary</th>
@@ -146,4 +235,75 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Chart 1: Status Distribution Doughnut
+  const ctxStatus = document.getElementById('statusChart');
+  if (ctxStatus) {
+    new Chart(ctxStatus, {
+      type: 'doughnut',
+      data: {
+        labels: ['Completed', 'Pending', 'Blocked / Review', 'Failed', 'Reversed'],
+        datasets: [{
+          data: [
+            {{ chart_status.completed }},
+            {{ chart_status.pending }},
+            {{ chart_status.blocked }},
+            {{ chart_status.failed }},
+            {{ chart_status.reversed }}
+          ],
+          backgroundColor: ['#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#6b7280'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15 } }
+        }
+      }
+    });
+  }
+
+  // Chart 2: Type Volume Bar Chart
+  const ctxVolume = document.getElementById('volumeChart');
+  if (ctxVolume) {
+    new Chart(ctxVolume, {
+      type: 'bar',
+      data: {
+        labels: ['Fund Transfers', 'Deposits', 'Withdrawals'],
+        datasets: [{
+          label: 'Total Settled Amount (₹)',
+          data: [
+            {{ chart_volume.transfer }},
+            {{ chart_volume.deposit }},
+            {{ chart_volume.withdrawal }}
+          ],
+          backgroundColor: ['#10b981', '#6366f1', '#ec4899'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) { return '₹' + value.toLocaleString('en-IN'); }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

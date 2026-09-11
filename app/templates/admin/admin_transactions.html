@@ -1,51 +1,168 @@
 {% extends "base.html" %}
-{% block title %}Admin Transaction Overview{% endblock %}
+{% block title %}System Transaction Monitoring{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-  <div class="d-flex align-items-center justify-content-between mb-4">
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h3 class="fw-bold mb-1"><i class="bi bi-clock-history me-2 text-primary"></i>System Transaction Management</h3>
-      <p class="text-secondary mb-0">System-wide transaction records and audit monitoring for Administrators.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-clock-history text-emerald-600 me-2"></i> System Transaction Monitoring</h2>
+      <p class="text-muted small mb-0">Real-time financial audit, search, filtering, and masked double-entry ledger oversight.</p>
+    </div>
+    <div>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-custom btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+      </a>
     </div>
   </div>
 
-  <div class="card shadow-sm border-0">
-    <div class="card-header bg-transparent py-3">
-      <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2"></i>All Banking Transactions</h6>
-    </div>
+  <!-- Search & Filters Card -->
+  <div class="card-custom p-4 mb-4">
+    <form method="GET" action="{{ url_for('admin.transactions') }}" class="row g-3 align-items-end">
+      <div class="col-12 col-md-4 col-lg-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Search Reference</label>
+        <div class="input-group">
+          <span class="input-group-text bg-surface-elevated border-end-0"><i class="bi bi-search"></i></span>
+          <input type="text" name="search" class="form-control form-control-custom border-start-0" placeholder="TXN-XXXX..." value="{{ search }}">
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Status</label>
+        <select name="status" class="form-select form-select-custom">
+          <option value="">All Statuses</option>
+          <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>COMPLETED</option>
+          <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>PENDING</option>
+          <option value="BLOCKED_FOR_REVIEW" {% if status_filter == 'BLOCKED_FOR_REVIEW' %}selected{% endif %}>BLOCKED FOR REVIEW</option>
+          <option value="FAILED" {% if status_filter == 'FAILED' %}selected{% endif %}>FAILED</option>
+          <option value="REVERSED" {% if status_filter == 'REVERSED' %}selected{% endif %}>REVERSED</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Type</label>
+        <select name="type" class="form-select form-select-custom">
+          <option value="">All Types</option>
+          <option value="TRANSFER" {% if type_filter == 'TRANSFER' %}selected{% endif %}>TRANSFER</option>
+          <option value="DEPOSIT" {% if type_filter == 'DEPOSIT' %}selected{% endif %}>DEPOSIT</option>
+          <option value="WITHDRAWAL" {% if type_filter == 'WITHDRAWAL' %}selected{% endif %}>WITHDRAWAL</option>
+          <option value="REVERSAL" {% if type_filter == 'REVERSAL' %}selected{% endif %}>REVERSAL</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label fw-semibold small text-uppercase text-muted">From Date</label>
+        <input type="date" name="date_from" class="form-control form-control-custom" value="{{ date_from }}">
+      </div>
+
+      <div class="col-6 col-md-3 col-lg-2">
+        <label class="form-label fw-semibold small text-uppercase text-muted">To Date</label>
+        <input type="date" name="date_to" class="form-control form-control-custom" value="{{ date_to }}">
+      </div>
+
+      <div class="col-12 col-md-3 col-lg-1 d-flex gap-2">
+        <button type="submit" class="btn btn-emerald w-100">
+          Filter
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="card-custom p-0 overflow-hidden mb-4">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
+      <table class="table-custom align-middle mb-0">
+        <thead>
           <tr>
-            <th>ID</th>
-            <th>Reference</th>
-            <th>Account</th>
+            <th>Reference No.</th>
+            <th>Date &amp; Time</th>
+            <th>Sender Account</th>
+            <th>Receiver Account</th>
             <th>Type</th>
             <th>Amount</th>
             <th>Status</th>
-            <th>Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {% for t in transactions %}
+          {% for item in txn_items %}
+          {% set t = item.model %}
           <tr>
-            <td>#{{ t.id }}</td>
-            <td><code>{{ t.reference_number }}</code></td>
-            <td>Account #{{ t.account_id }}</td>
-            <td><span class="badge bg-primary">{{ t.transaction_type }}</span></td>
-            <td class="fw-bold">₹{{ t.amount }}</td>
-            <td><span class="badge bg-success">{{ t.status }}</span></td>
-            <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M:%S') if t.created_at else '' }}</td>
+            <td>
+              <span class="font-mono fw-bold text-emerald-600 small">{{ t.reference_number }}</span>
+            </td>
+            <td>
+              <span class="text-xs font-mono text-muted">{{ t.created_at.strftime('%d %b %Y, %H:%M:%S') if t.created_at else '-' }}</span>
+            </td>
+            <td>
+              <span class="font-mono small font-semibold">{{ item.sender_masked }}</span>
+            </td>
+            <td>
+              <span class="font-mono small font-semibold text-muted">{{ item.receiver_masked }}</span>
+            </td>
+            <td>
+              <span class="badge bg-surface-elevated text-dark font-semibold text-xs">{{ t.transaction_type }}</span>
+            </td>
+            <td>
+              <span class="financial-num fw-bold">₹{{ "{:,.2f}".format(t.amount) }}</span>
+            </td>
+            <td>
+              {% if t.status == 'COMPLETED' %}
+                <span class="badge-status badge-status-success">COMPLETED</span>
+              {% elif t.status == 'BLOCKED_FOR_REVIEW' %}
+                <span class="badge bg-purple-50 text-plum-600 border border-purple-200">UNDER REVIEW</span>
+              {% elif t.status == 'PENDING' %}
+                <span class="badge bg-amber-50 text-gold-600 border border-gold-200">PENDING</span>
+              {% else %}
+                <span class="badge-status badge-status-failed">{{ t.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('api.download_transaction_receipt', transaction_id=t.id) }}" class="btn btn-sm btn-outline-custom py-1 px-2" target="_blank" title="Receipt">
+                <i class="bi bi-file-earmark-pdf"></i>
+              </a>
+            </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="7" class="text-center py-4 text-secondary">No transaction records found.</td>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
+              No transactions found matching the selected search criteria.
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
+  <!-- Pagination Controls -->
+  {% if pagination and pagination.pages > 1 %}
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="text-muted small">
+      Showing Page <span class="fw-bold text-dark">{{ pagination.page }}</span> of <span class="fw-bold text-dark">{{ pagination.pages }}</span> ({{ pagination.total }} Total Transactions)
+    </div>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('admin.transactions', page=pagination.prev_num, search=search, status=status_filter, type=type_filter, date_from=date_from, date_to=date_to) }}">
+          <i class="bi bi-chevron-left"></i> Previous
+        </a>
+      </li>
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.transactions', page=p, search=search, status=status_filter, type=type_filter, date_from=date_from, date_to=date_to) }}">{{ p }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('admin.transactions', page=pagination.next_num, search=search, status=status_filter, type=type_filter, date_from=date_from, date_to=date_to) }}">
+          Next <i class="bi bi-chevron-right"></i>
+        </a>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
