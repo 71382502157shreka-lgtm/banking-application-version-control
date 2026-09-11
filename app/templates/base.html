@@ -110,6 +110,10 @@
           <span>Notifications</span>
           <span class="badge bg-danger rounded-pill ms-auto notification-badge d-none" id="sidebarNotifBadge">0</span>
         </a>
+        <a href="{{ url_for('customer.complaints') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.complaints' else '' }}">
+          <i class="bi bi-chat-square-text-fill"></i>
+          <span>Support Complaints</span>
+        </a>
         <a href="{{ url_for('customer.security') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.security' else '' }}">
           <i class="bi bi-shield-lock-fill"></i>
           <span>Security &amp; Sessions</span>
@@ -120,26 +124,73 @@
         </a>
 
         {% elif current_user.role == 'employee' %}
-        <div class="nav-section-title">STAFF PORTAL</div>
+        <div class="nav-section-title">STAFF DASHBOARD</div>
         <a href="{{ url_for('employee.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.dashboard' else '' }}">
           <i class="bi bi-speedometer2"></i>
-          <span>Overview</span>
+          <span>Dashboard Overview</span>
         </a>
         <a href="{{ url_for('employee.customers') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.customers' else '' }}">
-          <i class="bi bi-person-lines-fill"></i>
-          <span>Customer Directory</span>
+          <i class="bi bi-people-fill"></i>
+          <span>Customer Management</span>
         </a>
-        <a href="{{ url_for('admin.risk_center') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.risk_center' else '' }}">
+        <a href="{{ url_for('employee.account_search') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.account_search' else '' }}">
+          <i class="bi bi-search"></i>
+          <span>Account Search</span>
+        </a>
+
+        <div class="nav-section-title">BANKING OPERATIONS</div>
+        <a href="{{ url_for('employee.banking_deposit') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.banking_deposit' else '' }}">
+          <i class="bi bi-plus-circle-fill"></i>
+          <span>Deposit Cash</span>
+        </a>
+        <a href="{{ url_for('employee.banking_withdraw') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.banking_withdraw' else '' }}">
+          <i class="bi bi-dash-circle-fill"></i>
+          <span>Withdraw Cash</span>
+        </a>
+        <a href="{{ url_for('employee.banking_transfer') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.banking_transfer' else '' }}">
+          <i class="bi bi-arrow-left-right"></i>
+          <span>Fund Transfer</span>
+        </a>
+        <a href="{{ url_for('employee.transactions') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.transactions' else '' }}">
+          <i class="bi bi-clock-history"></i>
+          <span>Transaction History</span>
+        </a>
+
+        <div class="nav-section-title">WORKFLOW &amp; GOVERNANCE</div>
+        <a href="{{ url_for('employee.approvals') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.approvals' else '' }}">
+          <i class="bi bi-check2-square"></i>
+          <span>Pending Approvals</span>
+          <span class="badge bg-warning text-dark ms-auto" style="font-size: 0.65rem;">MAKER-CHECKER</span>
+        </a>
+        <a href="{{ url_for('employee.complaints') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.complaints' else '' }}">
+          <i class="bi bi-chat-left-dots-fill"></i>
+          <span>Customer Complaints</span>
+        </a>
+        <a href="{{ url_for('employee.risk_alerts') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.risk_alerts' else '' }}">
           <i class="bi bi-shield-exclamation"></i>
-          <span>Risk Reviews</span>
-        </a>
-        <a href="{{ url_for('employee.versions') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.versions' else '' }}">
-          <i class="bi bi-git"></i>
-          <span>Review Versions</span>
+          <span>Risk Alerts</span>
         </a>
         <a href="{{ url_for('employee.audit_logs') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.audit_logs' else '' }}">
           <i class="bi bi-journal-text"></i>
           <span>Audit Logs</span>
+        </a>
+        <a href="{{ url_for('employee.versions') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.versions' else '' }}">
+          <i class="bi bi-git"></i>
+          <span>Version Ledger</span>
+        </a>
+        <a href="{{ url_for('employee.reports') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.reports' else '' }}">
+          <i class="bi bi-file-earmark-bar-graph-fill"></i>
+          <span>Reports &amp; Analytics</span>
+        </a>
+
+        <div class="nav-section-title">ACCOUNT &amp; SUPPORT</div>
+        <a href="{{ url_for('employee.profile') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.profile' else '' }}">
+          <i class="bi bi-person-badge-fill"></i>
+          <span>My Profile</span>
+        </a>
+        <a href="{{ url_for('employee.help') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.help' else '' }}">
+          <i class="bi bi-question-circle-fill"></i>
+          <span>Help &amp; Support</span>
         </a>
 
         {% elif current_user.role == 'admin' %}

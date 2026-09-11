@@ -12,6 +12,7 @@ from app.models.workflow_risk import (
     RollbackRequest, RollbackStatus,
     TransferLimit,
 )
+from app.models.complaint import Complaint, ComplaintStatus, ComplaintPriority
 
 __all__ = [
     "BaseModel",
@@ -26,4 +27,6 @@ __all__ = [
     "RiskAssessment", "RiskLevel", "RiskDecision",
     "RollbackRequest", "RollbackStatus",
     "TransferLimit",
+    "Complaint", "ComplaintStatus", "ComplaintPriority",
 ]
+

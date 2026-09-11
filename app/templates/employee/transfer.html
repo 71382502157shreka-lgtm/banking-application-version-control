@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Initiate Transfer - Employee Banking Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Initiate Account Transfer</h2>
+        <p class="text-muted mb-0">Transfer funds between accounts with atomic balance updates and audit trail</p>
+    </div>
+    <a href="{{ url_for('employee.account_search') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Search
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="card-title fw-bold mb-0">
+                    <i class="bi bi-arrow-left-right me-2"></i> Inter-Account Transfer Form
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('employee.banking_transfer') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="source_account" class="form-label fw-bold">Source Account (Debit) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-lg fw-mono" id="source_account" name="source_account" value="{{ prefill_from }}" required placeholder="e.g. ACC100000001">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="dest_account" class="form-label fw-bold">Destination Account (Credit) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-lg fw-mono" id="dest_account" name="dest_account" required placeholder="e.g. ACC100000002">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="amount" class="form-label fw-bold">Transfer Amount ($) <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text">$</span>
+                            <input type="number" step="0.01" min="0.01" class="form-control fw-bold" id="amount" name="amount" required placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label fw-bold">Transfer Reason / Remarks</label>
+                        <textarea class="form-control" id="description" name="description" rows="2" placeholder="e.g. Employee assisted fund transfer"></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold">
+                            <i class="bi bi-check-circle me-2"></i> Execute Transfer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

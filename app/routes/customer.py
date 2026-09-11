@@ -12,6 +12,14 @@ from app.models.beneficiary import Beneficiary
 customer_bp = Blueprint("customer", __name__, url_prefix="/customer")
 
 
+@customer_bp.route("/")
+@login_required
+@roles_required(Role.CUSTOMER)
+def root():
+    from flask import redirect, url_for
+    return redirect(url_for("customer.dashboard"))
+
+
 @customer_bp.route("/dashboard")
 @login_required
 @roles_required(Role.CUSTOMER)
@@ -131,3 +139,41 @@ def notifications():
 @roles_required(Role.CUSTOMER)
 def security():
     return render_template("customer/security.html")
+
+
+@customer_bp.route("/complaints", methods=["GET", "POST"])
+@login_required
+@roles_required(Role.CUSTOMER)
+def complaints():
+    from flask import request, flash, redirect, url_for
+    from app import db
+    from app.models.complaint import Complaint, ComplaintStatus, ComplaintPriority
+
+    if request.method == "POST":
+        subject = request.form.get("subject", "").strip()
+        description = request.form.get("description", "").strip()
+        category = request.form.get("category", "GENERAL").strip()
+
+        if not subject or not description:
+            flash("Subject and description are required", "error")
+            return redirect(url_for("customer.complaints"))
+
+        import uuid
+        ticket_num = f"TICK-{uuid.uuid4().hex[:6].upper()}"
+        comp = Complaint(
+            ticket_number=ticket_num,
+            customer_id=current_user.id,
+            subject=subject,
+            description=description,
+            category=category,
+            priority=ComplaintPriority.MEDIUM,
+            status=ComplaintStatus.OPEN,
+        )
+        db.session.add(comp)
+        db.session.commit()
+        flash(f"Complaint submitted successfully! Ticket #{ticket_num}", "success")
+        return redirect(url_for("customer.complaints"))
+
+    customer_complaints = Complaint.query.filter_by(customer_id=current_user.id).order_by(Complaint.created_at.desc()).all()
+    return render_template("customer/complaints.html", complaints=customer_complaints)
+

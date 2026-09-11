@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Risk & Fraud Monitoring - Employee Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Risk & Compliance Dashboard</h2>
+        <p class="text-muted mb-0">Monitor high-risk transactions, customer risk scores, and security compliance events</p>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title fw-bold text-danger mb-0">
+                    <i class="bi bi-shield-exclamation me-2"></i> High Risk Customers
+                </h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Customer</th>
+                            <th>Risk Score</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in high_risk_customers %}
+                        <tr>
+                            <td>
+                                <span class="fw-bold d-block">{{ c.user.full_name }}</span>
+                                <small class="text-muted">{{ c.user.email }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-danger fs-6">{{ c.risk_score }}</span>
+                            </td>
+                            <td>
+                                {% if c.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Frozen</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('employee.customer_detail', customer_id=c.id) }}" class="btn btn-sm btn-outline-danger">Review Profile</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No high-risk customers flagged.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title fw-bold text-warning mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i> High-Value / Suspicious Transactions
+                </h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ref #</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in high_risk_transactions %}
+                        <tr>
+                            <td>
+                                <span class="fw-mono small">{{ tx.reference_number|default(tx.id) }}</span>
+                            </td>
+                            <td class="fw-bold text-danger">
+                                ${{ "%.2f"|format(tx.amount) }}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ tx.transaction_type.value if tx.transaction_type.value is defined else tx.transaction_type }}</span>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ tx.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No high-value risk transactions logged.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+        <h5 class="card-title fw-bold mb-0">
+            <i class="bi bi-journal-text me-2 text-primary"></i> Security & Compliance Audit Log
+        </h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User ID</th>
+                    <th>Action / Event</th>
+                    <th>IP Address</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in security_logs %}
+                <tr>
+                    <td>
+                        <small class="text-muted">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                    </td>
+                    <td>
+                        <span class="fw-mono small">User #{{ log.user_id|default('System') }}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-info text-dark">{{ log.action }}</span>
+                    </td>
+                    <td>
+                        <span class="fw-mono small text-muted">{{ log.ip_address|default('127.0.0.1') }}</span>
+                    </td>
+                    <td class="text-muted small" style="max-width: 300px;">
+                        {{ log.details|default('N/A') }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-muted">No security logs recorded.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,5 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Sign In{% endblock %}
+{% block title %}
+  {% if selected_role == 'employee' %}
+    Employee Portal Sign In
+  {% elif selected_role == 'admin' %}
+    Admin Portal Sign In
+  {% else %}
+    Customer Sign In
+  {% endif %}
+{% endblock %}
 
 {% block public_body %}
 <div class="row justify-content-center align-items-center py-4">
@@ -53,9 +61,34 @@
 
         <!-- Right Side: Clean Modern Login Form -->
         <div class="col-lg-6 p-4 p-md-5 d-flex flex-column justify-content-center">
+          
+          <!-- Role Navigation Tabs -->
           <div class="mb-4">
-            <h3 class="font-display fw-bold mb-1">Welcome Back</h3>
-            <p class="text-muted small">Sign in to your version-controlled banking account</p>
+            <label class="form-label text-muted small fw-bold text-uppercase mb-2" style="letter-spacing: 0.05em;">Portal Access Mode</label>
+            <div class="btn-group w-100 shadow-xs" role="group">
+              <a href="{{ url_for('auth.login', role='customer') }}" class="btn btn-outline-emerald border {% if selected_role == 'customer' %}active fw-bold bg-emerald-500 text-white{% endif %} py-2">
+                <i class="bi bi-person-fill me-1"></i> Customer
+              </a>
+              <a href="{{ url_for('auth.login', role='employee') }}" class="btn btn-outline-emerald border {% if selected_role == 'employee' %}active fw-bold bg-primary text-white{% endif %} py-2">
+                <i class="bi bi-shield-lock-fill me-1"></i> Employee
+              </a>
+              <a href="{{ url_for('auth.login', role='admin') }}" class="btn btn-outline-emerald border {% if selected_role == 'admin' %}active fw-bold bg-dark text-white{% endif %} py-2">
+                <i class="bi bi-gear-fill me-1"></i> Admin
+              </a>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            {% if selected_role == 'employee' %}
+              <h3 class="font-display fw-bold text-primary mb-1">Employee Portal Sign In</h3>
+              <p class="text-muted small">Sign in to your bank staff portal for operations &amp; approvals</p>
+            {% elif selected_role == 'admin' %}
+              <h3 class="font-display fw-bold text-dark mb-1">System Admin Sign In</h3>
+              <p class="text-muted small">Sign in to the system governance &amp; risk security center</p>
+            {% else %}
+              <h3 class="font-display fw-bold text-emerald-600 mb-1">Customer Sign In</h3>
+              <p class="text-muted small">Sign in to your version-controlled customer banking profile</p>
+            {% endif %}
           </div>
 
           <form method="post" id="loginForm">
@@ -82,8 +115,8 @@
               </div>
             </div>
 
-            <button type="submit" class="btn btn-emerald btn-lg w-100 shadow-md mb-4">
-              <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Account
+            <button type="submit" class="btn {% if selected_role == 'employee' %}btn-primary{% elif selected_role == 'admin' %}btn-dark{% else %}btn-emerald{% endif %} btn-lg w-100 shadow-md mb-4 fw-bold">
+              <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to {{ selected_role|upper }} Portal
             </button>
           </form>
 
@@ -98,17 +131,17 @@
                 <i class="bi bi-person-fill text-emerald-600 me-1"></i> Customer
               </button>
               <button type="button" class="btn btn-sm btn-outline-custom flex-grow-1" onclick="fillLogin('staff1', 'Password123')">
-                <i class="bi bi-shield-lock-fill text-plum-600 me-1"></i> Employee
+                <i class="bi bi-shield-lock-fill text-primary me-1"></i> Employee
               </button>
-              <button type="button" class="btn btn-sm btn-outline-custom flex-grow-1" onclick="fillLogin('admin1', 'Password123')">
-                <i class="bi bi-gear-fill text-gold-600 me-1"></i> Admin
+              <button type="button" class="btn btn-sm btn-outline-custom flex-grow-1" onclick="fillLogin('admin', 'ChangeMe_Admin123!')">
+                <i class="bi bi-gear-fill text-dark me-1"></i> Admin
               </button>
             </div>
           </div>
 
           <div class="text-center small text-muted">
             Need a new account? 
-            <a href="{{ url_for('auth.register') }}" class="text-emerald-600 fw-bold text-decoration-none ms-1">Open an Account</a>
+            <a href="{{ url_for('auth.register', role=selected_role) }}" class="text-emerald-600 fw-bold text-decoration-none ms-1">Register {{ selected_role|title }} Profile</a>
           </div>
         </div>
       </div>

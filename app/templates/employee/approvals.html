@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Approvals Queue - Employee Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Maker-Checker Approval Work Queue</h2>
+        <p class="text-muted mb-0">Review pending version rollback and high-impact transaction requests. Dual control policy enforced: users cannot approve their own requests.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 border-0">
+        <h5 class="card-title fw-bold mb-0">
+            Pending Approval Requests <span class="badge bg-warning text-dark rounded-pill ms-2">{{ pending_requests|length }}</span>
+        </h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Request ID</th>
+                    <th>Requested At</th>
+                    <th>Requested By</th>
+                    <th>Type / Entity</th>
+                    <th>Target Entity ID</th>
+                    <th>Target Version</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in pending_requests %}
+                <tr>
+                    <td>
+                        <span class="fw-mono text-muted small">#{{ req.id }}</span>
+                    </td>
+                    <td>
+                        <small class="text-dark">{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </td>
+                    <td>
+                        <span class="fw-semibold">{{ req.requester.username if req.requester else 'User #' ~ req.requested_by }}</span>
+                        {% if req.requested_by == current_user.id %}
+                            <span class="badge bg-info text-dark ms-1">You</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ req.entity_type|default('ROLLBACK') }}</span>
+                    </td>
+                    <td class="fw-mono small">
+                        {{ req.entity_id }}
+                    </td>
+                    <td>
+                        <span class="badge bg-dark">v{{ req.target_version }}</span>
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ req.reason|default('No reason specified') }}</small>
+                    </td>
+                    <td>
+                        {% set status_str = req.status.value if req.status.value is defined else req.status %}
+                        {% if status_str == 'PENDING' %}
+                            <span class="badge bg-warning text-dark">PENDING</span>
+                        {% elif status_str == 'APPROVED' %}
+                            <span class="badge bg-success">APPROVED</span>
+                        {% else %}
+                            <span class="badge bg-danger">REJECTED</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if status_str == 'PENDING' %}
+                            {% if req.requested_by == current_user.id %}
+                                <span class="badge bg-secondary text-wrap" style="max-width: 140px;">Self-approval prohibited (Maker-Checker policy)</span>
+                            {% else %}
+                                <div class="d-inline-flex gap-1">
+                                    <form method="POST" action="{{ url_for('employee.approvals') }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="request_id" value="{{ req.id }}">
+                                        <input type="hidden" name="action" value="approve">
+                                        <button type="submit" class="btn btn-sm btn-success fw-semibold">
+                                            <i class="bi bi-check-lg me-1"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('employee.approvals') }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="request_id" value="{{ req.id }}">
+                                        <input type="hidden" name="action" value="reject">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold">
+                                            <i class="bi bi-x-lg me-1"></i> Reject
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted small">Processed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>
+                        No pending approval requests in work queue.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

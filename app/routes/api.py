@@ -152,7 +152,12 @@ def api_reverse(txn_id):
 @login_required
 def get_transaction_receipt(txn_id):
     txn = Transaction.query.get_or_404(txn_id)
-    account = _get_owned_account_or_403(txn.account_id)
+    if current_user.role == Role.CUSTOMER:
+        owned_ids = [a.id for a in Account.query.filter_by(user_id=current_user.id).all()]
+        if txn.account_id not in owned_ids and txn.counterparty_account_id not in owned_ids:
+            from flask import abort
+            abort(403)
+    account = Account.query.get(txn.account_id)
     counterparty = Account.query.get(txn.counterparty_account_id) if txn.counterparty_account_id else None
 
     return jsonify({
@@ -241,6 +246,7 @@ def list_versions():
 @api_bp.route("/v1/versions/<entity_type>/<int:entity_id>", methods=["GET"])
 @login_required
 def entity_version_history(entity_type, entity_id):
+    _validate_entity_ownership_for_customer(entity_type, entity_id)
     history = version_service.get_history(entity_type.upper(), entity_id)
     return jsonify([v.to_dict() for v in history])
 
@@ -257,6 +263,8 @@ def compare_versions():
 
     if not all([entity_type, entity_id, v1, v2]):
         raise ValidationError("entity_type, entity_id, v1, and v2 are all required")
+
+    _validate_entity_ownership_for_customer(entity_type, entity_id)
 
     try:
         result = version_service.diff_versions(entity_type, entity_id, v1, v2)
@@ -314,9 +322,11 @@ def list_rollback_requests():
 def create_rollback_request():
     data = request.get_json(force=True) or {}
     entity_type = data.get("entity_type")
-    entity_id = data.get("entity_id", type=int)
-    target_version = data.get("target_version", type=int)
+    entity_id = int(data["entity_id"]) if data.get("entity_id") is not None else None
+    target_version = int(data["target_version"]) if data.get("target_version") is not None else None
     reason = data.get("reason", "Requested via API")
+
+    _validate_entity_ownership_for_customer(entity_type, entity_id)
 
     req = approval_service.request_rollback(
         user_id=current_user.id,
@@ -632,6 +642,16 @@ def get_analytics():
 def _get_owned_account_or_403(account_id):
     account = Account.query.get_or_404(account_id)
     if current_user.role == Role.CUSTOMER and account.user_id != current_user.id:
+        try:
+            from app.services import audit_service
+            from app.models.audit_log import AuditAction
+            audit_service.log_action(
+                action=AuditAction.ACCESS_DENIED,
+                user_id=current_user.id,
+                description=f"IDOR attempt by '{current_user.username}' on Account #{account_id}"
+            )
+        except Exception:
+            pass
         from flask import abort
         abort(403)
     return account
@@ -640,6 +660,42 @@ def _get_owned_account_or_403(account_id):
 def _get_owned_beneficiary_or_403(beneficiary_id):
     beneficiary = Beneficiary.query.get_or_404(beneficiary_id)
     if beneficiary.user_id != current_user.id:
+        try:
+            from app.services import audit_service
+            from app.models.audit_log import AuditAction
+            audit_service.log_action(
+                action=AuditAction.ACCESS_DENIED,
+                user_id=current_user.id,
+                description=f"IDOR attempt by '{current_user.username}' on Beneficiary #{beneficiary_id}"
+            )
+        except Exception:
+            pass
         from flask import abort
         abort(403)
     return beneficiary
+
+
+def _validate_entity_ownership_for_customer(entity_type, entity_id):
+    if current_user.role == Role.CUSTOMER:
+        et = (entity_type or "").upper()
+        if et in ("USER_PROFILE", "CUSTOMER", "USER"):
+            if entity_id != current_user.id:
+                try:
+                    from app.services import audit_service
+                    from app.models.audit_log import AuditAction
+                    audit_service.log_action(
+                        action=AuditAction.ACCESS_DENIED,
+                        user_id=current_user.id,
+                        description=f"IDOR attempt by '{current_user.username}' on Profile #{entity_id}"
+                    )
+                except Exception:
+                    pass
+                from flask import abort
+                abort(403)
+        elif et == "ACCOUNT":
+            _get_owned_account_or_403(entity_id)
+        elif et == "BENEFICIARY":
+            _get_owned_beneficiary_or_403(entity_id)
+        else:
+            from flask import abort
+            abort(403)

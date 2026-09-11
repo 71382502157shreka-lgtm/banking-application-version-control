@@ -15,6 +15,14 @@ from app.services.audit_service import verify_audit_integrity
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
+@admin_bp.route("/")
+@login_required
+@roles_required(Role.ADMIN)
+def root():
+    from flask import redirect, url_for
+    return redirect(url_for("admin.dashboard"))
+
+
 @admin_bp.route("/dashboard")
 @login_required
 @roles_required(Role.ADMIN)
@@ -110,7 +118,7 @@ def rollback_requests():
 
 @admin_bp.route("/risk-center")
 @login_required
-@roles_required(Role.ADMIN, Role.EMPLOYEE)
+@roles_required(Role.ADMIN)
 def risk_center():
     assessments = RiskAssessment.query.order_by(RiskAssessment.created_at.desc()).limit(150).all()
     pending_reviews = Transaction.query.filter_by(status="BLOCKED_FOR_REVIEW").all()
@@ -122,3 +130,27 @@ def risk_center():
 @roles_required(Role.ADMIN)
 def settings():
     return render_template("admin/system_settings.html")
+
+
+@admin_bp.route("/transactions")
+@login_required
+@roles_required(Role.ADMIN)
+def transactions():
+    txn_list = Transaction.query.order_by(Transaction.created_at.desc()).limit(200).all()
+    return render_template("admin/admin_transactions.html", transactions=txn_list)
+
+
+@admin_bp.route("/customer-management")
+@login_required
+@roles_required(Role.ADMIN)
+def customer_management():
+    customers = User.query.filter_by(role=Role.CUSTOMER).order_by(User.created_at.desc()).all()
+    return render_template("admin/manage_users.html", users=customers)
+
+
+@admin_bp.route("/approvals")
+@login_required
+@roles_required(Role.ADMIN)
+def approvals():
+    requests_list = RollbackRequest.query.order_by(RollbackRequest.created_at.desc()).all()
+    return render_template("admin/rollback_requests.html", requests=requests_list)

@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Detail: {{ customer.full_name or customer.username }} - BankVCS 2.0{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div>
+    <h2 class="fw-bold font-display mb-1" style="color: var(--text-primary);">Customer Profile &amp; Audit File</h2>
+    <p class="text-muted mb-0">Customer ID: <span class="font-mono fw-bold">#{{ customer.id }}</span> &bull; {{ customer.email }}</p>
+  </div>
+  <div>
+    <a href="{{ url_for('employee.customers') }}" class="btn btn-outline-custom btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to Customer Directory
+    </a>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Customer Overview Card -->
+  <div class="col-12 col-lg-4">
+    <div class="card card-custom h-100">
+      <div class="card-body p-4 text-center">
+        <div class="avatar-circle mx-auto mb-3" style="width: 72px; height: 72px; font-size: 1.8rem;">
+          {{ (customer.full_name or customer.username)[0]|upper }}
+        </div>
+        <h4 class="fw-bold mb-1" style="color: var(--text-primary);">{{ customer.full_name or customer.username }}</h4>
+        <div class="badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 mb-3">CUSTOMER ROLE</div>
+        
+        <div class="text-start border-top pt-3 mt-2">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Username:</span>
+            <span class="fw-semibold font-mono small">{{ customer.username }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Email:</span>
+            <span class="fw-semibold small">{{ customer.email }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Phone:</span>
+            <span class="fw-semibold small">{{ customer.phone or 'N/A' }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Account Lock Status:</span>
+            <span class="badge bg-{{ 'danger' if customer.is_locked else 'success' }}">
+              {{ 'LOCKED' if customer.is_locked else 'ACTIVE' }}
+            </span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">Member Since:</span>
+            <span class="small">{{ customer.created_at.strftime('%b %d, %Y') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Accounts & Balances -->
+  <div class="col-12 col-lg-8">
+    <div class="card card-custom h-100">
+      <div class="card-header bg-transparent border-bottom p-3">
+        <h6 class="fw-bold mb-0" style="color: var(--text-primary);"><i class="bi bi-wallet2 text-emerald-600 me-2"></i>Customer Accounts</h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Account Number</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Version</th>
+                <th>Balance</th>
+                <th>Available</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in accounts %}
+              <tr>
+                <td class="font-mono fw-bold">{{ a.account_number }}</td>
+                <td><span class="badge bg-light text-dark border">{{ a.account_type }}</span></td>
+                <td><span class="badge bg-success">{{ a.status }}</span></td>
+                <td><span class="badge bg-emerald-50 text-emerald-700">v{{ a.version_number }}</span></td>
+                <td class="fw-bold">₹{{ "%.2f"|format(a.balance) }}</td>
+                <td class="fw-bold text-emerald-600">₹{{ "%.2f"|format(a.available_balance) }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="text-center py-3 text-muted">No active accounts found for this customer.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs for Customer Activity, Complaints, and Security -->
+<div class="card card-custom">
+  <div class="card-header bg-transparent border-bottom p-3">
+    <ul class="nav nav-tabs card-header-tabs" id="customerTabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active fw-semibold" id="txns-tab" data-bs-toggle="tab" data-bs-target="#txns-pane">
+          <i class="bi bi-clock-history me-1"></i> Transaction History
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="versions-tab" data-bs-toggle="tab" data-bs-target="#versions-pane">
+          <i class="bi bi-git me-1"></i> Version History
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="complaints-tab" data-bs-toggle="tab" data-bs-target="#complaints-pane">
+          <i class="bi bi-chat-left-dots me-1"></i> Complaints ({{ complaints|length }})
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-pane">
+          <i class="bi bi-shield-lock me-1"></i> Security Events
+        </button>
+      </li>
+    </ul>
+  </div>
+  <div class="card-body p-4">
+    <div class="tab-content" id="customerTabsContent">
+      <!-- Transactions Tab -->
+      <div class="tab-pane fade show active" id="txns-pane">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Reference</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance After</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in txns %}
+              <tr>
+                <td class="font-mono small">{{ t.reference_number }}</td>
+                <td><span class="badge bg-light text-dark border">{{ t.transaction_type }}</span></td>
+                <td class="fw-bold">₹{{ "%.2f"|format(t.amount) }}</td>
+                <td>₹{{ "%.2f"|format(t.balance_after or 0) }}</td>
+                <td><span class="badge bg-{{ 'success' if t.status=='COMPLETED' else 'warning' }}">{{ t.status }}</span></td>
+                <td class="small text-muted">{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center text-muted py-3">No transactions found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Versions Tab -->
+      <div class="tab-pane fade" id="versions-pane">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Entity</th>
+                <th>Version</th>
+                <th>Type</th>
+                <th>Summary</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in versions %}
+              <tr>
+                <td><span class="badge bg-emerald-50 text-emerald-700 border">{{ v.entity_type }} #{{ v.entity_id }}</span></td>
+                <td class="font-mono fw-bold">v{{ v.version_number }}</td>
+                <td><span class="badge bg-secondary">{{ v.change_type }}</span></td>
+                <td class="small">{{ v.change_summary }}</td>
+                <td class="small text-muted">{{ v.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No version history records found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Complaints Tab -->
+      <div class="tab-pane fade" id="complaints-pane">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Ticket</th>
+                <th>Subject</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in complaints %}
+              <tr>
+                <td class="font-mono fw-bold">{{ c.ticket_number }}</td>
+                <td>{{ c.subject }}</td>
+                <td><span class="badge bg-warning text-dark">{{ c.priority }}</span></td>
+                <td><span class="badge bg-info text-dark">{{ c.status }}</span></td>
+                <td class="small text-muted">{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No complaints filed by this customer.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Security Tab -->
+      <div class="tab-pane fade" id="security-pane">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Event Type</th>
+                <th>Severity</th>
+                <th>Description</th>
+                <th>IP Address</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in security_events %}
+              <tr>
+                <td><span class="badge bg-light text-dark border">{{ s.event_type }}</span></td>
+                <td><span class="badge bg-{{ 'danger' if s.severity in ['HIGH','CRITICAL'] else 'secondary' }}">{{ s.severity }}</span></td>
+                <td class="small">{{ s.description }}</td>
+                <td class="font-mono small">{{ s.ip_address or 'N/A' }}</td>
+                <td class="small text-muted">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-3">No security events logged.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -12,6 +12,17 @@ def roles_required(*roles):
             if not current_user.is_authenticated:
                 abort(401)
             if current_user.role not in roles:
+                try:
+                    from flask import request
+                    from app.services import audit_service
+                    from app.models.audit_log import AuditAction
+                    audit_service.log_action(
+                        action=AuditAction.ACCESS_DENIED,
+                        user_id=current_user.id,
+                        description=f"Unauthorized access attempt to '{request.path}' by user '{current_user.username}' (Role: {current_user.role})"
+                    )
+                except Exception:
+                    pass
                 abort(403)
             return view_func(*args, **kwargs)
         return wrapped

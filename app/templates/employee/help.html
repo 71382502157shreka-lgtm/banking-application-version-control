@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Guide & Knowledge Base - BankVCS 2.0{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Employee Operations & Compliance Guide</h2>
+        <p class="text-muted mb-0">Standard Operating Procedures (SOP), Maker-Checker guidelines, and version control features</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="card-title fw-bold text-primary mb-0">
+                    <i class="bi bi-shield-lock me-2"></i> 1. Maker-Checker Dual Control Policy
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted">
+                    BankVCS 2.0 strictly enforces Dual Control (Maker-Checker policy) on high-impact administrative and version control actions.
+                </p>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Self-Approval Prohibition:</strong> A staff member who submits a rollback or version restoration request (Maker) CANNOT approve their own request (Checker).
+                    </li>
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Audit Trail:</strong> Every submission, approval, and rejection is recorded in the immutable audit log with staff user IDs and timestamps.
+                    </li>
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Queue Review:</strong> Check the <strong>Approvals Queue</strong> regularly to process requests submitted by peer staff members.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="card-title fw-bold text-success mb-0">
+                    <i class="bi bi-clock-history me-2"></i> 2. Entity Version Control & Rollbacks
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted">
+                    All entity modifications (Customers, Accounts, Beneficiaries) create immutable `EntityVersion` records.
+                </p>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Forward-Only Rollbacks:</strong> Reverting an entity to a prior state never deletes history; it appends a new forward version snapshot.
+                    </li>
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Non-Financial Entities:</strong> Customer profiles, beneficiaries, and preferences can be restored via the version control view.
+                    </li>
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Diff Inspection:</strong> Use the Version Diff tool to compare changes line-by-line before requesting rollbacks.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="card-title fw-bold text-danger mb-0">
+                    <i class="bi bi-exclamation-octagon me-2"></i> 3. Risk Scoring & Fraud Monitoring
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted">
+                    Automated risk rules evaluate transactions and accounts in real-time.
+                </p>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">High-Value Transactions:</strong> Transactions exceeding $10,000 generate automatic compliance alerts.
+                    </li>
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Risk Thresholds:</strong> Customers with a risk score above 70 are flagged for staff review.
+                    </li>
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Account Freezing:</strong> If fraud is suspected, contact compliance admins or freeze account access via the customer profile.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="card-title fw-bold text-info mb-0">
+                    <i class="bi bi-headset me-2"></i> 4. Customer Support & Complaints Handling
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted">
+                    Manage customer inquiries through the integrated ticketing workflow.
+                </p>
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Ticket Lifecycle:</strong> OPEN &rarr; IN_PROGRESS &rarr; RESOLVED &rarr; CLOSED.
+                    </li>
+                    <li class="list-group-item bg-transparent px-0">
+                        <strong class="text-dark">Resolution Notes:</strong> Always add detailed investigation notes before marking tickets as RESOLVED.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

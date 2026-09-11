@@ -58,6 +58,8 @@ def approve_rollback_request(request_id: int, admin_user_id: int, review_notes: 
         raise ValidationError("Rollback request not found")
     if req.status != RollbackStatus.PENDING:
         raise ValidationError(f"Rollback request is already {req.status}")
+    if req.requested_by == admin_user_id:
+        raise ValidationError("Maker-Checker Policy: You cannot approve your own rollback request.")
 
     # Applier functions for non-financial entities
     def apply_account(snapshot):
@@ -131,6 +133,8 @@ def reject_rollback_request(request_id: int, admin_user_id: int, review_notes: s
         raise ValidationError("Rollback request not found")
     if req.status != RollbackStatus.PENDING:
         raise ValidationError(f"Rollback request is already {req.status}")
+    if req.requested_by == admin_user_id:
+        raise ValidationError("Maker-Checker Policy: You cannot review or reject your own rollback request.")
 
     req.status = RollbackStatus.REJECTED
     req.reviewed_by = admin_user_id
