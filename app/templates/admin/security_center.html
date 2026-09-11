@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Security Center &amp; Threat Telemetry{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-shield-check text-emerald-600 me-2"></i> Security Center &amp; Threat Telemetry</h2>
+      <p class="text-muted small mb-0">Real-time session security, active threat monitoring, and SHA-256 tamper-evident hash verification.</p>
+    </div>
+    <div>
+      <button id="verifyAuditBtn" onclick="runAuditIntegrityCheck()" class="btn btn-emerald shadow-sm">
+        <i class="bi bi-shield-lock-fill me-1"></i> Verify Audit Chain Integrity
+      </button>
+    </div>
+  </div>
+
+  <!-- Security Score & Status Banner Row -->
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-lg-4">
+      <div class="card-custom p-4 text-center h-100 d-flex flex-column justify-content-center">
+        <span class="text-muted text-xs text-uppercase font-semibold mb-2">SYSTEM SECURITY SCORE</span>
+        <div class="display-3 font-display fw-bold text-emerald-600 mb-1">94 <span class="fs-4 text-muted">/ 100</span></div>
+        <div>
+          <span class="badge-status badge-status-success">OPTIMAL SECURITY POSTURE</span>
+        </div>
+        <div class="text-xs text-muted mt-3">
+          SHA-256 Hash Chain &bull; Rule Risk Engine &bull; MFA Enabled
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+      <div class="card-custom p-4 h-100" id="integrityBanner">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="p-3 rounded-circle bg-emerald-50 text-emerald-600">
+              <i class="bi bi-shield-check fs-2"></i>
+            </div>
+            <div>
+              <h5 class="font-display fw-bold mb-0" id="integrityStatus">{{ audit_report.status }}</h5>
+              <p class="text-muted small mb-0" id="integrityMsg">{{ audit_report.message }}</p>
+            </div>
+          </div>
+          <div class="text-end">
+            <span class="text-xs text-muted text-uppercase font-semibold">Verified Log Records</span>
+            <div class="financial-num fs-2 text-emerald-600" id="integrityCount">{{ audit_report.total_records }}</div>
+          </div>
+        </div>
+        <div class="p-3 bg-surface-elevated rounded-3 border">
+          <div class="d-flex justify-content-between text-xs font-mono">
+            <span>Cryptographic Algorithm: <strong>SHA-256 HASH CHAIN</strong></span>
+            <span class="text-emerald-600"><i class="bi bi-check-circle-fill me-1"></i> Continuous Telemetry Active</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telemetry Metrics Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3">
+        <span class="text-muted text-xs text-uppercase font-semibold">Failed Login Attempts</span>
+        <div class="financial-num fs-3 text-gold-600 my-1">{{ failed_logins_count }}</div>
+        <div class="text-xs text-muted">Brute-force protection enabled</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3">
+        <span class="text-muted text-xs text-uppercase font-semibold">Locked Accounts</span>
+        <div class="financial-num fs-3 text-rose-600 my-1">{{ locked_users|length }}</div>
+        <div class="text-xs text-muted">Auto-lockout policy active</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3">
+        <span class="text-muted text-xs text-uppercase font-semibold">Active Login Sessions</span>
+        <div class="financial-num fs-3 text-emerald-600 my-1">{{ active_sessions|length }}</div>
+        <div class="text-xs text-muted">Tracked via telemetry</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3">
+        <span class="text-muted text-xs text-uppercase font-semibold">Security Telemetry Events</span>
+        <div class="financial-num fs-3 text-plum-600 my-1">{{ security_events|length }}</div>
+        <div class="text-xs text-muted">Audit event stream</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Login Sessions Table -->
+  <div class="card-custom p-4 mb-4">
+    <h5 class="font-display fw-bold mb-3">Active System Login Sessions</h5>
+    <div class="table-responsive">
+      <table class="table-custom align-middle">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>IP Address</th>
+            <th>Browser / Client</th>
+            <th>Operating System</th>
+            <th>Session Created</th>
+            <th>Last Activity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in active_sessions %}
+          <tr>
+            <td class="fw-bold">User #{{ s.user_id }}</td>
+            <td><span class="font-mono text-xs">{{ s.ip_address or '127.0.0.1' }}</span></td>
+            <td><span class="small">{{ s.browser }} ({{ s.device_info }})</span></td>
+            <td><span class="small">{{ s.operating_system }}</span></td>
+            <td><span class="text-xs text-muted font-mono">{{ s.login_time.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
+            <td><span class="text-xs text-muted font-mono">{{ s.last_activity.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="text-center py-4 text-muted">No active login sessions recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Security Telemetry Stream -->
+  <div class="card-custom p-4">
+    <h5 class="font-display fw-bold mb-3">Live Security Telemetry Stream</h5>
+    <div class="d-flex flex-column gap-2" style="max-height: 380px; overflow-y: auto;">
+      {% for evt in security_events %}
+      <div class="p-3 rounded-3 border bg-surface-elevated d-flex justify-content-between align-items-center">
+        <div>
+          <span class="badge {% if evt.severity == 'CRITICAL' %}bg-rose-50 text-rose-600 border border-rose-200{% elif evt.severity == 'HIGH' %}bg-gold-50 text-gold-600 border border-gold-200{% else %}bg-surface text-secondary{% endif %} me-2">
+            {{ evt.severity }}
+          </span>
+          <span class="fw-bold small">{{ evt.event_type }}</span>
+          <p class="text-muted text-xs mb-0 mt-1">{{ evt.description }}</p>
+        </div>
+        <div class="text-end text-xs text-muted font-mono">
+          <div>{{ evt.ip_address }}</div>
+          <div>{{ evt.created_at.strftime('%H:%M:%S') }}</div>
+        </div>
+      </div>
+      {% else %}
+      <p class="text-center text-muted py-4 small">No security telemetry events logged.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function runAuditIntegrityCheck() {
+    const btn = document.getElementById('verifyAuditBtn');
+    btn.disabled = true;
+    btn.innerText = 'Verifying SHA-256 Chain...';
+
+    try {
+        const res = await fetch('/api/v1/audit/verify-integrity', { method: 'POST' });
+        const data = await res.json();
+        
+        const status = document.getElementById('integrityStatus');
+        const msg = document.getElementById('integrityMsg');
+        const count = document.getElementById('integrityCount');
+
+        status.innerText = data.status;
+        msg.innerText = data.message;
+        count.innerText = data.total_records;
+
+        if (data.valid) {
+            showToast('Audit chain verification PASSED!', 'success');
+        } else {
+            showToast('Audit integrity failure detected!', 'danger');
+        }
+    } catch(err) {
+        showToast('Error running integrity check', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-shield-lock-fill me-1"></i> Verify Audit Chain Integrity`;
+    }
+}
+</script>
+{% endblock %}

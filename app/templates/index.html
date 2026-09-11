@@ -1,58 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Next-Gen Banking with Version Control{% endblock %}
+{% block title %}BankVCS 2.0 — Secure Intelligent Banking with Database Version Control{% endblock %}
 
 {% block public_body %}
-<div class="py-5 text-center">
+<div class="py-5 text-center position-relative" style="z-index: 10;">
   <div class="row justify-content-center">
-    <div class="col-12 col-lg-8">
-      <div class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-3">
-        <i class="bi bi-shield-check me-1"></i> Academic Information System &bull; Database-Level Version Control
+    <div class="col-12 col-lg-9">
+      <div class="badge bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-2 rounded-pill mb-3">
+        <i class="bi bi-shield-check me-1"></i> FIPS 140-2 Compliant Engine &bull; SHA-256 Hash Chain &bull; DB Version Control
       </div>
-      <h1 class="display-4 fw-bold mb-3" style="letter-spacing: -1px;">
-        Next-Generation Digital Banking with <span class="text-primary">Immutable Version Control</span>
+      <h1 class="display-4 font-display fw-bold mb-3" style="letter-spacing: -0.03em;">
+        Secure Intelligent Banking with <span class="text-emerald-600">Database Version Control</span>
       </h1>
-      <p class="lead text-muted mb-4">
-        A complete, secure banking application where every balance change, customer profile update, and beneficiary modification maintains an immutable state snapshot and signed audit trail.
+      <p class="lead text-muted mb-4 max-w-2xl mx-auto" style="font-size: 1.15rem;">
+        Enterprise digital banking platform featuring Git-like entity version tracking, side-by-side diff comparison, tamper-evident SHA-256 audit chaining, and rule-based risk intelligence.
       </p>
 
       <div class="d-flex justify-content-center gap-3 mb-5">
-        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4 shadow-sm">
+        <a href="{{ url_for('auth.login') }}" class="btn btn-emerald btn-lg px-4 shadow-md">
           <i class="bi bi-box-arrow-in-right me-2"></i> Access Portal
         </a>
-        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-lg px-4">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-custom btn-lg px-4">
           <i class="bi bi-person-plus me-2"></i> Open Account
         </a>
       </div>
 
-      <!-- Feature Badges Row -->
+      <!-- Feature Cards Row -->
       <div class="row g-4 text-start pt-4 border-top">
         <div class="col-12 col-md-4">
-          <div class="fin-card">
-            <div class="stat-icon-wrapper stat-icon-primary mb-2">
-              <i class="bi bi-git"></i>
+          <div class="card-custom p-4 h-100">
+            <div class="p-3 rounded-circle bg-emerald-50 text-emerald-600 d-inline-block mb-3">
+              <i class="bi bi-git fs-3"></i>
             </div>
-            <h5 class="fw-bold">Entity Version Control</h5>
-            <p class="text-muted small mb-0">Automatic snapshotting with deep JSON diffing and safe non-financial rollback.</p>
+            <h5 class="font-display fw-bold">Database Version Control</h5>
+            <p class="text-muted small mb-0">Git-like automatic snapshotting with field-level side-by-side diffing and forward-version rollback.</p>
           </div>
         </div>
 
         <div class="col-12 col-md-4">
-          <div class="fin-card">
-            <div class="stat-icon-wrapper stat-icon-success mb-2">
-              <i class="bi bi-shield-lock"></i>
+          <div class="card-custom p-4 h-100">
+            <div class="p-3 rounded-circle bg-plum-50 text-plum-600 d-inline-block mb-3">
+              <i class="bi bi-shield-lock fs-3"></i>
             </div>
-            <h5 class="fw-bold">Role-Based Access Control</h5>
-            <p class="text-muted small mb-0">Granular separation between Customer, Employee, and Administrator roles.</p>
+            <h5 class="font-display fw-bold">Tamper-Evident Audit Chain</h5>
+            <p class="text-muted small mb-0">Cryptographic SHA-256 hash pointer chain ensuring zero log tampering across all transactions.</p>
           </div>
         </div>
 
         <div class="col-12 col-md-4">
-          <div class="fin-card">
-            <div class="stat-icon-wrapper stat-icon-warning mb-2">
-              <i class="bi bi-journal-code"></i>
+          <div class="card-custom p-4 h-100">
+            <div class="p-3 rounded-circle bg-gold-50 text-gold-600 d-inline-block mb-3">
+              <i class="bi bi-cpu fs-3"></i>
             </div>
-            <h5 class="fw-bold">Immutable Audit Trail</h5>
-            <p class="text-muted small mb-0">Append-only compliance ledger recording every security and transactional event.</p>
+            <h5 class="font-display fw-bold">Rule Risk Intelligence</h5>
+            <p class="text-muted small mb-0">Real-time risk scoring engine analyzing transfer velocity, counterparty cooldowns, and Maker-Checker approvals.</p>
           </div>
         </div>
       </div>

@@ -8,6 +8,9 @@ from app.models.account import Account
 from app.models.transaction import Transaction
 from app.models.version import EntityVersion
 from app.models.audit_log import AuditLog
+from app.models.workflow_risk import RollbackRequest, RiskAssessment
+from app.models.security_session import SecurityEvent, LoginSession
+from app.services.audit_service import verify_audit_integrity
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -32,6 +35,8 @@ def dashboard():
     recent_versions = EntityVersion.query.order_by(EntityVersion.created_at.desc()).limit(6).all()
     recent_logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(6).all()
 
+    audit_report = verify_audit_integrity()
+
     return render_template(
         "admin/admin_dashboard.html",
         total_users=total_users,
@@ -46,6 +51,7 @@ def dashboard():
         recent_txns=recent_txns,
         recent_versions=recent_versions,
         recent_logs=recent_logs,
+        audit_report=audit_report,
     )
 
 
@@ -62,7 +68,8 @@ def manage_users():
 @roles_required(Role.ADMIN)
 def audit_logs():
     logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(150).all()
-    return render_template("admin/admin_audit_logs.html", logs=logs)
+    audit_report = verify_audit_integrity()
+    return render_template("admin/admin_audit_logs.html", logs=logs, audit_report=audit_report)
 
 
 @admin_bp.route("/version-history")
@@ -71,6 +78,43 @@ def audit_logs():
 def version_history():
     versions = EntityVersion.query.order_by(EntityVersion.created_at.desc()).limit(150).all()
     return render_template("admin/admin_version_history.html", versions=versions)
+
+
+@admin_bp.route("/security-center")
+@login_required
+@roles_required(Role.ADMIN)
+def security_center():
+    audit_report = verify_audit_integrity()
+    security_events = SecurityEvent.query.order_by(SecurityEvent.created_at.desc()).limit(100).all()
+    active_sessions = LoginSession.query.filter_by(is_active=True).all()
+    locked_users = User.query.filter(User.locked_until != None).all()
+    failed_logins_count = AuditLog.query.filter_by(action="FAILED_LOGIN").count()
+
+    return render_template(
+        "admin/security_center.html",
+        audit_report=audit_report,
+        security_events=security_events,
+        active_sessions=active_sessions,
+        locked_users=locked_users,
+        failed_logins_count=failed_logins_count,
+    )
+
+
+@admin_bp.route("/rollback-requests")
+@login_required
+@roles_required(Role.ADMIN)
+def rollback_requests():
+    requests_list = RollbackRequest.query.order_by(RollbackRequest.created_at.desc()).all()
+    return render_template("admin/rollback_requests.html", requests=requests_list)
+
+
+@admin_bp.route("/risk-center")
+@login_required
+@roles_required(Role.ADMIN, Role.EMPLOYEE)
+def risk_center():
+    assessments = RiskAssessment.query.order_by(RiskAssessment.created_at.desc()).limit(150).all()
+    pending_reviews = Transaction.query.filter_by(status="BLOCKED_FOR_REVIEW").all()
+    return render_template("admin/risk_center.html", assessments=assessments, pending_reviews=pending_reviews)
 
 
 @admin_bp.route("/settings")

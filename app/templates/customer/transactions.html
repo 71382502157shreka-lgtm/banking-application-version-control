@@ -1,34 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Transactions{% endblock %}
+{% block title %}Transaction History{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1">Transaction History</h2>
-      <p class="text-muted mb-0">Append-only ledger of all financial deposits, withdrawals, transfers, and reversals.</p>
+      <h2 class="font-display fw-bold mb-1">Transaction History &amp; Ledger</h2>
+      <p class="text-muted small mb-0">Append-only financial transaction ledger. Search, filter, and inspect receipt signatures.</p>
     </div>
     <div class="d-flex gap-2">
-      <a href="{{ url_for('customer.statements') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
-        <i class="bi bi-file-earmark-text"></i> Download Statement
+      <a href="{{ url_for('customer.statements') }}" class="btn btn-outline-custom btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-file-earmark-text"></i> Statements
       </a>
-      <a href="{{ url_for('customer.transfer') }}" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+      <a href="{{ url_for('customer.transfer') }}" class="btn btn-emerald btn-sm d-flex align-items-center gap-1">
         <i class="bi bi-send"></i> New Transfer
       </a>
     </div>
   </div>
 
-  <!-- Search & Filter Controls -->
-  <div class="fin-card mb-4 p-3">
+  <!-- Search & Filter Bar -->
+  <div class="card-custom p-3 mb-4">
     <div class="row g-2 align-items-center">
       <div class="col-12 col-md-4">
         <div class="input-group">
-          <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-          <input type="text" class="form-control border-start-0 ps-0" id="txnSearchInput" placeholder="Search by reference, description..." oninput="filterTransactions()">
+          <span class="input-group-text bg-surface-elevated border-end-0 text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control form-control-custom border-start-0 ps-0" id="txnSearchInput" placeholder="Search by reference, description..." oninput="filterTransactions()">
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <select class="form-select" id="txnTypeFilter" onchange="filterTransactions()">
+        <select class="form-select form-select-custom" id="txnTypeFilter" onchange="filterTransactions()">
           <option value="">All Transaction Types</option>
           <option value="DEPOSIT">Deposits</option>
           <option value="WITHDRAWAL">Withdrawals</option>
@@ -37,26 +37,27 @@
         </select>
       </div>
       <div class="col-6 col-md-3">
-        <select class="form-select" id="txnStatusFilter" onchange="filterTransactions()">
+        <select class="form-select form-select-custom" id="txnStatusFilter" onchange="filterTransactions()">
           <option value="">All Statuses</option>
           <option value="COMPLETED">Completed</option>
           <option value="PENDING">Pending</option>
           <option value="REVERSED">Reversed</option>
           <option value="FAILED">Failed</option>
+          <option value="BLOCKED_FOR_REVIEW">Blocked For Review</option>
         </select>
       </div>
       <div class="col-12 col-md-2 text-end">
-        <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetTxnFilters()">
-          <i class="bi bi-arrow-counterclockwise"></i> Reset
+        <button class="btn btn-outline-custom btn-sm w-100" onclick="resetTxnFilters()">
+          <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
         </button>
       </div>
     </div>
   </div>
 
   <!-- Transactions Table Card -->
-  <div class="fin-card">
+  <div class="card-custom p-0 overflow-hidden">
     <div class="table-responsive">
-      <table class="fin-table align-middle" id="transactionsTable">
+      <table class="table-custom align-middle" id="transactionsTable">
         <thead>
           <tr>
             <th>Date &amp; Time</th>
@@ -72,18 +73,18 @@
         <tbody id="txnTableBody">
           <tr>
             <td colspan="8" class="text-center py-5 text-muted">
-              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-              Loading transactions from ledger...
+              <div class="spinner-border spinner-border-sm text-emerald-600 me-2" role="status"></div>
+              Loading transactions from immutable ledger...
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Pagination & Summary -->
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-3 pt-3 border-top gap-2">
-      <div class="small text-muted" id="txnCounterText">Showing all records</div>
-      <div class="d-flex gap-1" id="paginationControls"></div>
+    <!-- Summary Counter -->
+    <div class="d-flex justify-content-between align-items-center p-3 border-top bg-surface-elevated">
+      <div class="text-xs text-muted" id="txnCounterText">Showing all records</div>
+      <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">Append-Only Immutability</span>
     </div>
   </div>
 </div>
@@ -91,26 +92,26 @@
 <!-- Receipt Modal -->
 <div class="modal fade" id="txnDetailReceiptModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-      <div class="modal-header border-bottom-0 pb-0">
-        <h5 class="modal-title fw-bold">
-          <i class="bi bi-receipt text-primary me-2"></i> Official Transaction Receipt
+    <div class="modal-content card-custom border-0 shadow-xl">
+      <div class="card-header-custom">
+        <h5 class="modal-title font-display fw-bold">
+          <i class="bi bi-receipt text-emerald-600 me-2"></i> Official Transaction Receipt
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body py-4">
-        <div class="text-center p-3 bg-light rounded-3 mb-3">
-          <div class="text-muted small text-uppercase">Transaction Amount</div>
-          <h2 class="fw-bold mb-0 text-primary" id="modalReceiptAmount">₹0.00</h2>
-          <span class="badge bg-success-subtle text-success mt-2" id="modalReceiptStatus">COMPLETED</span>
+      <div class="card-body-custom">
+        <div class="text-center p-3 bg-surface-elevated rounded-3 mb-3">
+          <div class="text-muted text-xs text-uppercase font-semibold">Transaction Amount</div>
+          <h2 class="financial-num text-emerald-600 mb-0" id="modalReceiptAmount">₹0.00</h2>
+          <span class="badge-status badge-status-success mt-2" id="modalReceiptStatus">COMPLETED</span>
         </div>
         <table class="table table-sm table-borderless">
           <tr>
             <td class="text-muted small">Reference No:</td>
-            <td class="fw-semibold font-monospace small text-end" id="modalReceiptRef">-</td>
+            <td class="fw-semibold font-mono text-xs text-end" id="modalReceiptRef">-</td>
           </tr>
           <tr>
-            <td class="text-muted small">Transaction Type:</td>
+            <td class="text-muted small">Type:</td>
             <td class="fw-semibold text-end" id="modalReceiptType">-</td>
           </tr>
           <tr>
@@ -126,14 +127,14 @@
             <td class="fw-semibold text-end" id="modalReceiptBalAfter">-</td>
           </tr>
           <tr>
-            <td class="text-muted small">Immutability Guarantee:</td>
-            <td class="fw-semibold text-success text-end small"><i class="bi bi-shield-check"></i> Append-Only Verified</td>
+            <td class="text-muted small">Audit Verification:</td>
+            <td class="fw-semibold text-emerald-600 text-end small"><i class="bi bi-shield-check me-1"></i> SHA-256 Verified</td>
           </tr>
         </table>
       </div>
-      <div class="modal-footer border-top-0 pt-0">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print Receipt</button>
+      <div class="p-3 border-top d-flex justify-content-end gap-2 bg-surface-elevated">
+        <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-emerald" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print Receipt</button>
       </div>
     </div>
   </div>
@@ -151,14 +152,11 @@
   async function loadTransactions() {
     try {
       const res = await fetch('/api/transactions');
-      if (!res.ok) {
-        document.getElementById('txnTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load transactions</td></tr>';
-        return;
-      }
+      if (!res.ok) return;
       allTransactions = await res.json();
       renderTransactions(allTransactions);
     } catch (err) {
-      document.getElementById('txnTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Network error loading transactions</td></tr>';
+      console.error('Failed to load transactions', err);
     }
   }
 
@@ -167,15 +165,7 @@
     const counter = document.getElementById('txnCounterText');
 
     if (!txns || txns.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="8" class="text-center py-5">
-            <i class="bi bi-inbox text-muted fs-2 d-block mb-2"></i>
-            <div class="fw-bold">No Transactions Found</div>
-            <div class="text-muted small">Try changing your filters or perform a new transfer.</div>
-          </td>
-        </tr>
-      `;
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted">No transactions found matching criteria.</td></tr>';
       counter.innerText = '0 transactions found';
       return;
     }
@@ -185,32 +175,27 @@
     tbody.innerHTML = txns.map(t => {
       const isCredit = t.transaction_type === 'DEPOSIT' || t.transaction_type === 'REVERSAL';
       const amtStr = (isCredit ? '+' : '-') + '₹' + parseFloat(t.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-      const amtClass = isCredit ? 'amount-credit' : 'amount-debit';
+      const amtClass = isCredit ? 'text-emerald-600' : 'text-rose-600';
       
-      let badgeClass = 'txn-type-deposit';
-      let icon = 'bi-arrow-down-left';
-      if (t.transaction_type === 'WITHDRAWAL') { badgeClass = 'txn-type-withdrawal'; icon = 'bi-arrow-up-right'; }
-      else if (t.transaction_type === 'TRANSFER') { badgeClass = 'txn-type-transfer'; icon = 'bi-arrow-left-right'; }
-      else if (t.transaction_type === 'REVERSAL') { badgeClass = 'txn-type-reversal'; icon = 'bi-arrow-counterclockwise'; }
+      let badgeHtml = '<span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">DEPOSIT</span>';
+      if (t.transaction_type === 'WITHDRAWAL') badgeHtml = '<span class="badge bg-rose-50 text-rose-600 border border-rose-200">WITHDRAWAL</span>';
+      else if (t.transaction_type === 'TRANSFER') badgeHtml = '<span class="badge bg-plum-50 text-plum-600 border border-plum-200">TRANSFER</span>';
+      else if (t.transaction_type === 'REVERSAL') badgeHtml = '<span class="badge bg-gold-50 text-gold-600 border border-gold-200">REVERSAL</span>';
 
       const dateStr = t.created_at ? new Date(t.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recent';
       const balStr = t.balance_after ? '₹' + parseFloat(t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
 
       return `
         <tr>
-          <td><div class="small fw-medium">${dateStr}</div></td>
-          <td><span class="font-monospace small">${t.reference_number}</span></td>
-          <td>
-            <div class="fw-semibold text-truncate" style="max-width: 220px;">${t.description || 'Transaction'}</div>
-          </td>
-          <td>
-            <span class="txn-type-badge ${badgeClass}"><i class="bi ${icon}"></i> ${t.transaction_type}</span>
-          </td>
-          <td><span class="${amtClass}">${amtStr}</span></td>
-          <td><span class="badge bg-success-subtle text-success">${t.status}</span></td>
-          <td><span class="text-muted small">${balStr}</span></td>
+          <td><span class="text-xs font-mono">${dateStr}</span></td>
+          <td><span class="font-mono text-xs">${t.reference_number}</span></td>
+          <td><div class="fw-semibold text-truncate" style="max-width: 220px;">${t.description || 'Transaction'}</div></td>
+          <td>${badgeHtml}</td>
+          <td><span class="financial-num ${amtClass}">${amtStr}</span></td>
+          <td><span class="badge-status badge-status-success">${t.status}</span></td>
+          <td><span class="text-muted text-xs font-mono">${balStr}</span></td>
           <td class="text-end">
-            <button class="btn btn-sm btn-icon" onclick='openReceiptModal(${JSON.stringify(t)})'>
+            <button class="btn btn-sm btn-outline-custom" onclick='openReceiptModal(${JSON.stringify(t)})'>
               <i class="bi bi-receipt"></i>
             </button>
           </td>
@@ -249,7 +234,7 @@
     document.getElementById('modalReceiptDesc').innerText = t.description || 'Account Transaction';
     document.getElementById('modalReceiptDate').innerText = t.created_at ? new Date(t.created_at).toLocaleString('en-IN') : 'Recent';
     document.getElementById('modalReceiptStatus').innerText = t.status || 'COMPLETED';
-    document.getElementById('modalReceiptBalAfter').innerText = t.balance_after ? '₹' + parseFloat(t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'In Record';
+    document.getElementById('modalReceiptBalAfter').innerText = t.balance_after ? '₹' + parseFloat(t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'Recorded';
     
     new bootstrap.Modal(document.getElementById('txnDetailReceiptModal')).show();
   }

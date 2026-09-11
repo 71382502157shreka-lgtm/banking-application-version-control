@@ -10,12 +10,19 @@ from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf import CSRFProtect
+from flask_migrate import Migrate
 
 from config import config_by_name
 
-db = SQLAlchemy()
+class BaseModel:
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+db = SQLAlchemy(model_class=BaseModel)
 login_manager = LoginManager()
 csrf = CSRFProtect()
+migrate = Migrate()
 
 
 def create_app(config_name=None):
@@ -31,6 +38,7 @@ def create_app(config_name=None):
     login_manager.login_view = "auth.login"
     login_manager.session_protection = "strong"
     csrf.init_app(flask_app)
+    migrate.init_app(flask_app, db)
 
     _configure_logging(flask_app)
     _register_blueprints(flask_app)

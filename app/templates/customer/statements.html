@@ -1,90 +1,89 @@
 {% extends "base.html" %}
-{% block title %}Account Statement{% endblock %}
+{% block title %}Account Statements &amp; Export{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1">Account Statement</h2>
-      <p class="text-muted mb-0">Generate, view, and export official statement records for any date range.</p>
+      <h2 class="font-display fw-bold mb-1">Account Statement &amp; Export</h2>
+      <p class="text-muted small mb-0">Generate, view, and export official statement records for any date range.</p>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-secondary btn-sm" onclick="exportStatementCSV()">
+      <button class="btn btn-outline-custom btn-sm" onclick="exportStatementCSV()">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
       </button>
-      <button class="btn btn-primary btn-sm" onclick="window.print()">
+      <button class="btn btn-emerald btn-sm" onclick="window.print()">
         <i class="bi bi-printer me-1"></i> Print / Save PDF
       </button>
     </div>
   </div>
 
-  <!-- Statement Filters -->
-  <div class="fin-card mb-4 p-3 no-print">
+  <!-- Filters -->
+  <div class="card-custom p-3 mb-4">
     <div class="row g-3 align-items-end">
       <div class="col-12 col-md-4">
-        <label class="form-label fw-bold small text-muted">Select Account</label>
-        <select class="form-select" id="statementAccountId" onchange="loadStatementData()">
+        <label class="form-label text-xs fw-bold text-uppercase text-muted">Select Target Account</label>
+        <select class="form-select form-select-custom" id="statementAccountId" onchange="loadStatementData()">
           {% for acc in accounts %}
-          <option value="{{ acc.id }}">{{ acc.account_type }} &bull; {{ acc.account_number }} (Bal: ₹{{ "{:,.2f}".format(acc.balance) }})</option>
+          <option value="{{ acc.id }}">{{ acc.account_type }} &bull; {{ acc.account_number }} (Balance: ₹{{ "{:,.2f}".format(acc.balance) }})</option>
           {% endfor %}
         </select>
       </div>
       <div class="col-6 col-md-3">
-        <label class="form-label fw-bold small text-muted">Start Date</label>
-        <input type="date" class="form-control" id="statementStartDate" onchange="loadStatementData()">
+        <label class="form-label text-xs fw-bold text-uppercase text-muted">Start Date</label>
+        <input type="date" class="form-control form-control-custom" id="statementStartDate" onchange="loadStatementData()">
       </div>
       <div class="col-6 col-md-3">
-        <label class="form-label fw-bold small text-muted">End Date</label>
-        <input type="date" class="form-control" id="statementEndDate" onchange="loadStatementData()">
+        <label class="form-label text-xs fw-bold text-uppercase text-muted">End Date</label>
+        <input type="date" class="form-control form-control-custom" id="statementEndDate" onchange="loadStatementData()">
       </div>
       <div class="col-12 col-md-2">
-        <button class="btn btn-outline-primary w-100" onclick="loadStatementData()">
+        <button class="btn btn-emerald w-100" onclick="loadStatementData()">
           <i class="bi bi-funnel me-1"></i> Filter
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Printable Statement Document -->
-  <div class="fin-card p-4" id="statementPrintableCard">
-    <!-- Header info -->
+  <!-- Printable Statement Document Card -->
+  <div class="card-custom p-4" id="statementPrintableCard">
     <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
       <div>
         <div class="d-flex align-items-center gap-2 mb-1">
-          <div class="brand-icon" style="width: 32px; height: 32px; font-size: 1rem;">
+          <div class="brand-icon" style="width: 34px; height: 34px; font-size: 1rem;">
             <i class="bi bi-bank2"></i>
           </div>
-          <h4 class="fw-bold mb-0">BankVCS</h4>
+          <h4 class="font-display fw-bold mb-0">BankVCS 2.0</h4>
         </div>
-        <div class="text-muted small">Banking Version Control System &bull; Official Account Ledger</div>
+        <div class="text-muted text-xs">Official Ledger &bull; Immutable Database Audit Engine</div>
       </div>
       <div class="text-end">
-        <div class="fw-bold text-uppercase fs-5 text-primary">Statement of Account</div>
-        <div class="text-muted small" id="statementGeneratedDate">Generated: 01 Sep 2026</div>
+        <div class="fw-bold font-display text-uppercase fs-5 text-emerald-600">Statement of Account</div>
+        <div class="text-muted text-xs font-mono" id="statementGeneratedDate">Generated: --</div>
       </div>
     </div>
 
-    <!-- Customer & Account Details Row -->
-    <div class="row g-3 mb-4 p-3 bg-light rounded-3">
+    <!-- Account Details Row -->
+    <div class="row g-3 mb-4 p-3 bg-surface-elevated rounded-3">
       <div class="col-12 col-md-6">
-        <div class="text-muted small">Account Holder</div>
-        <div class="fw-bold fs-6">{{ current_user.full_name or current_user.username }}</div>
-        <div class="text-muted small">Email: {{ current_user.email }}</div>
+        <div class="text-muted text-xs">ACCOUNT HOLDER</div>
+        <div class="fw-bold fs-6 font-display">{{ current_user.full_name or current_user.username }}</div>
+        <div class="text-muted text-xs">Email: {{ current_user.email }}</div>
       </div>
       <div class="col-12 col-md-6 text-md-end">
-        <div class="text-muted small">Account Number</div>
-        <div class="fw-bold fs-6 font-monospace" id="statementAccountNumDisplay">-</div>
-        <div class="text-muted small">Status: <span class="badge bg-success-subtle text-success">ACTIVE</span></div>
+        <div class="text-muted text-xs">ACCOUNT NUMBER</div>
+        <div class="fw-bold fs-6 font-mono text-emerald-600" id="statementAccountNumDisplay">-</div>
+        <div class="text-muted text-xs">Status: <span class="badge-status badge-status-success">ACTIVE</span></div>
       </div>
     </div>
 
-    <!-- Statement Table -->
-    <div class="table-responsive">
-      <table class="fin-table" id="statementTable">
+    <!-- Table -->
+    <div class="table-responsive mb-4">
+      <table class="table-custom align-middle" id="statementTable">
         <thead>
           <tr>
             <th>Date</th>
-            <th>Reference No</th>
+            <th>Ref Number</th>
             <th>Description</th>
             <th>Type</th>
             <th class="text-end">Debit (₹)</th>
@@ -94,25 +93,25 @@
         </thead>
         <tbody id="statementTableBody">
           <tr>
-            <td colspan="7" class="text-center py-4 text-muted">Select an account to load statement</td>
+            <td colspan="7" class="text-center py-4 text-muted">Select an account to load statement records</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Statement Summary Footer -->
-    <div class="row g-3 mt-4 pt-3 border-top">
+    <!-- Summary Footer -->
+    <div class="row g-3 p-3 bg-surface-elevated rounded-3">
       <div class="col-6 col-md-4">
-        <div class="text-muted small">Total Deposits (Credits)</div>
-        <div class="fw-bold text-success fs-5" id="statTotalCredits">₹0.00</div>
+        <div class="text-muted text-xs">TOTAL CREDITS</div>
+        <div class="financial-num text-emerald-600 fs-4" id="statTotalCredits">₹0.00</div>
       </div>
       <div class="col-6 col-md-4">
-        <div class="text-muted small">Total Withdrawals (Debits)</div>
-        <div class="fw-bold text-danger fs-5" id="statTotalDebits">₹0.00</div>
+        <div class="text-muted text-xs">TOTAL DEBITS</div>
+        <div class="financial-num text-rose-600 fs-4" id="statTotalDebits">₹0.00</div>
       </div>
       <div class="col-12 col-md-4 text-md-end">
-        <div class="text-muted small">Closing Balance</div>
-        <div class="fw-bold text-primary fs-5" id="statClosingBalance">₹0.00</div>
+        <div class="text-muted text-xs">CLOSING LEDGER BALANCE</div>
+        <div class="financial-num text-plum-600 fs-4" id="statClosingBalance">₹0.00</div>
       </div>
     </div>
   </div>
@@ -124,7 +123,6 @@
   let currentStatementTxns = [];
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Set default dates
     const today = new Date();
     const pastMonth = new Date(today);
     pastMonth.setMonth(pastMonth.getMonth() - 1);
@@ -133,7 +131,6 @@
     document.getElementById('statementStartDate').value = pastMonth.toISOString().split('T')[0];
     document.getElementById('statementGeneratedDate').innerText = 'Generated: ' + today.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
-    // Check URL params
     const urlParams = new URLSearchParams(window.location.search);
     const acc = urlParams.get('account_id');
     if (acc) {
@@ -158,7 +155,6 @@
       if (!res.ok) return;
       let txns = await res.json();
 
-      // Filter by dates if provided
       if (start) {
         txns = txns.filter(t => new Date(t.created_at) >= new Date(start));
       }
@@ -178,7 +174,7 @@
   function renderStatementTable(txns) {
     const tbody = document.getElementById('statementTableBody');
     if (!txns || txns.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No transactions found for the selected account and date range.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No statement records match selected filters.</td></tr>';
       document.getElementById('statTotalCredits').innerText = '₹0.00';
       document.getElementById('statTotalDebits').innerText = '₹0.00';
       document.getElementById('statClosingBalance').innerText = '₹0.00';
@@ -202,13 +198,13 @@
 
       return `
         <tr>
-          <td><span class="small">${dateStr}</span></td>
-          <td><span class="font-monospace small">${t.reference_number}</span></td>
-          <td><span class="fw-medium">${t.description || 'Transaction'}</span></td>
-          <td><span class="badge bg-light text-dark">${t.transaction_type}</span></td>
-          <td class="text-end text-danger">${debitStr}</td>
-          <td class="text-end text-success">${creditStr}</td>
-          <td class="text-end fw-semibold">${balStr}</td>
+          <td><span class="text-xs font-mono">${dateStr}</span></td>
+          <td><span class="font-mono text-xs">${t.reference_number}</span></td>
+          <td><span class="fw-semibold small">${t.description || 'Transaction'}</span></td>
+          <td><span class="badge bg-surface-elevated text-secondary text-xs">${t.transaction_type}</span></td>
+          <td class="text-end text-rose-600 font-mono">${debitStr}</td>
+          <td class="text-end text-emerald-600 font-mono">${creditStr}</td>
+          <td class="text-end font-mono fw-bold">${balStr}</td>
         </tr>
       `;
     }).join('');

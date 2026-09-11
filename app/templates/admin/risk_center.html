@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Intelligent Risk Engine Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-shield-exclamation text-rose-600 me-2"></i> Intelligent Risk Engine Center</h2>
+      <p class="text-muted small mb-0">Rule-based risk score assessment dashboard and high-risk transfer review board.</p>
+    </div>
+    <div>
+      <span class="badge bg-purple-50 text-plum-600 border border-purple-200 px-3 py-2 text-xs">
+        <i class="bi bi-cpu-fill me-1"></i> Rule-Based Risk Intelligence
+      </span>
+    </div>
+  </div>
+
+  <!-- Pending High Risk Reviews Banner -->
+  {% if pending_reviews %}
+  <div class="card-custom p-4 mb-4 border-warning bg-gold-50">
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-exclamation-triangle-fill text-gold-600 fs-4"></i>
+      <h5 class="font-display fw-bold mb-0 text-gold-700">Pending High-Risk Transfers (`BLOCKED_FOR_REVIEW`)</h5>
+    </div>
+
+    <div class="d-flex flex-column gap-3">
+      {% for t in pending_reviews %}
+      <div class="p-3 card-custom d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-xs">
+        <div>
+          <div class="fw-bold font-mono text-emerald-600">Ref: {{ t.reference_number }} &bull; Amount: ₹{{ "{:,.2f}".format(t.amount) }}</div>
+          <div class="text-muted text-xs mt-1">{{ t.description }} &bull; Debit Account #{{ t.account_id }} &rarr; Payee #{{ t.counterparty_account_id }}</div>
+        </div>
+        <div class="d-flex gap-2">
+          <button data-id="{{ t.id }}" onclick="reviewRiskTxn(this.dataset.id, true)" class="btn btn-emerald btn-sm">
+            <i class="bi bi-check-circle me-1"></i> Approve &amp; Release
+          </button>
+          <button data-id="{{ t.id }}" onclick="reviewRiskTxn(this.dataset.id, false)" class="btn btn-outline-custom text-rose-600 btn-sm">
+            <i class="bi bi-x-circle me-1"></i> Reject &amp; Block
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Risk Assessments Stream -->
+  <div class="card-custom p-0 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table-custom align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Txn ID</th>
+            <th>Risk Score</th>
+            <th>Risk Level</th>
+            <th>Triggered Risk Factors</th>
+            <th>Decision</th>
+            <th class="text-end">Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assessments %}
+          <tr>
+            <td class="font-mono fw-bold">#{{ a.id }}</td>
+            <td class="font-mono text-xs">{% if a.transaction_id %}Txn #{{ a.transaction_id }}{% else %}N/A{% endif %}</td>
+            <td>
+              <span class="financial-num fs-5 {% if a.risk_score >= 80 %}text-rose-600{% elif a.risk_score >= 60 %}text-gold-600{% else %}text-emerald-600{% endif %}">
+                {{ a.risk_score }} <span class="fs-6 text-muted">/ 100</span>
+              </span>
+            </td>
+            <td>
+              {% if a.risk_level == 'CRITICAL' %}
+                <span class="badge-status badge-status-failed">CRITICAL</span>
+              {% elif a.risk_level == 'HIGH' %}
+                <span class="badge-status badge-status-pending">HIGH</span>
+              {% elif a.risk_level == 'MEDIUM' %}
+                <span class="badge-status badge-status-processing">MEDIUM</span>
+              {% else %}
+                <span class="badge-status badge-status-success">LOW</span>
+              {% endif %}
+            </td>
+            <td>
+              {% for factor in a.risk_factors or [] %}
+              <span class="badge bg-surface-elevated text-secondary text-xs me-1 mb-1">&bull; {{ factor }}</span>
+              {% else %}
+              <span class="text-muted text-xs">None</span>
+              {% endfor %}
+            </td>
+            <td><span class="fw-bold font-mono text-xs">{{ a.decision }}</span></td>
+            <td class="text-end font-mono text-xs text-muted">{{ a.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center py-5 text-muted">No risk assessments recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function reviewRiskTxn(assessmentId, approve) {
+    const actionStr = approve ? "Approve & Release" : "Reject & Block";
+    if (!confirm(`${actionStr} this transaction?`)) return;
+    try {
+        const res = await fetch(`/api/v1/risk/assessments/${assessmentId}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ approve: approve, notes: "Reviewed by Admin" })
+        });
+        if (res.ok) {
+            showToast(`Transaction ${approve ? 'approved' : 'rejected'} successfully.`, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            const err = await res.json();
+            showToast("Error: " + (err.error || "Failed"), 'danger');
+        }
+    } catch(e) {
+        showToast("Execution error performing risk review", 'danger');
+    }
+}
+</script>
+{% endblock %}

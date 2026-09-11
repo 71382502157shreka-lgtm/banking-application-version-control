@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Employee Portal{% endblock %}
+{% block title %}Staff Operations Dashboard{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1">Staff Operations Dashboard</h2>
-      <p class="text-muted mb-0">Welcome, {{ current_user.full_name or current_user.username }} &bull; Branch Operational Console</p>
+      <h2 class="font-display fw-bold mb-1">Staff Operations Dashboard</h2>
+      <p class="text-muted small mb-0">Welcome, {{ current_user.full_name or current_user.username }} &bull; Staff Operational Console</p>
     </div>
     <div class="d-flex gap-2">
-      <a href="{{ url_for('employee.customers') }}" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
-        <i class="bi bi-people-fill"></i> Customer Accounts
+      <a href="{{ url_for('employee.customers') }}" class="btn btn-emerald btn-sm d-flex align-items-center gap-1 shadow-sm">
+        <i class="bi bi-person-lines-fill"></i> Customer Directory
       </a>
-      <a href="{{ url_for('employee.versions') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+      <a href="{{ url_for('employee.versions') }}" class="btn btn-outline-custom btn-sm d-flex align-items-center gap-1">
         <i class="bi bi-git"></i> Review Versions
       </a>
     </div>
@@ -21,41 +21,41 @@
   <!-- Operational Metrics -->
   <div class="row g-3 mb-4">
     <div class="col-12 col-sm-4">
-      <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="stat-label">Total Customers</div>
-          <div class="stat-icon-wrapper stat-icon-primary">
-            <i class="bi bi-people"></i>
+      <div class="card-custom p-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Total Customers</span>
+          <div class="p-2 rounded-2 bg-emerald-50 text-emerald-600">
+            <i class="bi bi-people fs-5"></i>
           </div>
         </div>
-        <div class="stat-value text-primary">{{ total_customers }}</div>
-        <div class="small text-muted">Registered Customer Profiles</div>
+        <div class="financial-num fs-3 text-emerald-600 mb-1">{{ total_customers }}</div>
+        <div class="text-xs text-muted">Registered Customer Profiles</div>
       </div>
     </div>
 
     <div class="col-12 col-sm-4">
-      <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="stat-label">Active Accounts</div>
-          <div class="stat-icon-wrapper stat-icon-success">
-            <i class="bi bi-credit-card"></i>
+      <div class="card-custom p-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Active Bank Accounts</span>
+          <div class="p-2 rounded-2 bg-purple-50 text-plum-600">
+            <i class="bi bi-credit-card fs-5"></i>
           </div>
         </div>
-        <div class="stat-value text-success">{{ total_accounts }}</div>
-        <div class="small text-muted">Savings &amp; Current Accounts</div>
+        <div class="financial-num fs-3 text-plum-600 mb-1">{{ total_accounts }}</div>
+        <div class="text-xs text-muted">Savings &amp; Current Accounts</div>
       </div>
     </div>
 
     <div class="col-12 col-sm-4">
-      <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="stat-label">Ledger Transactions</div>
-          <div class="stat-icon-wrapper stat-icon-info">
-            <i class="bi bi-receipt"></i>
+      <div class="card-custom p-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Ledger Transactions</span>
+          <div class="p-2 rounded-2 bg-amber-50 text-gold-600">
+            <i class="bi bi-receipt fs-5"></i>
           </div>
         </div>
-        <div class="stat-value text-info">{{ total_txns }}</div>
-        <div class="small text-muted">Immutable Ledger Entries</div>
+        <div class="financial-num fs-3 text-gold-600 mb-1">{{ total_txns }}</div>
+        <div class="text-xs text-muted">Immutable Ledger Entries</div>
       </div>
     </div>
   </div>
@@ -63,13 +63,13 @@
   <!-- Operational Tables Row -->
   <div class="row g-4">
     <div class="col-12 col-lg-7">
-      <div class="fin-card">
+      <div class="card-custom p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold mb-0">Recent Branch Transactions</h5>
-          <span class="badge bg-light text-dark">Live Feed</span>
+          <h5 class="font-display fw-bold mb-0">Recent Branch Transactions</h5>
+          <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">Live Ledger Feed</span>
         </div>
         <div class="table-responsive">
-          <table class="fin-table align-middle">
+          <table class="table-custom align-middle">
             <thead>
               <tr>
                 <th>Date</th>
@@ -82,11 +82,11 @@
             <tbody>
               {% for txn in recent_txns %}
               <tr>
-                <td><span class="small">{{ txn.created_at.strftime('%d %b %H:%M') if txn.created_at else 'Recent' }}</span></td>
-                <td><span class="font-monospace small">{{ txn.reference_number }}</span></td>
-                <td><span class="badge bg-light text-dark">{{ txn.transaction_type }}</span></td>
-                <td><span class="fw-bold">₹{{ "{:,.2f}".format(txn.amount) }}</span></td>
-                <td><span class="badge bg-success-subtle text-success">{{ txn.status }}</span></td>
+                <td><span class="text-xs font-mono">{{ txn.created_at.strftime('%d %b %H:%M') if txn.created_at else 'Recent' }}</span></td>
+                <td><span class="font-mono text-xs">{{ txn.reference_number }}</span></td>
+                <td><span class="badge bg-surface-elevated text-secondary text-xs">{{ txn.transaction_type }}</span></td>
+                <td><span class="financial-num text-emerald-600">₹{{ "{:,.2f}".format(txn.amount) }}</span></td>
+                <td><span class="badge-status badge-status-success">{{ txn.status }}</span></td>
               </tr>
               {% else %}
               <tr><td colspan="5" class="text-center py-4 text-muted">No transactions recorded yet.</td></tr>
@@ -98,24 +98,24 @@
     </div>
 
     <div class="col-12 col-lg-5">
-      <div class="fin-card">
+      <div class="card-custom p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold mb-0">Recent Entity Versions</h5>
-          <a href="{{ url_for('employee.versions') }}" class="btn btn-sm btn-link p-0 text-decoration-none">View All</a>
+          <h5 class="font-display fw-bold mb-0">Entity Version Stream</h5>
+          <a href="{{ url_for('employee.versions') }}" class="btn btn-sm btn-link text-emerald-600 text-decoration-none fw-semibold">View All</a>
         </div>
-        <div class="timeline-feed">
+        <div class="d-flex flex-column gap-3">
           {% for v in recent_versions %}
-          <div class="d-flex align-items-start gap-2 mb-3 pb-2 border-bottom">
-            <div class="stat-icon-wrapper stat-icon-primary flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.9rem; margin-bottom: 0;">
-              <i class="bi bi-git"></i>
+          <div class="d-flex align-items-start gap-3 pb-3 border-bottom">
+            <div class="p-2 rounded-circle bg-emerald-50 text-emerald-600 flex-shrink-0">
+              <i class="bi bi-git fs-5"></i>
             </div>
-            <div class="flex-grow-1 overflow-hidden">
-              <div class="d-flex justify-content-between">
-                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.7rem;">{{ v.entity_type }} #{{ v.entity_id }}</span>
-                <span class="badge bg-primary text-white" style="font-size: 0.65rem;">v{{ v.version_number }}</span>
+            <div class="overflow-hidden flex-grow-1">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="badge bg-surface-elevated text-secondary text-xs">{{ v.entity_type }} #{{ v.entity_id }}</span>
+                <span class="badge bg-emerald-500 text-white font-mono text-xs">v{{ v.version_number }}</span>
               </div>
-              <div class="small fw-medium text-truncate mt-1">{{ v.change_summary or v.change_type }}</div>
-              <div class="text-muted" style="font-size: 0.7rem;">Changed by User #{{ v.changed_by or 'System' }} &bull; {{ v.created_at.strftime('%d %b, %H:%M') if v.created_at else '' }}</div>
+              <div class="fw-semibold small mt-1 text-truncate">{{ v.change_summary or v.change_type }}</div>
+              <div class="text-muted text-xs">User #{{ v.changed_by or 'System' }} &bull; {{ v.created_at.strftime('%d %b, %H:%M') if v.created_at else '' }}</div>
             </div>
           </div>
           {% else %}

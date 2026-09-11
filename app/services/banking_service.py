@@ -1,12 +1,14 @@
 from decimal import Decimal
-
+from datetime import date
 from app import db
 from app.models.account import Account, AccountType
 from app.models.transaction import Transaction, TransactionType, TransactionStatus
 from app.models.audit_log import AuditAction
 from app.models.version import EntityType, ChangeType
 from app.models.notification import Notification
+from app.models.workflow_risk import TransferLimit, RiskDecision
 from app.services.version_service import create_version
+from app.services.risk_engine import evaluate_transaction_risk
 from app.utils.validators import validate_amount, ValidationError
 
 
@@ -18,6 +20,16 @@ def create_account(user_id: int, account_type: str = AccountType.SAVINGS) -> Acc
     account = Account(user_id=user_id, account_type=account_type)
     db.session.add(account)
     db.session.flush()
+
+    # Create default Transfer Limit for the account
+    t_limit = TransferLimit(
+        account_id=account.id,
+        per_transaction_limit=Decimal("100000.00"),
+        daily_limit=Decimal("500000.00"),
+        used_today=Decimal("0.00"),
+        last_reset_date=date.today()
+    )
+    db.session.add(t_limit)
 
     create_version(
         entity_type=EntityType.ACCOUNT,
@@ -130,6 +142,45 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
     if Decimal(source.available_balance) < amount:
         raise InsufficientBalanceError("Insufficient available balance for this transfer")
 
+    # 1. Enforce Transfer Limits
+    limit_rec = TransferLimit.query.filter_by(account_id=source.id).first()
+    if limit_rec:
+        limit_rec.reset_if_new_day()
+        if amount > limit_rec.per_transaction_limit:
+            raise ValidationError(f"Transfer amount exceeds per-transaction limit of ₹{limit_rec.per_transaction_limit:,.2f}")
+        if (limit_rec.used_today + amount) > limit_rec.daily_limit:
+            raise ValidationError(f"Transfer exceeds remaining daily limit of ₹{(limit_rec.daily_limit - limit_rec.used_today):,.2f}")
+
+    # 2. Risk Engine Evaluation
+    risk_assessment = evaluate_transaction_risk(source, destination, amount, actor_user_id)
+
+    if risk_assessment.decision == RiskDecision.REVIEW_REQUIRED:
+        # Flag transaction as BLOCKED_FOR_REVIEW for Maker-Checker review
+        debit_txn = Transaction(
+            account_id=source.id,
+            transaction_type=TransactionType.TRANSFER,
+            amount=amount,
+            description=f"[REVIEW REQUIRED] {description}",
+            status="BLOCKED_FOR_REVIEW",
+            counterparty_account_id=destination.id,
+            balance_after=source.balance,
+        )
+        db.session.add(debit_txn)
+        db.session.flush()
+
+        risk_assessment.transaction_id = debit_txn.id
+        db.session.add(risk_assessment)
+
+        db.session.add(Notification(
+            user_id=source.user_id,
+            title="Transfer Flagged for Review",
+            message=f"Your transfer of ₹{amount} was flagged by the security risk engine and is pending admin approval.",
+            notification_type="SECURITY"
+        ))
+        db.session.commit()
+        return debit_txn, None
+
+    # Normal Approved Transfer
     src_old, dst_old = source.to_dict(), destination.to_dict()
 
     source.balance = Decimal(source.balance) - amount
@@ -139,6 +190,9 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
     destination.balance = Decimal(destination.balance) + amount
     destination.available_balance = Decimal(destination.available_balance) + amount
     _bump_account_version(destination)
+
+    if limit_rec:
+        limit_rec.used_today += amount
 
     debit_txn = Transaction(
         account_id=source.id,
@@ -160,6 +214,9 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
     )
     db.session.add_all([debit_txn, credit_txn])
     db.session.flush()
+
+    risk_assessment.transaction_id = debit_txn.id
+    db.session.add(risk_assessment)
 
     create_version(EntityType.ACCOUNT, source.id, ChangeType.UPDATE, src_old, source.to_dict(),
                     actor_user_id, f"Transfer out {amount} to account {destination.account_number}",
@@ -186,11 +243,6 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
 
 
 def reverse_transaction(original: Transaction, actor_user_id: int, reason: str) -> Transaction:
-    """
-    Financial corrections NEVER edit or delete the original transaction.
-    Instead we post an equal-and-opposite REVERSAL transaction and mark
-    the original's status as REVERSED, preserving full history.
-    """
     if original.status == TransactionStatus.REVERSED:
         raise ValidationError("Transaction has already been reversed")
 

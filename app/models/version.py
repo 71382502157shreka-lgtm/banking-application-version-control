@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app import db
+from app.models.base import BaseModel
 
 
 class EntityType:
@@ -17,7 +18,7 @@ class ChangeType:
     RESTORE = "RESTORE"
 
 
-class EntityVersion(db.Model):
+class EntityVersion(BaseModel):
     """
     A single, generic version table used for every versioned entity
     (accounts, beneficiaries, user profiles, and — for read-only history

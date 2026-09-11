@@ -1,18 +1,23 @@
 {% extends "base.html" %}
-{% block title %}System Version Control{% endblock %}
+{% block title %}System Version Control &amp; Restore Board{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1"><i class="bi bi-git text-primary me-2"></i> System Version Control &amp; Rollback</h2>
-      <p class="text-muted mb-0">Inspect immutable entity states. Safe non-financial rollback restores state while creating forward-version audit entries.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-git text-emerald-600 me-2"></i> System Version Control &amp; Restore Board</h2>
+      <p class="text-muted small mb-0">Inspect immutable entity states across all users and perform safe, non-financial state rollbacks.</p>
+    </div>
+    <div>
+      <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-2 text-xs">
+        <i class="bi bi-link-45deg me-1"></i> Forward Version Restore Workflow
+      </span>
     </div>
   </div>
 
-  <div class="fin-card">
+  <div class="card-custom p-0 overflow-hidden mb-4">
     <div class="table-responsive">
-      <table class="fin-table align-middle">
+      <table class="table-custom align-middle">
         <thead>
           <tr>
             <th>Time</th>
@@ -20,7 +25,7 @@
             <th>Entity ID</th>
             <th>Version</th>
             <th>Change Type</th>
-            <th>Summary</th>
+            <th>Summary / Reason</th>
             <th>Changed By</th>
             <th class="text-end">Actions</th>
           </tr>
@@ -28,30 +33,36 @@
         <tbody>
           {% for v in versions %}
           <tr>
-            <td><span class="small">{{ v.created_at.strftime('%d %b %Y, %H:%M') if v.created_at else 'Recent' }}</span></td>
-            <td><span class="badge bg-secondary-subtle text-secondary">{{ v.entity_type }}</span></td>
-            <td><span class="font-monospace small">#{{ v.entity_id }}</span></td>
-            <td><span class="badge bg-primary text-white">v{{ v.version_number }}</span></td>
-            <td><span class="badge bg-light text-dark">{{ v.change_type }}</span></td>
-            <td><span class="small fw-medium">{{ v.change_summary or v.change_type }}</span></td>
+            <td><span class="text-xs font-mono">{{ v.created_at.strftime('%d %b %Y, %H:%M') if v.created_at else 'Recent' }}</span></td>
+            <td><span class="badge bg-surface-elevated text-secondary text-xs">{{ v.entity_type }}</span></td>
+            <td><span class="font-mono text-xs">#{{ v.entity_id }}</span></td>
+            <td><span class="badge bg-emerald-500 text-white font-mono">v{{ v.version_number }}</span></td>
+            <td>
+              {% if v.change_type == 'RESTORE' %}
+                <span class="badge-status badge-status-processing">RESTORE</span>
+              {% else %}
+                <span class="badge-status badge-status-success">{{ v.change_type }}</span>
+              {% endif %}
+            </td>
+            <td><span class="small fw-semibold">{{ v.change_summary or v.change_type }}</span></td>
             <td><span class="small text-muted">User #{{ v.changed_by or 'System' }}</span></td>
             <td class="text-end">
-              <div class="btn-group btn-group-sm">
+              <div class="d-inline-flex gap-1">
                 {% if v.version_number > 1 %}
-                <button class="btn btn-outline-primary" onclick="adminDiffView('{{ v.entity_type }}', {{ v.entity_id }}, {{ v.version_number - 1 }}, {{ v.version_number }})">
-                  <i class="bi bi-file-diff"></i> Diff
+                <button class="btn btn-sm btn-outline-custom" data-entity-type="{{ v.entity_type }}" data-entity-id="{{ v.entity_id }}" data-v1="{{ v.version_number - 1 }}" data-v2="{{ v.version_number }}" onclick="adminDiffView(this.dataset.entityType, this.dataset.entityId, this.dataset.v1, this.dataset.v2)">
+                  <i class="bi bi-file-diff text-emerald-600 me-1"></i> Diff
                 </button>
                 {% endif %}
                 {% if v.entity_type in ['BENEFICIARY', 'USER_PROFILE'] and v.change_type != 'RESTORE' %}
-                <button class="btn btn-outline-warning" onclick="adminRestoreVersion('{{ v.entity_type }}', {{ v.entity_id }}, {{ v.version_number }})">
-                  <i class="bi bi-arrow-counterclockwise"></i> Restore
+                <button class="btn btn-sm btn-plum" data-entity-type="{{ v.entity_type }}" data-entity-id="{{ v.entity_id }}" data-version="{{ v.version_number }}" onclick="adminRestoreVersion(this.dataset.entityType, this.dataset.entityId, this.dataset.version)">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i> Rollback
                 </button>
                 {% endif %}
               </div>
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="8" class="text-center py-4 text-muted">No version history records found.</td></tr>
+          <tr><td colspan="8" class="text-center py-5 text-muted">No version history records found.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -59,20 +70,20 @@
   </div>
 </div>
 
-<!-- Admin Diff Modal -->
+<!-- Admin Diff Inspection Modal -->
 <div class="modal fade" id="adminDiffModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-      <div class="modal-header border-bottom-0 pb-0">
-        <h5 class="modal-title fw-bold">
-          <i class="bi bi-file-diff text-primary me-2"></i> Version Diff Inspection
+    <div class="modal-content card-custom border-0 shadow-xl">
+      <div class="card-header-custom">
+        <h5 class="modal-title font-display fw-bold">
+          <i class="bi bi-file-diff text-emerald-600 me-2"></i> Version Diff Inspection
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body py-4">
-        <div class="table-responsive">
-          <table class="table table-bordered align-middle">
-            <thead class="table-light">
+      <div class="card-body-custom">
+        <div class="diff-container">
+          <table class="diff-table">
+            <thead>
               <tr>
                 <th>Field</th>
                 <th>Old Version Value</th>
@@ -84,8 +95,8 @@
           </table>
         </div>
       </div>
-      <div class="modal-footer border-top-0 pt-0">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      <div class="p-3 border-top d-flex justify-content-end bg-surface-elevated">
+        <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -106,18 +117,18 @@
       const fields = data.fields || {};
 
       tbody.innerHTML = Object.entries(fields).map(([fieldName, diffInfo]) => {
-        let rowClass = '';
-        let badge = '<span class="badge bg-light text-dark">SAME</span>';
+        let rowClass = 'diff-row-unchanged';
+        let badge = '<span class="badge bg-surface-elevated text-secondary text-xs">UNCHANGED</span>';
 
         if (diffInfo.status === 'modified') {
           rowClass = 'diff-row-modified';
-          badge = '<span class="badge bg-warning text-dark">MODIFIED</span>';
+          badge = '<span class="badge bg-gold-50 text-gold-600 border border-gold-200">MODIFIED</span>';
         } else if (diffInfo.status === 'added') {
           rowClass = 'diff-row-added';
-          badge = '<span class="badge bg-success">ADDED</span>';
+          badge = '<span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">ADDED</span>';
         } else if (diffInfo.status === 'removed') {
           rowClass = 'diff-row-removed';
-          badge = '<span class="badge bg-danger">REMOVED</span>';
+          badge = '<span class="badge bg-rose-50 text-rose-600 border border-rose-200">REMOVED</span>';
         }
 
         const oldVal = diffInfo.old !== null && diffInfo.old !== undefined ? JSON.stringify(diffInfo.old) : 'null';
@@ -125,9 +136,9 @@
 
         return `
           <tr class="${rowClass}">
-            <td class="fw-bold font-monospace small">${fieldName}</td>
-            <td><span class="${diffInfo.status === 'modified' ? 'diff-val-old' : 'small'}">${oldVal}</span></td>
-            <td><span class="${diffInfo.status === 'modified' ? 'diff-val-new' : 'small'}">${newVal}</span></td>
+            <td class="fw-bold font-mono small">${fieldName}</td>
+            <td><span class="${diffInfo.status === 'modified' ? 'diff-old-val' : 'font-mono small'}">${oldVal}</span></td>
+            <td><span class="${diffInfo.status === 'modified' ? 'diff-new-val' : 'font-mono small'}">${newVal}</span></td>
             <td>${badge}</td>
           </tr>
         `;

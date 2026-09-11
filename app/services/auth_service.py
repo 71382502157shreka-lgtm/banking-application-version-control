@@ -6,6 +6,7 @@ from app.models.audit_log import AuditAction
 from app.models.version import EntityType, ChangeType
 from app.services.audit_service import log_action
 from app.services.version_service import create_version
+from app.services.session_service import create_user_session
 from app.utils.validators import (
     ValidationError, validate_email, validate_username, validate_password_strength,
 )
@@ -28,7 +29,7 @@ def register_user(username, email, password, full_name=None, phone=None, role=Ro
     user = User(username=username, email=email, full_name=full_name, phone=phone, role=role)
     user.set_password(password)
     db.session.add(user)
-    db.session.flush()  # get user.id before referencing it
+    db.session.flush()
 
     create_version(
         entity_type=EntityType.USER_PROFILE,
@@ -45,11 +46,6 @@ def register_user(username, email, password, full_name=None, phone=None, role=Ro
 
 
 def authenticate(username, password):
-    """
-    Verify credentials, enforcing lockout policy. Every attempt — success
-    or failure — is written to the audit log so the security/activity
-    pages have a real trail to show.
-    """
     max_attempts = current_app.config["MAX_FAILED_LOGIN_ATTEMPTS"]
     lockout_minutes = current_app.config["LOCKOUT_DURATION_MINUTES"]
 
@@ -78,6 +74,9 @@ def authenticate(username, password):
 
     user.register_successful_login()
     log_action(AuditAction.LOGIN, user_id=user.id, description="Successful login")
+    
+    # Track LoginSession
+    create_user_session(user.id)
     db.session.commit()
     return user
 

@@ -1,15 +1,20 @@
-"""
-Populate a fresh database with demo data for the viva/presentation:
-one admin, one employee, one customer with two accounts, a beneficiary,
-a few transactions, and the version/audit trail that naturally results
-from running everything through the real service layer (not raw INSERTs).
+r"""
+Populate a fresh database with demo data for viva / project demonstration:
+- Roles: Admin, Employee, Customer
+- Accounts & Transactions
+- Entity Versions (Account, Beneficiary, UserProfile)
+- SHA-256 Tamper-Evident Audit Hash Chain
+- Active Login Sessions
+- Pending Rollback Request for Maker-Checker demo
+- Flagged High-Risk Transaction (BLOCKED_FOR_REVIEW) for Risk Engine demo
 
-Run with:  python seed.py
+Run with:  .venv\Scripts\python.exe seed.py
 """
 import os
 from app import create_app, db
 from app.models.user import User, Role
-from app.services import auth_service, banking_service, beneficiary_service
+from app.models.version import EntityType
+from app.services import auth_service, banking_service, beneficiary_service, approval_service, audit_service
 
 
 def run():
@@ -30,10 +35,6 @@ def run():
             "employee", "employee@bank.local", app.config["SEED_EMPLOYEE_PASSWORD"],
             full_name="Bank Employee", role=Role.EMPLOYEE,
         )
-        staff1 = auth_service.register_user(
-            "staff1", "staff1@bank.local", "Password123",
-            full_name="Branch Officer Sarah", role=Role.EMPLOYEE,
-        )
         customer = auth_service.register_user(
             "customer", "customer@bank.local", app.config["SEED_CUSTOMER_PASSWORD"],
             full_name="John Doe", phone="9876543210", role=Role.CUSTOMER,
@@ -43,45 +44,67 @@ def run():
             full_name="Sarika M", phone="9876543211", role=Role.CUSTOMER,
         )
 
+        # Accounts
         savings = banking_service.create_account(customer.id, "SAVINGS")
         current = banking_service.create_account(customer.id, "CURRENT")
 
         sarika_savings = banking_service.create_account(sarika.id, "SAVINGS")
         sarika_current = banking_service.create_account(sarika.id, "CURRENT")
 
-        # Deposits
-        banking_service.deposit(savings, "50000.00", "Initial deposit", customer.id)
-        banking_service.deposit(current, "20000.00", "Initial deposit", customer.id)
-        banking_service.withdraw(savings, "5000.00", "ATM withdrawal", customer.id)
+        # Deposits & Transfers
+        banking_service.deposit(savings, "150000.00", "Initial deposit", customer.id)
+        banking_service.deposit(current, "40000.00", "Business Working Capital", customer.id)
+        banking_service.withdraw(savings, "5000.00", "ATM Cash Withdrawal", customer.id)
 
-        banking_service.deposit(sarika_savings, "75000.00", "Salary Credit", sarika.id)
-        banking_service.deposit(sarika_current, "30000.00", "Business Earnings", sarika.id)
-        banking_service.withdraw(sarika_savings, "4500.00", "Utility Bill & Groceries", sarika.id)
+        banking_service.deposit(sarika_savings, "85000.00", "Salary Credit", sarika.id)
+        banking_service.deposit(sarika_current, "30000.00", "Consulting Fee", sarika.id)
         banking_service.transfer(sarika_savings, sarika_current, "10000.00", "Inter-Account Transfer", sarika.id)
 
+        # Beneficiaries & Version Updates
         beneficiary = beneficiary_service.add_beneficiary(customer.id, {
             "name": "Jane Smith",
             "account_number": "123456789012",
-            "bank_name": "Sample National Bank",
-            "ifsc": "SAMP0001234",
+            "bank_name": "State Bank of India",
+            "ifsc": "SBIN0001234",
         })
         beneficiary_service.update_beneficiary(
-            beneficiary, {"account_number": "123456789099"}, customer.id
+            beneficiary, {"account_number": "123456789099", "bank_name": "HDFC Bank", "ifsc": "HDFC0001234"}, customer.id
         )
 
         sarika_bene = beneficiary_service.add_beneficiary(sarika.id, {
             "name": "Ramesh Kumar",
             "account_number": "987654321001",
-            "bank_name": "HDFC Bank",
-            "ifsc": "HDFC0001234",
+            "bank_name": "ICICI Bank",
+            "ifsc": "ICIC0001234",
         })
 
-        print("Seed complete.")
-        print(f"  admin    / {app.config['SEED_ADMIN_PASSWORD']}")
-        print(f"  employee / {app.config['SEED_EMPLOYEE_PASSWORD']}")
-        print(f"  customer / {app.config['SEED_CUSTOMER_PASSWORD']}")
-        print(f"Savings account: {savings.account_number} | balance {savings.balance}")
-        print(f"Beneficiary versions created: 2 (compare via /api/versions/compare)")
+        # Demo High-Risk Transaction (Triggers Risk Score >= 60 -> BLOCKED_FOR_REVIEW)
+        banking_service.transfer(savings, sarika_savings, "85000.00", "High Value Overseas Transfer", customer.id)
+
+        # Demo Rollback Request for Maker-Checker
+        approval_service.request_rollback(
+            user_id=customer.id,
+            entity_type=EntityType.BENEFICIARY,
+            entity_id=beneficiary.id,
+            target_version=1,
+            reason="Incorrect bank details entered during update"
+        )
+
+        # Verify Audit Chain Integrity
+        report = audit_service.verify_audit_integrity()
+
+        print("==================================================")
+        print(" BankVCS 2.0 Seed Initialization Complete [OK]")
+        print("==================================================")
+        print(f" Admin Credentials    : admin    / {app.config['SEED_ADMIN_PASSWORD']}")
+        print(f" Employee Credentials : employee / {app.config['SEED_EMPLOYEE_PASSWORD']}")
+        print(f" Customer Credentials : customer / {app.config['SEED_CUSTOMER_PASSWORD']}")
+        print(f" Customer (Sarika)    : sarika   / Password123")
+        print("--------------------------------------------------")
+        print(f" Primary Account Number: {savings.account_number}")
+        print(f" Audit Chain Status   : {report['status']}")
+        print(f" Total Audit Records  : {report['total_records']}")
+        print("==================================================")
 
 
 if __name__ == "__main__":

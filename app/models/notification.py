@@ -1,9 +1,10 @@
 from datetime import datetime
 
 from app import db
+from app.models.base import BaseModel
 
 
-class Notification(db.Model):
+class Notification(BaseModel):
     __tablename__ = "notifications"
 
     id = db.Column(db.Integer, primary_key=True)

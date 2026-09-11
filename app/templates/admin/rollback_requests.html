@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Maker-Checker Rollback Board{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-arrow-counterclockwise text-gold-600 me-2"></i> Maker-Checker Rollback Board</h2>
+      <p class="text-muted small mb-0">Dual-authorization approval workflow for database version restoration.</p>
+    </div>
+    <div>
+      <span class="badge bg-gold-50 text-gold-600 border border-gold-200 px-3 py-2 text-xs">
+        <i class="bi bi-shield-lock-fill me-1"></i> Maker-Checker Enforced
+      </span>
+    </div>
+  </div>
+
+  <div class="card-custom p-0 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table-custom align-middle">
+        <thead>
+          <tr>
+            <th>Req #</th>
+            <th>Requested By</th>
+            <th>Entity Target</th>
+            <th>Target Version</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th class="text-end">Approval Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in requests %}
+          <tr>
+            <td class="font-mono fw-bold text-emerald-600">#{{ r.id }}</td>
+            <td class="fw-semibold">User #{{ r.requested_by }}</td>
+            <td>
+              <span class="badge bg-surface-elevated text-secondary text-xs">
+                {{ r.entity_type }} #{{ r.entity_id }}
+              </span>
+            </td>
+            <td><span class="badge bg-plum-500 text-white font-mono">v{{ r.target_version }}</span></td>
+            <td><span class="small">{{ r.reason }}</span></td>
+            <td>
+              {% if r.status == 'PENDING' %}
+                <span class="badge-status badge-status-pending">PENDING CHECKER</span>
+              {% elif r.status == 'EXECUTED' %}
+                <span class="badge-status badge-status-success">EXECUTED</span>
+              {% else %}
+                <span class="badge-status badge-status-failed">REJECTED</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if r.status == 'PENDING' %}
+              <button data-id="{{ r.id }}" onclick="approveRollback(this.dataset.id)" class="btn btn-emerald btn-sm me-1">
+                <i class="bi bi-check-lg me-1"></i> Approve
+              </button>
+              <button data-id="{{ r.id }}" onclick="rejectRollback(this.dataset.id)" class="btn btn-outline-custom text-rose-600 btn-sm">
+                <i class="bi bi-x-lg me-1"></i> Reject
+              </button>
+              {% else %}
+              <span class="text-muted text-xs font-mono">Reviewed</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-check-all fs-3 d-block mb-2"></i>
+              No pending rollback requests found in Maker-Checker queue.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function approveRollback(id) {
+    if (!confirm("Approve rollback request #" + id + "? This will create a NEW version snapshot.")) return;
+    try {
+        const res = await fetch(`/api/v1/rollback-requests/${id}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ review_notes: "Approved by Admin" })
+        });
+        if (res.ok) {
+            showToast("Rollback request approved! A new version was created.", "success");
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            const err = await res.json();
+            showToast("Error approving rollback: " + (err.error || "Failed"), "danger");
+        }
+    } catch(e) {
+        showToast("Execution error approving rollback", "danger");
+    }
+}
+
+async function rejectRollback(id) {
+    const reason = prompt("Enter rejection reason:");
+    if (!reason) return;
+    try {
+        const res = await fetch(`/api/v1/rollback-requests/${id}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ review_notes: reason })
+        });
+        if (res.ok) {
+            showToast("Rollback request rejected", "info");
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            const err = await res.json();
+            showToast("Error: " + (err.error || "Failed"), "danger");
+        }
+    } catch(e) {
+        showToast("Execution error rejecting rollback", "danger");
+    }
+}
+</script>
+{% endblock %}

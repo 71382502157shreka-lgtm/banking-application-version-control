@@ -1,14 +1,21 @@
-from flask import Blueprint, request, jsonify
+import csv
+import io
+from flask import Blueprint, request, jsonify, Response
 from flask_login import login_required, current_user
 
 from app import db
-from app.models.user import Role
+from app.models.user import Role, User
 from app.models.account import Account
 from app.models.transaction import Transaction
 from app.models.beneficiary import Beneficiary
 from app.models.version import EntityVersion
 from app.models.audit_log import AuditLog
-from app.services import banking_service, beneficiary_service, version_service
+from app.models.security_session import LoginSession
+from app.models.workflow_risk import RollbackRequest, RiskAssessment
+from app.services import (
+    banking_service, beneficiary_service, version_service,
+    audit_service, mfa_service, session_service, approval_service
+)
 from app.utils.decorators import roles_required, json_errors
 from app.utils.validators import ValidationError
 
@@ -19,6 +26,7 @@ api_bp = Blueprint("api", __name__)
 # Accounts
 # ---------------------------------------------------------------------------
 @api_bp.route("/accounts", methods=["GET"])
+@api_bp.route("/v1/accounts", methods=["GET"])
 @login_required
 def list_accounts():
     if current_user.role == Role.CUSTOMER:
@@ -29,6 +37,7 @@ def list_accounts():
 
 
 @api_bp.route("/accounts/<int:account_id>", methods=["GET"])
+@api_bp.route("/v1/accounts/<int:account_id>", methods=["GET"])
 @login_required
 def get_account(account_id):
     account = _get_owned_account_or_403(account_id)
@@ -36,6 +45,7 @@ def get_account(account_id):
 
 
 @api_bp.route("/accounts", methods=["POST"])
+@api_bp.route("/v1/accounts", methods=["POST"])
 @login_required
 @json_errors
 def open_account():
@@ -49,6 +59,7 @@ def open_account():
 # Transactions
 # ---------------------------------------------------------------------------
 @api_bp.route("/transactions", methods=["GET"])
+@api_bp.route("/v1/transactions", methods=["GET"])
 @login_required
 def list_transactions():
     account_id = request.args.get("account_id", type=int)
@@ -69,6 +80,7 @@ def list_transactions():
 
 
 @api_bp.route("/transactions/deposit", methods=["POST"])
+@api_bp.route("/v1/transactions/deposit", methods=["POST"])
 @login_required
 @json_errors
 def api_deposit():
@@ -79,6 +91,7 @@ def api_deposit():
 
 
 @api_bp.route("/transactions/withdraw", methods=["POST"])
+@api_bp.route("/v1/transactions/withdraw", methods=["POST"])
 @login_required
 @json_errors
 def api_withdraw():
@@ -92,6 +105,7 @@ def api_withdraw():
 
 
 @api_bp.route("/transactions/transfer", methods=["POST"])
+@api_bp.route("/v1/transactions/transfer", methods=["POST"])
 @login_required
 @json_errors
 def api_transfer():
@@ -109,10 +123,20 @@ def api_transfer():
         )
     except banking_service.InsufficientBalanceError as e:
         return jsonify(error=str(e)), 422
+
+    if credit is None:
+        # High risk transaction flagged for review
+        return jsonify(
+            message="Transfer flagged by risk security engine and pending admin approval",
+            debit=debit.to_dict(),
+            status="BLOCKED_FOR_REVIEW"
+        ), 202
+
     return jsonify(debit=debit.to_dict(), credit=credit.to_dict()), 201
 
 
 @api_bp.route("/transactions/<int:txn_id>/reverse", methods=["POST"])
+@api_bp.route("/v1/transactions/<int:txn_id>/reverse", methods=["POST"])
 @login_required
 @roles_required(Role.EMPLOYEE, Role.ADMIN)
 @json_errors
@@ -123,10 +147,33 @@ def api_reverse(txn_id):
     return jsonify(reversal.to_dict()), 201
 
 
+@api_bp.route("/transactions/<int:txn_id>/receipt", methods=["GET"])
+@api_bp.route("/v1/transactions/<int:txn_id>/receipt", methods=["GET"])
+@login_required
+def get_transaction_receipt(txn_id):
+    txn = Transaction.query.get_or_404(txn_id)
+    account = _get_owned_account_or_403(txn.account_id)
+    counterparty = Account.query.get(txn.counterparty_account_id) if txn.counterparty_account_id else None
+
+    return jsonify({
+        "reference_number": txn.reference_number,
+        "transaction_type": txn.transaction_type,
+        "amount": str(txn.amount),
+        "status": txn.status,
+        "description": txn.description,
+        "created_at": txn.created_at.isoformat() if txn.created_at else None,
+        "account_number": account.account_number,
+        "account_type": account.account_type,
+        "balance_after": str(txn.balance_after) if txn.balance_after else None,
+        "counterparty_account": counterparty.account_number if counterparty else None,
+    })
+
+
 # ---------------------------------------------------------------------------
 # Beneficiaries
 # ---------------------------------------------------------------------------
 @api_bp.route("/beneficiaries", methods=["GET"])
+@api_bp.route("/v1/beneficiaries", methods=["GET"])
 @login_required
 def list_beneficiaries():
     beneficiaries = Beneficiary.query.filter_by(user_id=current_user.id).all()
@@ -134,6 +181,7 @@ def list_beneficiaries():
 
 
 @api_bp.route("/beneficiaries", methods=["POST"])
+@api_bp.route("/v1/beneficiaries", methods=["POST"])
 @login_required
 @json_errors
 def api_add_beneficiary():
@@ -143,6 +191,7 @@ def api_add_beneficiary():
 
 
 @api_bp.route("/beneficiaries/<int:beneficiary_id>", methods=["PUT"])
+@api_bp.route("/v1/beneficiaries/<int:beneficiary_id>", methods=["PUT"])
 @login_required
 @json_errors
 def api_update_beneficiary(beneficiary_id):
@@ -153,6 +202,7 @@ def api_update_beneficiary(beneficiary_id):
 
 
 @api_bp.route("/beneficiaries/<int:beneficiary_id>", methods=["DELETE"])
+@api_bp.route("/v1/beneficiaries/<int:beneficiary_id>", methods=["DELETE"])
 @login_required
 @json_errors
 def api_delete_beneficiary(beneficiary_id):
@@ -165,6 +215,7 @@ def api_delete_beneficiary(beneficiary_id):
 # Versions
 # ---------------------------------------------------------------------------
 @api_bp.route("/versions", methods=["GET"])
+@api_bp.route("/v1/versions", methods=["GET"])
 @login_required
 def list_versions():
     query = EntityVersion.query
@@ -179,7 +230,6 @@ def list_versions():
     if action:
         query = query.filter_by(change_type=action)
 
-    # Customers only ever see their own history
     if current_user.role == Role.CUSTOMER:
         query = query.filter_by(changed_by=current_user.id)
 
@@ -188,6 +238,7 @@ def list_versions():
 
 
 @api_bp.route("/versions/<entity_type>/<int:entity_id>", methods=["GET"])
+@api_bp.route("/v1/versions/<entity_type>/<int:entity_id>", methods=["GET"])
 @login_required
 def entity_version_history(entity_type, entity_id):
     history = version_service.get_history(entity_type.upper(), entity_id)
@@ -195,6 +246,7 @@ def entity_version_history(entity_type, entity_id):
 
 
 @api_bp.route("/versions/compare", methods=["GET"])
+@api_bp.route("/v1/versions/compare", methods=["GET"])
 @login_required
 @json_errors
 def compare_versions():
@@ -213,41 +265,11 @@ def compare_versions():
     return jsonify(result)
 
 
-@api_bp.route("/versions/<entity_type>/<int:entity_id>/restore/<int:version_number>", methods=["POST"])
-@login_required
-@roles_required(Role.ADMIN)
-@json_errors
-def restore_entity_version(entity_type, entity_id, version_number):
-    entity_type = entity_type.upper()
-
-    def apply_beneficiary(snapshot):
-        beneficiary = Beneficiary.query.get_or_404(entity_id)
-        beneficiary.name = snapshot["name"]
-        beneficiary.account_number = snapshot["account_number"]
-        beneficiary.bank_name = snapshot["bank_name"]
-        beneficiary.ifsc = snapshot["ifsc"]
-        beneficiary.status = snapshot["status"]
-        beneficiary.version_number += 1
-        db.session.flush()
-        return beneficiary.to_dict()
-
-    appliers = {"BENEFICIARY": apply_beneficiary}
-    apply_fn = appliers.get(entity_type)
-    if not apply_fn:
-        return jsonify(error=f"Restoration is not supported for entity type {entity_type}"), 400
-
-    try:
-        result = version_service.restore_version(entity_type, entity_id, version_number, current_user.id, apply_fn)
-    except ValueError as e:
-        return jsonify(error=str(e)), 404
-    db.session.commit()
-    return jsonify(result)
-
-
 # ---------------------------------------------------------------------------
-# Audit logs
+# Audit Logs & Integrity Verification
 # ---------------------------------------------------------------------------
 @api_bp.route("/audit-logs", methods=["GET"])
+@api_bp.route("/v1/audit-logs", methods=["GET"])
 @login_required
 @roles_required(Role.EMPLOYEE, Role.ADMIN)
 def list_audit_logs():
@@ -262,30 +284,184 @@ def list_audit_logs():
     return jsonify([l.to_dict() for l in logs])
 
 
-# ---------------------------------------------------------------------------
-# Admin dashboard stats
-# ---------------------------------------------------------------------------
-@api_bp.route("/admin/dashboard", methods=["GET"])
+@api_bp.route("/audit/verify-integrity", methods=["POST", "GET"])
+@api_bp.route("/v1/audit/verify-integrity", methods=["POST", "GET"])
 @login_required
 @roles_required(Role.ADMIN)
-def admin_dashboard_stats():
-    from app.models.user import User
+def verify_audit_chain():
+    report = audit_service.verify_audit_integrity()
+    return jsonify(report)
 
-    return jsonify({
-        "total_users": User.query.count(),
-        "active_users": User.query.filter_by(status="active").count(),
-        "total_accounts": Account.query.count(),
-        "total_transactions": Transaction.query.count(),
-        "total_versions": EntityVersion.query.count(),
-        "total_audit_logs": AuditLog.query.count(),
-        "failed_logins": AuditLog.query.filter_by(action="FAILED_LOGIN").count(),
-    })
+
+# ---------------------------------------------------------------------------
+# Maker-Checker Rollback Requests & Risk Management
+# ---------------------------------------------------------------------------
+@api_bp.route("/rollback-requests", methods=["GET"])
+@api_bp.route("/v1/rollback-requests", methods=["GET"])
+@login_required
+def list_rollback_requests():
+    query = RollbackRequest.query
+    if current_user.role == Role.CUSTOMER:
+        query = query.filter_by(requested_by=current_user.id)
+    requests_list = query.order_by(RollbackRequest.created_at.desc()).all()
+    return jsonify([r.to_dict() for r in requests_list])
+
+
+@api_bp.route("/rollback-requests", methods=["POST"])
+@api_bp.route("/v1/rollback-requests", methods=["POST"])
+@login_required
+@json_errors
+def create_rollback_request():
+    data = request.get_json(force=True) or {}
+    entity_type = data.get("entity_type")
+    entity_id = data.get("entity_id", type=int)
+    target_version = data.get("target_version", type=int)
+    reason = data.get("reason", "Requested via API")
+
+    req = approval_service.request_rollback(
+        user_id=current_user.id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        target_version=target_version,
+        reason=reason
+    )
+    return jsonify(req.to_dict()), 201
+
+
+@api_bp.route("/rollback-requests/<int:req_id>/approve", methods=["POST"])
+@api_bp.route("/v1/rollback-requests/<int:req_id>/approve", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def approve_rollback(req_id):
+    data = request.get_json(silent=True) or {}
+    notes = data.get("review_notes", "Approved by Admin")
+    req = approval_service.approve_rollback_request(req_id, current_user.id, notes)
+    return jsonify(req.to_dict())
+
+
+@api_bp.route("/rollback-requests/<int:req_id>/reject", methods=["POST"])
+@api_bp.route("/v1/rollback-requests/<int:req_id>/reject", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def reject_rollback(req_id):
+    data = request.get_json(silent=True) or {}
+    notes = data.get("review_notes", "Rejected by Admin")
+    req = approval_service.reject_rollback_request(req_id, current_user.id, notes)
+    return jsonify(req.to_dict())
+
+
+@api_bp.route("/risk/assessments", methods=["GET"])
+@api_bp.route("/v1/risk/assessments", methods=["GET"])
+@login_required
+@roles_required(Role.EMPLOYEE, Role.ADMIN)
+def list_risk_assessments():
+    assessments = RiskAssessment.query.order_by(RiskAssessment.created_at.desc()).limit(200).all()
+    return jsonify([a.to_dict() for a in assessments])
+
+
+@api_bp.route("/risk/assessments/<int:assessment_id>/review", methods=["POST"])
+@api_bp.route("/v1/risk/assessments/<int:assessment_id>/review", methods=["POST"])
+@login_required
+@roles_required(Role.EMPLOYEE, Role.ADMIN)
+@json_errors
+def review_risk(assessment_id):
+    data = request.get_json(force=True) or {}
+    approve = data.get("approve", True)
+    notes = data.get("notes", "")
+    res = approval_service.review_risk_assessment(assessment_id, current_user.id, approve, notes)
+    return jsonify(res.to_dict())
+
+
+# ---------------------------------------------------------------------------
+# Sessions & MFA / OTP Security
+# ---------------------------------------------------------------------------
+@api_bp.route("/sessions", methods=["GET"])
+@api_bp.route("/v1/sessions", methods=["GET"])
+@login_required
+def list_user_sessions():
+    sessions_list = LoginSession.query.filter_by(user_id=current_user.id, is_active=True).all()
+    return jsonify([s.to_dict() for s in sessions_list])
+
+
+@api_bp.route("/sessions/revoke-others", methods=["POST"])
+@api_bp.route("/v1/sessions/revoke-others", methods=["POST"])
+@login_required
+def revoke_other_user_sessions():
+    current_token = request.cookies.get("session_token", "")
+    count = session_service.revoke_other_sessions(current_user.id, current_token)
+    return jsonify(message=f"Revoked {count} other active session(s)", count=count)
+
+
+@api_bp.route("/mfa/generate", methods=["POST"])
+@api_bp.route("/v1/mfa/generate", methods=["POST"])
+@login_required
+@json_errors
+def generate_mfa_otp():
+    data = request.get_json(silent=True) or {}
+    action_type = data.get("action_type", "BENEFICIARY_ADD")
+    code = mfa_service.generate_otp(current_user.id, action_type)
+    return jsonify(message=f"OTP generated for {action_type}", demo_otp=code)
+
+
+@api_bp.route("/mfa/verify", methods=["POST"])
+@api_bp.route("/v1/mfa/verify", methods=["POST"])
+@login_required
+@json_errors
+def verify_mfa_otp():
+    data = request.get_json(force=True) or {}
+    action_type = data.get("action_type", "BENEFICIARY_ADD")
+    code = data.get("otp_code", "")
+    try:
+        mfa_service.verify_otp(current_user.id, action_type, code)
+    except mfa_service.OTPError as e:
+        return jsonify(error=str(e)), 400
+    return jsonify(status="OTP verified successfully")
+
+
+# ---------------------------------------------------------------------------
+# Smart Statements CSV Export
+# ---------------------------------------------------------------------------
+@api_bp.route("/statements/export", methods=["GET"])
+@api_bp.route("/v1/statements/export", methods=["GET"])
+@login_required
+def export_statement_csv():
+    account_id = request.args.get("account_id", type=int)
+    if account_id:
+        account = _get_owned_account_or_403(account_id)
+        txns = Transaction.query.filter_by(account_id=account.id).order_by(Transaction.created_at.asc()).all()
+    else:
+        owned_ids = [a.id for a in Account.query.filter_by(user_id=current_user.id).all()]
+        txns = Transaction.query.filter(Transaction.account_id.in_(owned_ids)).order_by(Transaction.created_at.asc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Reference Number", "Date", "Type", "Amount", "Status", "Description", "Balance After"])
+
+    for t in txns:
+        writer.writerow([
+            t.reference_number,
+            t.created_at.strftime("%Y-%m-%d %H:%M:%S") if t.created_at else "",
+            t.transaction_type,
+            str(t.amount),
+            t.status,
+            t.description,
+            str(t.balance_after) if t.balance_after else ""
+        ])
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=account_statement.csv"}
+    )
 
 
 # ---------------------------------------------------------------------------
 # Profile & Security
 # ---------------------------------------------------------------------------
 @api_bp.route("/profile", methods=["GET"])
+@api_bp.route("/v1/profile", methods=["GET"])
 @login_required
 def get_current_profile():
     data = current_user.to_dict(include_email=True)
@@ -296,6 +472,7 @@ def get_current_profile():
 
 
 @api_bp.route("/profile", methods=["PUT"])
+@api_bp.route("/v1/profile", methods=["PUT"])
 @login_required
 @json_errors
 def update_current_profile():
@@ -313,6 +490,7 @@ def update_current_profile():
 
 
 @api_bp.route("/security/change-password", methods=["POST"])
+@api_bp.route("/v1/security/change-password", methods=["POST"])
 @login_required
 @json_errors
 def api_change_password():
@@ -331,6 +509,7 @@ def api_change_password():
 # Notifications
 # ---------------------------------------------------------------------------
 @api_bp.route("/notifications", methods=["GET"])
+@api_bp.route("/v1/notifications", methods=["GET"])
 @login_required
 def get_notifications():
     from app.models.notification import Notification
@@ -349,6 +528,7 @@ def get_notifications():
 
 
 @api_bp.route("/notifications/<int:note_id>/read", methods=["POST"])
+@api_bp.route("/v1/notifications/<int:note_id>/read", methods=["POST"])
 @login_required
 def mark_notification_read(note_id):
     from app.models.notification import Notification
@@ -359,6 +539,7 @@ def mark_notification_read(note_id):
 
 
 @api_bp.route("/notifications/read-all", methods=["POST"])
+@api_bp.route("/v1/notifications/read-all", methods=["POST"])
 @login_required
 def mark_all_notifications_read():
     from app.models.notification import Notification
@@ -368,9 +549,10 @@ def mark_all_notifications_read():
 
 
 # ---------------------------------------------------------------------------
-# Spending Analytics & Statement
+# Spending Analytics
 # ---------------------------------------------------------------------------
 @api_bp.route("/analytics", methods=["GET"])
+@api_bp.route("/v1/analytics", methods=["GET"])
 @login_required
 def get_analytics():
     from decimal import Decimal
@@ -403,7 +585,6 @@ def get_analytics():
     transfers = Decimal("0.00")
     type_counts = {"DEPOSIT": 0, "WITHDRAWAL": 0, "TRANSFER": 0, "REVERSAL": 0}
 
-    # Group by month string (e.g. "Sep 2026")
     monthly_data = {}
 
     for t in txns:
@@ -422,7 +603,6 @@ def get_analytics():
             expenses += amt
             monthly_data[m_key]["expenses"] += amt
         elif t_type == "TRANSFER":
-            # If counterparty is within customer's own accounts vs outbound
             expenses += amt
             transfers += amt
             monthly_data[m_key]["expenses"] += amt

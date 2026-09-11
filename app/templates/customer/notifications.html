@@ -5,11 +5,11 @@
 <div class="container-fluid px-0">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1"><i class="bi bi-bell text-primary me-2"></i> Notifications Center</h2>
-      <p class="text-muted mb-0">Stay informed about your transaction alerts, security events, and account updates.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-bell text-emerald-600 me-2"></i> Notifications Center</h2>
+      <p class="text-muted small mb-0">Stay informed about transaction alerts, security events, and version control updates.</p>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-primary btn-sm" onclick="markAllAsReadPage()">
+      <button class="btn btn-outline-custom btn-sm" onclick="markAllAsReadPage()">
         <i class="bi bi-check2-all me-1"></i> Mark All as Read
       </button>
     </div>
@@ -17,21 +17,20 @@
 
   <div class="row g-4">
     <div class="col-12 col-lg-8 mx-auto">
-      <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+      <div class="card-custom p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
           <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-primary" id="btnFilterAll" onclick="filterNotifs('ALL')">All</button>
-            <button class="btn btn-sm btn-outline-secondary" id="btnFilterUnread" onclick="filterNotifs('UNREAD')">Unread</button>
-            <button class="btn btn-sm btn-outline-secondary" id="btnFilterTxn" onclick="filterNotifs('TRANSACTION')">Transactions</button>
-            <button class="btn btn-sm btn-outline-secondary" id="btnFilterSec" onclick="filterNotifs('SECURITY')">Security</button>
+            <button class="btn btn-sm btn-emerald" id="btnFilterAll" onclick="filterNotifs('ALL')">All</button>
+            <button class="btn btn-sm btn-outline-custom" id="btnFilterUnread" onclick="filterNotifs('UNREAD')">Unread</button>
+            <button class="btn btn-sm btn-outline-custom" id="btnFilterTxn" onclick="filterNotifs('TRANSACTION')">Transactions</button>
+            <button class="btn btn-sm btn-outline-custom" id="btnFilterSec" onclick="filterNotifs('SECURITY')">Security</button>
           </div>
-          <span class="small text-muted" id="notifTotalCounter">0 notifications</span>
+          <span class="text-xs text-muted font-mono" id="notifTotalCounter">0 notifications</span>
         </div>
 
-        <div class="notif-feed-list" id="notifFullFeed">
+        <div class="d-flex flex-column gap-2" id="notifFullFeed">
           <div class="text-center py-5 text-muted">
-            <div class="spinner-border spinner-border-sm text-primary me-2"></div>
-            Loading notifications...
+            <div class="spinner-border spinner-border-sm text-emerald-600 me-2"></div> Loading notifications...
           </div>
         </div>
       </div>
@@ -52,27 +51,24 @@
   async function loadFullNotifications() {
     try {
       const res = await fetch('/api/notifications');
-      if (!res.ok) {
-        document.getElementById('notifFullFeed').innerHTML = '<div class="text-center py-4 text-danger">Failed to load notifications</div>';
-        return;
-      }
+      if (!res.ok) return;
       const data = await res.json();
       allNotifs = data.notifications || [];
       renderNotifs();
     } catch (e) {
-      document.getElementById('notifFullFeed').innerHTML = '<div class="text-center py-4 text-danger">Network error loading notifications</div>';
+      console.error(e);
     }
   }
 
   function filterNotifs(filterType) {
     currentFilter = filterType;
     ['btnFilterAll', 'btnFilterUnread', 'btnFilterTxn', 'btnFilterSec'].forEach(id => {
-      document.getElementById(id).className = 'btn btn-sm btn-outline-secondary';
+      document.getElementById(id).className = 'btn btn-sm btn-outline-custom';
     });
-    if (filterType === 'ALL') document.getElementById('btnFilterAll').className = 'btn btn-sm btn-primary';
-    else if (filterType === 'UNREAD') document.getElementById('btnFilterUnread').className = 'btn btn-sm btn-primary';
-    else if (filterType === 'TRANSACTION') document.getElementById('btnFilterTxn').className = 'btn btn-sm btn-primary';
-    else if (filterType === 'SECURITY') document.getElementById('btnFilterSec').className = 'btn btn-sm btn-primary';
+    if (filterType === 'ALL') document.getElementById('btnFilterAll').className = 'btn btn-sm btn-emerald';
+    else if (filterType === 'UNREAD') document.getElementById('btnFilterUnread').className = 'btn btn-sm btn-emerald';
+    else if (filterType === 'TRANSACTION') document.getElementById('btnFilterTxn').className = 'btn btn-sm btn-emerald';
+    else if (filterType === 'SECURITY') document.getElementById('btnFilterSec').className = 'btn btn-sm btn-emerald';
 
     renderNotifs();
   }
@@ -101,26 +97,26 @@
 
     list.innerHTML = filtered.map(n => {
       let icon = 'bi-info-circle';
-      let iconBg = 'bg-primary-subtle text-primary';
-      if (n.notification_type === 'SECURITY') { icon = 'bi-shield-exclamation'; iconBg = 'bg-danger-subtle text-danger'; }
-      else if (n.notification_type === 'TRANSACTION') { icon = 'bi-currency-exchange'; iconBg = 'bg-success-subtle text-success'; }
+      let iconBg = 'bg-emerald-50 text-emerald-600';
+      if (n.notification_type === 'SECURITY') { icon = 'bi-shield-exclamation'; iconBg = 'bg-rose-50 text-rose-600'; }
+      else if (n.notification_type === 'TRANSACTION') { icon = 'bi-currency-exchange'; iconBg = 'bg-purple-50 text-plum-600'; }
 
       const dateStr = n.created_at ? new Date(n.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recent';
 
       return `
-        <div class="p-3 mb-2 rounded-3 border d-flex align-items-start gap-3 ${n.is_read ? 'bg-white' : 'bg-light border-primary-subtle'}" onclick="markSingleRead(${n.id})">
-          <div class="stat-icon-wrapper ${iconBg} flex-shrink-0" style="width: 42px; height: 42px; font-size: 1.2rem; margin-bottom: 0;">
-            <i class="bi ${icon}"></i>
+        <div class="p-3 rounded-3 border d-flex align-items-start gap-3 cursor-pointer ${n.is_read ? 'bg-surface' : 'bg-surface-elevated border-emerald-500'}" onclick="markSingleRead(${n.id})">
+          <div class="p-2 rounded-circle ${iconBg} flex-shrink-0">
+            <i class="bi ${icon} fs-5"></i>
           </div>
           <div class="flex-grow-1 overflow-hidden">
             <div class="d-flex justify-content-between align-items-center mb-1">
-              <h6 class="fw-bold mb-0">${n.title}</h6>
-              <span class="text-muted small" style="font-size: 0.75rem;">${dateStr}</span>
+              <h6 class="fw-bold mb-0 font-display">${n.title}</h6>
+              <span class="text-muted text-xs font-mono">${dateStr}</span>
             </div>
             <div class="text-muted small">${n.message}</div>
           </div>
           <div>
-            ${!n.is_read ? '<span class="badge bg-primary rounded-pill">NEW</span>' : '<i class="bi bi-check-all text-muted"></i>'}
+            ${!n.is_read ? '<span class="badge bg-emerald-500 text-white text-xs">NEW</span>' : '<i class="bi bi-check2-all text-muted"></i>'}
           </div>
         </div>
       `;

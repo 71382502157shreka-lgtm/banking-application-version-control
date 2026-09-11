@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app import db
+from app.models.base import BaseModel
 
 
 class BeneficiaryStatus:
@@ -8,7 +9,7 @@ class BeneficiaryStatus:
     INACTIVE = "INACTIVE"
 
 
-class Beneficiary(db.Model):
+class Beneficiary(BaseModel):
     __tablename__ = "beneficiaries"
 
     id = db.Column(db.Integer, primary_key=True)

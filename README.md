@@ -1,372 +1,200 @@
-# Banking Application Version Control System
+# BankVCS 2.0 – Secure Intelligent Banking & Database Version Control System
 
-[![Python](https://img.shields.io/badge/Python-3.14-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://www.sqlalchemy.org/)
-[![Tests](https://img.shields.io/badge/Tests-18%20Passed-brightgreen.svg)]()
-[![Security](https://img.shields.io/badge/CSRF%20%26%20RBAC-Enforced-success.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-23%20Passed-brightgreen.svg)]()
+[![Audit Chain](https://img.shields.io/badge/Audit%20Chain-SHA--256%20Tamper--Evident-emerald.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
-An enterprise-grade digital banking information system developed with **Python, Flask, SQLAlchemy, and SQLite3**, featuring **Database-Level Entity Version Control**, **Zero-Trust Financial Immutability**, and an **Append-Only Signed Audit Trail**.
+**BankVCS 2.0** is an enterprise-grade digital banking and database version control system built with **Python, Flask, SQLAlchemy, SQLite/PostgreSQL, and Chart.js**. It features **Git-Like Database Entity Version Control**, **SHA-256 Tamper-Evident Audit Hash Chaining**, **Rule-Based Risk Intelligence Engine**, **Maker-Checker Admin Approval Workflows**, **MFA / OTP 2FA Security**, and **Active Session Telemetry**.
 
 ---
 
-## 1. Project Overview
-In modern digital banking and enterprise Information Systems, maintaining a complete, verifiable history of data modifications is essential for compliance, dispute resolution, and security forensics. Traditional banking databases only store the latest state or overwrite rows during updates, losing intermediate historical context. 
+## 1. Executive Summary & Problem Statement
+Traditional financial database architectures suffer from critical vulnerabilities:
+- **Destructive Overwrites**: Direct row updates erase past state, destroying audit context.
+- **Vulnerable Audit Trails**: Plain text or basic DB logs can be retroactively edited without detection.
+- **Unverified Rollbacks**: Direct DB rollbacks erase history or leave no record of who authorized the revert.
 
-The **Banking Application Version Control System (BankVCS)** solves this fundamental challenge by embedding **Git-like version control directly into the relational database engine**. Every critical state change—whether an account balance update, beneficiary modification, or customer profile edit—automatically snapshots previous and current state into an immutable `EntityVersion` ledger.
-
----
-
-## 2. Problem Statement
-Conventional financial applications suffer from three critical architectural vulnerabilities:
-- **Destructive Updates (`UPDATE/DELETE`)**: Direct row overwrites erase historical audit evidence, making it impossible to reconstruct what an account or beneficiary looked like at a specific point in time.
-- **Ambiguous Audit Logs**: Simple log files often state *that* a change occurred (e.g. "Profile Updated"), but fail to store structured side-by-side snapshots answering *what specific field values changed*.
-- **Unauthorized Financial Modifications**: Erroneous financial changes cannot be safely audited or verified without immutable double-entry bookkeeping and explicit reversal transactions.
+**BankVCS 2.0** solves these challenges by treating the relational database as a version-controlled entity store. Non-financial entity state changes (`ACCOUNT`, `BENEFICIARY`, `USER_PROFILE`) are snapshot into an immutable polymorphic `EntityVersion` ledger. Financial transactions remain append-only and strictly immutable (corrections require `REVERSAL` transactions).
 
 ---
 
-## 3. Project Objectives
-1. **Database-Level Versioning**: Implement a generic polymorphic versioning engine (`EntityVersion`) capable of tracking version sequences (`v1 → v2 → v3`) across multiple entities.
-2. **Deep Field-Level Diffing**: Provide automated side-by-side visual diff comparisons highlighting modified, added, removed, and unchanged attributes.
-3. **Financial Immutability**: Guarantee that completed financial transactions are append-only and strictly immutable, enforcing reversal-based corrections.
-4. **Safe Non-Financial Rollback**: Allow authorized administrators to roll back non-financial entities (`BENEFICIARY`, `USER_PROFILE`) to prior snapshots while preserving a forward-audit record.
-5. **Robust Security & RBAC**: Enforce Role-Based Access Control, CSRF token validation on all mutations, PBKDF2 password hashing, and brute-force account lockout.
+## 2. Key Innovations in BankVCS 2.0
+
+### ⭐ 1. Git-Like Entity Version Control Engine
+- **Timeline & History**: Sequence tracking (`v1 → v2 → v3 → RESTORE(v1) → v4`).
+- **Maker-Checker Rollback**: Restoring a past version creates a **NEW version snapshot** containing the restored state. History is **NEVER deleted**.
+- **Field-Level Diffing**: Side-by-side comparison showing `added`, `removed`, `modified`, and `unchanged` fields.
+
+### ⭐ 2. Tamper-Evident SHA-256 Audit Chain
+- Every audit entry includes `previous_hash` and `current_hash`, computed via SHA-256 over:
+  `SHA256(previous_hash | user_id | action | entity_type | entity_id | description | timestamp | old_data | new_data)`
+- **Audit Integrity Verifier**: Admin single-click verification traverses the chain sequentially to confirm `AUDIT CHAIN VALID [OK]`. Any manual DB tampering immediately results in `AUDIT INTEGRITY VIOLATION [ALERT]`.
+
+### ⭐ 3. Intelligent Transaction Risk Engine
+- Calculates a transparent risk score (0–100) prior to transfer execution.
+- Evaluates amount thresholds, account balance depletion percentage (>80%), beneficiary age (<24h), and rapid transfer frequency (>3 in 10 mins).
+- Transfers with risk score ≥ 60 are placed in `BLOCKED_FOR_REVIEW` for Maker-Checker review.
+
+### ⭐ 4. MFA / OTP Security & Session Telemetry
+- 2FA / OTP verification for sensitive operations (login, payee addition, high-value transfers).
+- Active session tracking (`LoginSession`) showing IP, browser, OS, device type, and login timestamps.
+- One-click **"Logout other sessions"** capability.
+
+### ⭐ 5. Smart Statements & Analytics
+- Account statements with date range, transaction type, credit/debit filters, opening/closing balance calculation, and **CSV Export**.
+- Interactive Chart.js monthly cash flow & spending breakdown graphs.
 
 ---
 
-## 4. Key Features
-- **Dynamic Fintech UI**: Modern dashboard with executive metallic debit cards, responsive sidebar navigation, and time-based greetings.
-- **Real-Time Spending Analytics**: Integrated Chart.js visualizations for income vs. expense cash flow and transaction type distribution.
-- **Complete Transaction Ledger**: Search, filter by transaction type/status, date range filtering, and printable official receipts.
-- **Double-Entry Transfers**: Atomic fund transfers with dual-account balance updates and simultaneous version creation.
-- **Live Notifications Center**: Instant alerts on deposits, withdrawals, transfers, and security events.
-- **Official Account Statements**: Filterable account statements with closing balance calculations, print layout, and CSV export.
+## 3. System Architecture & Component Design
+
+```
+                               ┌─────────────────────────────────┐
+                               │   Client Browser & Dashboard    │
+                               │ (Vanilla CSS / Tailwind / JS)   │
+                               └───────────────┬─────────────────┘
+                                               │ REST API v1 (CSRF / Cookie Auth)
+                                               ▼
+                               ┌─────────────────────────────────┐
+                               │     Flask Application Layer     │
+                               │  (Blueprints & RBAC Decorators) │
+                               └───────────────┬─────────────────┘
+                                               │
+             ┌─────────────────────────────────┼─────────────────────────────────┐
+             ▼                                 ▼                                 ▼
+┌─────────────────────────┐       ┌─────────────────────────┐       ┌─────────────────────────┐
+│     Banking Service     │       │ Version Control Engine  │       │ Audit & Security Engine │
+│(Transfers/Limits/Risk)  │       │(Snapshots/Diff/Rollback)│       │ (SHA-256 Chain/Sessions)│
+└────────────┬────────────┘       └────────────┬────────────┘       └────────────┬────────────┘
+             │                                 │                                 │
+             └─────────────────────────────────┼─────────────────────────────────┘
+                                               │ SQLAlchemy ORM & Migrations
+                                               ▼
+                               ┌─────────────────────────────────┐
+                               │  Relational DB (SQLite / Postgres)│
+                               │ (users, accounts, versions, etc)│
+                               └─────────────────────────────────┘
+```
+
+---
+
+## 4. Role-Based Access Control (RBAC) Matrix
+
+| Capability / Feature | Customer | Employee | Admin |
+| :--- | :---: | :---: | :---: |
+| Open Bank Accounts & View Own Balances | ✅ | ❌ | ❌ |
+| Deposit, Withdraw & Initiate Transfers | ✅ | ❌ | ❌ |
+| Add Beneficiary (OTP & Cooling Check) | ✅ | ❌ | ❌ |
+| Export CSV Statements & Transaction Receipts | ✅ | ❌ | ❌ |
+| Manage Active Login Sessions | ✅ | ❌ | ❌ |
+| Review Customer Account Balances | ❌ | ✅ | ✅ |
+| Review Flagged Risk Transfers (`BLOCKED_FOR_REVIEW`) | ❌ | ✅ | ✅ |
+| Submit Rollback Request (Maker) | ✅ | ✅ | ✅ |
+| Approve/Reject Rollback Requests (Checker) | ❌ | ❌ | ✅ |
+| Run SHA-256 Audit Integrity Verification | ❌ | ❌ | ✅ |
+| Admin Security Center & User Management | ❌ | ❌ | ✅ |
 
 ---
 
 ## 5. Technology Stack
-- **Backend**: Python 3.14, Flask 3.0.3
-- **ORM & Database**: Flask-SQLAlchemy 3.1.1, SQLite3 (Thread-Safe with Foreign Key constraints)
-- **Authentication & Security**: Flask-Login 0.6.3, Flask-WTF 1.2.1 (CSRFProtect), Werkzeug 3.0.3 (PBKDF2 SHA-256)
-- **Frontend**: HTML5, Vanilla CSS3 (Custom Design System), JavaScript (ES6+), Bootstrap 5.3.3, Bootstrap Icons 1.11.3
-- **Data Visualization**: Chart.js 4.4.2
-- **Testing**: pytest 8.2.2
+- **Backend Framework**: Python 3.11 / 3.12 / 3.13, Flask 3.0.3, Werkzeug 3.0.3
+- **Database & ORM**: Flask-SQLAlchemy 3.1.1, Flask-Migrate 4.0.7 (Alembic), SQLite3 / PostgreSQL
+- **Security & Auth**: Flask-Login 0.6.3, Flask-WTF 1.2.1 (CSRFProtect), hashlib SHA-256
+- **Frontend & UI**: HTML5, Vanilla CSS3 + Tailwind CDN, Bootstrap 5.3.3, Chart.js 4.4.2
+- **Testing & DevOps**: Pytest 8.2.2, GitHub Actions CI (`.github/workflows/tests.yml`)
 
 ---
 
-## 6. System Architecture
+## 6. Installation & Setup
 
-```
-                                  ┌─────────────────────────────────┐
-                                  │      Client Browser (UI)        │
-                                  │ (HTML5 / Modern CSS / Chart.js) │
-                                  └───────────────┬─────────────────┘
-                                                  │ HTTP (CSRF Protected)
-                                                  ▼
-                                  ┌─────────────────────────────────┐
-                                  │     Flask Application Layer     │
-                                  │  (Blueprints & RBAC Decorators) │
-                                  └───────────────┬─────────────────┘
-                                                  │
-                 ┌────────────────────────────────┼────────────────────────────────┐
-                 ▼                                ▼                                ▼
-    ┌─────────────────────────┐      ┌─────────────────────────┐      ┌─────────────────────────┐
-    │     Banking Service     │      │ Version Control Service │      │      Audit Service      │
-    │  (Accounts & Transfers) │      │   (Snapshots & Diff)    │      │  (Immutable Activity)   │
-    └────────────┬────────────┘      └────────────┬────────────┘      └────────────┬────────────┘
-                 │                                │                                │
-                 └────────────────────────────────┼────────────────────────────────┘
-                                                  │ SQLAlchemy ORM
-                                                  ▼
-                                  ┌─────────────────────────────────┐
-                                  │   SQLite3 Relational Database   │
-                                  │ (users, accounts, txns, etc.)   │
-                                  └─────────────────────────────────┘
-```
-
----
-
-## 7. User Roles & RBAC Matrix
-
-| Permission / Capability | Customer | Employee | Admin |
-| :--- | :---: | :---: | :---: |
-| Open Bank Accounts & View Own Balances | ✅ | ❌ | ❌ |
-| Deposit, Withdraw & Transfer Money | ✅ | ❌ | ❌ |
-| Manage Personal Beneficiaries | ✅ | ❌ | ❌ |
-| Inspect Personal Version History | ✅ | ❌ | ❌ |
-| Inspect Customer Directory & Account Balances | ❌ | ✅ | ✅ |
-| Staff Review of System Versions & Diffs | ❌ | ✅ | ✅ |
-| System-Wide Audit Log Monitoring | ❌ | ✅ | ✅ |
-| User Directory Management & Status Toggle | ❌ | ❌ | ✅ |
-| Safe Non-Financial Version Rollback | ❌ | ❌ | ✅ |
-| System Configuration & Parameter Tuning | ❌ | ❌ | ✅ |
-
----
-
-## 8. Customer Features
-- **Account Overview**: Real-time total balance, available funds, account status, and interactive metallic card.
-- **Deposit & Withdrawal**: Dedicated pages with live balance calculation previews and overdraft validation.
-- **Instant Money Transfer**: Transfer to own accounts or registered beneficiaries with confirmation modal.
-- **Beneficiary Directory**: Add, edit, and deactivate payees with IFSC validation and version tracking.
-- **Account Statements**: Date-filtered transaction statement generator with CSV export and printable PDF layout.
-- **Security & Profile**: Self-service profile management, password update, and session activity logs.
-
----
-
-## 9. Employee Features
-- **Branch Operations Dashboard**: Overview of total active customers, open accounts, and transaction throughput.
-- **Customer Directory**: Search and inspect customer account balances, status, and registration dates.
-- **Version Reviewer**: Staff-level inspection of entity state changes with side-by-side diff viewers.
-- **Compliance Audit Viewer**: Read-only access to branch-level operational logs.
-
----
-
-## 10. Admin Features
-- **Executive Administration Console**: System metrics, total financial volume, failed login attempts, and active version counts.
-- **User Management**: Role assignment, account activation, and deactivation controls.
-- **Global Version Control & Rollback**: Safe restoration of non-financial entities with forward-version tracking.
-- **Full Security Audit Trail**: Real-time stream of all authentication, administrative, and data mutation events.
-- **System Settings**: Configurable daily transfer limits, session timeouts, and lockout thresholds.
-
----
-
-## 11. Banking Operations & Financial Logic
-- **Precision Financials**: All balances and monetary amounts use Python `Decimal` to eliminate floating-point rounding errors.
-- **Atomic Double-Entry Bookkeeping**: A transfer creates simultaneous debit and credit `Transaction` records inside a single atomic database transaction.
-- **Overdraft Protection**: Strict validation prevents withdrawals or transfers exceeding available balance.
-- **Immutable Ledger**: Transactions cannot be modified. Corrections require an equal-and-opposite `REVERSAL` transaction linked to the original transaction ID.
-
----
-
-## 12. Version Control System ⭐ (Core Academic Feature)
-The unique innovation of this application is **Database-Level Entity Versioning**:
-1. Every state modification captures a complete JSON snapshot of the record before (`old_data`) and after (`new_data`) the change.
-2. The entity's `version_number` increments monotonically (`1 → 2 → 3`).
-3. Each version record stores:
-   - `entity_type`: `ACCOUNT`, `BENEFICIARY`, `USER_PROFILE`
-   - `entity_id`: Primary key of the modified record
-   - `version_number`: Sequential version counter
-   - `change_type`: `CREATE`, `UPDATE`, `DELETE`, `RESTORE`
-   - `changed_by`: User ID of the actor
-   - `change_summary`: Human-readable explanation of why the change occurred
-   - `audit_action`: Linked compliance audit event
-
----
-
-## 13. Audit Trail ⭐
-The system maintains an append-only `AuditLog` table answering:
-- **WHO** performed the action? (`user_id` / `username`)
-- **WHAT** action occurred? (`AuditAction` enum, e.g. `TRANSFER`, `LOGIN`, `PROFILE_UPDATED`)
-- **WHICH** entity was affected? (`entity_type` & `entity_id`)
-- **WHEN** did it happen? (`created_at` timestamp in UTC)
-- **WHERE** did it originate? (`ip_address` of the client)
-- **WHY** was it changed? (`description` / memo)
-
----
-
-## 14. Security Features
-- **CSRF Protection**: Global `CSRFProtect` verifying tokens on HTML forms and JSON `fetch()` API calls via `X-CSRFToken`.
-- **Password Security**: Strong password enforcement (min 8 chars, uppercase, lowercase, digit) hashed with Werkzeug PBKDF2 SHA-256.
-- **Brute-Force Lockout**: Accounts are automatically locked for 15 minutes after 5 consecutive failed login attempts.
-- **SQL Injection Defense**: Strict SQLAlchemy ORM parameterized queries.
-- **XSS Sanitization**: Automatic Jinja2 template auto-escaping.
-
----
-
-## 15. Database Design & Models
-
-```
-┌─────────────────┐       ┌─────────────────┐       ┌──────────────────┐
-│      User       │1     *│     Account     │1     *│   Transaction    │
-├─────────────────┤───────├─────────────────┤───────├──────────────────┤
-│ id (PK)         │       │ id (PK)         │       │ id (PK)          │
-│ username        │       │ user_id (FK)    │       │ account_id (FK)  │
-│ password_hash   │       │ account_number  │       │ amount (Decimal) │
-│ role            │       │ balance         │       │ txn_type         │
-│ status          │       │ available_bal   │       │ status           │
-│ failed_logins   │       │ version_number  │       │ balance_after    │
-└─────────────────┘       └─────────────────┘       └──────────────────┘
-         │1                        │                         │
-         │*                        ▼                         ▼
-┌─────────────────┐       ┌────────────────────────────────────────────┐
-│   Beneficiary   │       │               EntityVersion                │
-├─────────────────┤       ├────────────────────────────────────────────┤
-│ id (PK)         │       │ id (PK), entity_type, entity_id            │
-│ user_id (FK)    │       │ version_number, old_data (JSON)            │
-│ account_number  │       │ new_data (JSON), change_type, changed_by   │
-│ version_number  │       └────────────────────────────────────────────┘
-```
-
----
-
-## 16. Project Structure
-
-```
-banking-version-control/
-├── .env.example              # Safe template for environment variables
-├── .gitignore                # Git exclusions (caches, DBs, secrets)
-├── LICENSE                   # MIT License
-├── README.md                 # Project documentation
-├── config.py                 # Configuration classes (Dev, Test, Prod)
-├── requirements.txt          # Python dependencies
-├── run.py                    # Application startup entrypoint
-├── seed.py                   # Demo database seeder script
-├── app/
-│   ├── __init__.py           # Flask app factory & extensions init
-│   ├── models/               # SQLAlchemy Models
-│   │   ├── user.py           # User authentication & RBAC model
-│   │   ├── account.py        # Bank account model
-│   │   ├── transaction.py    # Immutable financial transaction model
-│   │   ├── beneficiary.py    # Saved payee model
-│   │   ├── version.py        # Polymorphic EntityVersion model
-│   │   ├── audit_log.py      # System audit log model
-│   │   └── notification.py   # User notification inbox model
-│   ├── routes/               # Flask Blueprints
-│   │   ├── auth.py           # Login, register, logout routes
-│   │   ├── customer.py       # Customer portal routes
-│   │   ├── employee.py       # Employee branch console routes
-│   │   ├── admin.py          # Admin console routes
-│   │   └── api.py            # REST API endpoints & CSRF handlers
-│   ├── services/             # Core Business Logic Layer
-│   │   ├── auth_service.py   # User auth & profile management
-│   │   ├── banking_service.py# Account & transaction processing
-│   │   ├── beneficiary_service.py # Beneficiary CRUD & versioning
-│   │   ├── version_service.py# Version snapshotting & diff engine
-│   │   └── audit_service.py  # Audit logging service
-│   ├── static/
-│   │   └── css/style.css     # Modern fintech CSS design system
-│   ├── templates/            # Jinja2 HTML Templates
-│   │   ├── base.html         # Base layout with responsive sidebar
-│   │   ├── index.html        # Product landing page
-│   │   ├── auth/             # Login & Register views
-│   │   ├── customer/         # Dashboard, accounts, transfer, etc.
-│   │   ├── employee/         # Staff dashboard, customer directory, etc.
-│   │   └── admin/            # Admin console, user management, settings
-│   └── utils/
-│       ├── decorators.py     # Role-based access decorators
-│       ├── security.py       # Sanitization & security helpers
-│       └── validators.py     # Amount & input validation rules
-└── tests/                    # Automated Test Suite (18 tests)
-    ├── conftest.py           # Pytest fixtures & test app setup
-    ├── test_auth.py          # Auth & account lockout tests
-    ├── test_csrf.py          # CSRF protection & token tests
-    ├── test_transactions.py  # Financial operations & reversals tests
-    ├── test_version_control.py # Versioning & diff comparator tests
-    ├── test_banking_features.py# Account & workflow tests
-    └── verify_all_workflows.py # Live HTTP server end-to-end validator
-```
-
----
-
-## 17. Installation
-
-1. **Clone the repository**:
+1. **Clone the Repository**:
    ```bash
    git clone https://github.com/71382502157shreka-lgtm/banking-application-version-control.git
    cd banking-application-version-control
    ```
 
-2. **Create and activate a virtual environment**:
+2. **Set up Virtual Environment**:
    ```bash
-   # Windows (PowerShell)
-   python -m venv venv
-   .\venv\Scripts\Activate.ps1
-
-   # Linux / macOS
-   python3 -m venv venv
-   source venv/bin/activate
+   python -m venv .venv
+   # Windows PowerShell:
+   .\.venv\Scripts\Activate.ps1
+   # Linux / macOS:
+   source .venv/bin/activate
    ```
 
-3. **Install dependencies**:
+3. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
----
+4. **Initialize Database & Demo Data**:
+   ```bash
+   python seed.py
+   ```
 
-## 18. Environment Setup
-Copy the example environment configuration:
-```bash
-# Windows (PowerShell)
-Copy-Item .env.example .env
-
-# Linux / macOS
-cp .env.example .env
-```
-*(Optionally adjust `SECRET_KEY` in `.env` for production deployments).*
+5. **Run Development Server**:
+   ```bash
+   python run.py
+   ```
+   Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your web browser.
 
 ---
 
-## 19. Database Setup
-Initialize the database and populate demo records:
-```bash
-python seed.py
-```
-This automatically registers models, opens sample savings/current accounts, performs initial deposits/transfers, and creates the foundational version history.
+## 7. Running Tests & CI
 
----
-
-## 20. Running the Application
-Start the local development server:
-```bash
-python run.py
-```
-Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your web browser.
-
----
-
-## 21. Running Tests
-Execute the full automated test suite:
+Execute the complete automated test suite:
 ```bash
 python -m pytest -v
 ```
-**Test Result**: `18 passed, 0 failures` (100% test coverage for core financial and versioning operations).
+**Test Results**: `23 passed, 0 failures` (100% test pass rate across authentication, RBAC, banking, versioning, audit hash chaining, risk engine, Maker-Checker rollbacks, MFA OTP, and sessions).
 
 ---
 
-## 22. Demo Workflow
+## 8. Demo Workflows for Viva & Presentation
 
-### Test Credentials
+### Demo Credentials
 
-| Role | Username | Password | Purpose |
+| Role | Username | Password | Key Demonstration Features |
 | :--- | :--- | :--- | :--- |
-| **Customer** | `sarika` | `Password123` | Personal banking dashboard, transfers, version history |
-| **Employee** | `staff1` | `Password123` | Operational review, customer accounts directory |
-| **Admin** | `admin1` | `Password123` | System oversight, user RBAC, non-financial rollback |
-
-*(Tip: On the login page, you can click the quick-fill demo buttons to sign in instantly).*
-
----
-
-## 23. Version Control Demonstration ⭐
-To demonstrate the academic version-control feature during a presentation or viva:
-
-1. **Log in as Customer (`sarika`)**:
-   - Go to **Beneficiaries** → Click **Edit** on `Ramesh Kumar`.
-   - Change the Account Number from `987654321001` to `987654321099` → Click **Save & Version**.
-2. **Inspect Version History**:
-   - Navigate to **Version History**.
-   - Notice that `BENEFICIARY #1` now displays `v2`.
-   - Click **Diff v1 ↔ v2**.
-3. **Inspect the Side-by-Side Diff Modal**:
-   - The UI highlights the `account_number` field in <span style="color:#f59e0b; font-weight:bold;">MODIFIED (AMBER)</span>, displaying the old strikethrough value vs. the new value.
-4. **Demonstrate Safe Rollback (Admin)**:
-   - Log in as `admin1` → Go to **Version Control**.
-   - Click **Restore** on `v1` of the Beneficiary → Enter a restoration reason.
-   - The system restores the original account number and writes a forward `v3 (RESTORE)` version snapshot and audit log.
+| **Customer** | `customer` | `ChangeMe_Customer123!` | Personal dashboard, transfers, CSV statements, version history |
+| **Customer 2** | `sarika` | `Password123` | Secondary customer with active transactions & payees |
+| **Employee** | `employee` | `ChangeMe_Employee123!` | Staff overview, customer account directory, risk reviews |
+| **Admin** | `admin` | `ChangeMe_Admin123!` | Security Center, SHA-256 Audit Verifier, Maker-Checker Rollback Board |
 
 ---
 
-## 24. Future Enhancements
-- **Multi-Factor Authentication (MFA/TOTP)**: Integration with authenticator apps (Google Authenticator / Authy).
-- **Scheduled & Recurring Payments**: Automated cron execution of recurring standing instructions with version snapshots.
-- **Biometric WebAuthn**: Passwordless FIDO2 biometric authentication for mobile devices.
-- **Distributed Event Streaming**: Integration with Apache Kafka for asynchronous event-driven audit streaming.
+### Demo Workflow 1: Version Control & Maker-Checker Rollback
+1. **Log in as `customer`**:
+   - Go to **Beneficiaries** → Edit payee `Jane Smith`.
+   - Update Account Number to `123456789099` → Click **Save**.
+2. **Submit Rollback Request**:
+   - Navigate to **Version History** → View `v1` vs `v2` side-by-side diff.
+   - Click **Request Rollback to v1** → Provide reason *"Incorrect account number entered"*.
+3. **Approve Rollback as `admin`**:
+   - Log in as `admin` → Go to **Rollback Board** (`/admin/rollback-requests`).
+   - Click **Approve** on the pending request.
+   - Observe that the beneficiary account number is restored to `v1` state **and a NEW version (`v3`) is created**. Historical versions `v1` and `v2` remain completely intact!
 
 ---
 
-## 25. Authors / Project Team
-- **Author / Lead Developer**: [71382502157shreka-lgtm](https://github.com/71382502157shreka-lgtm)
-- **Academic Project**: Information Systems Banking Application Version Control System
-- **Repository**: [banking-application-version-control](https://github.com/71382502157shreka-lgtm/banking-application-version-control.git)
+### Demo Workflow 2: Risk Engine & Tamper-Evident Audit Verification
+1. **Trigger High-Risk Transaction**:
+   - Log in as `customer` → Initiate a high-value transfer of ₹85,000 to `sarika`.
+   - The Risk Engine calculates a **Risk Score of 85/100 (CRITICAL)**.
+   - The transaction state becomes `BLOCKED_FOR_REVIEW` and funds are held.
+2. **Review & Approve as `admin`**:
+   - Log in as `admin` → Go to **Risk Center** (`/admin/risk-center`).
+   - Click **Approve & Release** to complete the transfer.
+3. **Verify Audit Chain Integrity**:
+   - Go to **Security Center** (`/admin/security-center`).
+   - Click **Verify Audit Chain Integrity**.
+   - Receives **`AUDIT CHAIN VALID [OK]`** confirming all SHA-256 hashes match.
+
+---
+
+## 9. License & Credits
+- **License**: MIT License
+- **Project**: BankVCS 2.0 – Secure Intelligent Banking & Database Version Control System

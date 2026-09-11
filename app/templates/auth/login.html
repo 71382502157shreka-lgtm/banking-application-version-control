@@ -3,61 +3,114 @@
 
 {% block public_body %}
 <div class="row justify-content-center align-items-center py-4">
-  <div class="col-12 col-md-8 col-lg-5">
+  <div class="col-12 col-xl-10">
     <div class="auth-card">
-      <div class="text-center mb-4">
-        <div class="brand-icon mx-auto mb-3" style="width: 48px; height: 48px; font-size: 1.5rem;">
-          <i class="bi bi-bank2"></i>
-        </div>
-        <h3 class="fw-bold mb-1">Welcome to BankVCS</h3>
-        <p class="text-muted small">Sign in to your secure, version-controlled banking portal</p>
-      </div>
+      <div class="row g-0">
+        <!-- Left Side: Premium Fintech Branding & Visual -->
+        <div class="col-lg-6 auth-split-left d-none d-lg-flex">
+          <div>
+            <div class="d-flex align-items-center gap-3 mb-4">
+              <div class="brand-icon" style="width: 48px; height: 48px; font-size: 1.5rem;">
+                <i class="bi bi-bank2"></i>
+              </div>
+              <div>
+                <h4 class="text-white font-display mb-0 fw-bold">BankVCS 2.0</h4>
+                <span class="text-emerald-400 small font-mono">v2.0 Enterprise Engine</span>
+              </div>
+            </div>
+            <h2 class="text-white font-display fw-bold leading-tight mb-3">
+              Secure Intelligent Banking with Database Version Control
+            </h2>
+            <p class="text-slate-300 small leading-relaxed">
+              Experience next-generation financial transaction security powered by SHA-256 audit hash chaining, Git-like database version history, and rule-based risk intelligence.
+            </p>
+          </div>
 
-      <form method="post" id="loginForm">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        
-        <div class="mb-3">
-          <label class="form-label fw-semibold small">Username</label>
-          <div class="input-group">
-            <span class="input-group-text bg-light text-muted"><i class="bi bi-person"></i></span>
-            <input type="text" class="form-control" name="username" id="loginUsername" placeholder="Enter your username" required autofocus>
+          <div class="auth-illustration-box">
+            <div class="position-relative d-inline-block">
+              <i class="bi bi-shield-lock-fill fintech-shield-icon"></i>
+              <div class="position-absolute top-50 start-50 translate-middle text-emerald-300" style="font-size: 1.8rem; filter: drop-shadow(0 0 10px rgba(16,185,129,0.8));">
+                <i class="bi bi-git"></i>
+              </div>
+            </div>
+            <div class="mt-4">
+              <div class="d-flex justify-content-center gap-2">
+                <span class="badge bg-white-10 text-emerald-300 border border-emerald-500-30 px-3 py-2 text-xs">
+                  <i class="bi bi-link-45deg me-1"></i> Tamper-Evident Hash Chain
+                </span>
+                <span class="badge bg-white-10 text-purple-300 border border-purple-500-30 px-3 py-2 text-xs">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i> Maker-Checker Rollback
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 border-top border-white-10 text-slate-400 text-xs d-flex justify-content-between">
+            <span>&copy; 2026 BankVCS Enterprise</span>
+            <span>FIPS 140-2 Compliant Architecture</span>
           </div>
         </div>
 
-        <div class="mb-4">
-          <div class="d-flex justify-content-between">
-            <label class="form-label fw-semibold small">Password</label>
+        <!-- Right Side: Clean Modern Login Form -->
+        <div class="col-lg-6 p-4 p-md-5 d-flex flex-column justify-content-center">
+          <div class="mb-4">
+            <h3 class="font-display fw-bold mb-1">Welcome Back</h3>
+            <p class="text-muted small">Sign in to your version-controlled banking account</p>
           </div>
-          <div class="input-group">
-            <span class="input-group-text bg-light text-muted"><i class="bi bi-lock"></i></span>
-            <input type="password" class="form-control" name="password" id="loginPassword" placeholder="Enter your password" required>
+
+          <form method="post" id="loginForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="mb-3">
+              <label class="form-label fw-semibold small">Username</label>
+              <div class="input-group">
+                <span class="input-group-text bg-surface-elevated border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                <input type="text" class="form-control form-control-custom border-start-0" name="username" id="loginUsername" placeholder="Enter your username" required autofocus>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label fw-semibold small mb-0">Password</label>
+              </div>
+              <div class="input-group">
+                <span class="input-group-text bg-surface-elevated border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                <input type="password" class="form-control form-control-custom border-start-0 border-end-0" name="password" id="loginPassword" placeholder="Enter your password" required>
+                <button class="btn btn-outline-custom border-start-0 text-muted" type="button" onclick="togglePasswordVisibility()">
+                  <i class="bi bi-eye" id="togglePassIcon"></i>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-emerald btn-lg w-100 shadow-md mb-4">
+              <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Account
+            </button>
+          </form>
+
+          <!-- Quick Demo Credentials Box -->
+          <div class="p-3 bg-surface-elevated border rounded-3 mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="small font-display fw-bold text-uppercase text-muted" style="font-size: 0.72rem; letter-spacing: 0.05em;">Quick Demo Credentials</span>
+              <span class="badge bg-emerald-50 text-emerald-700 text-xs">Pre-filled</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-sm btn-outline-custom flex-grow-1" onclick="fillLogin('sarika', 'Password123')">
+                <i class="bi bi-person-fill text-emerald-600 me-1"></i> Customer
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-custom flex-grow-1" onclick="fillLogin('staff1', 'Password123')">
+                <i class="bi bi-shield-lock-fill text-plum-600 me-1"></i> Employee
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-custom flex-grow-1" onclick="fillLogin('admin1', 'Password123')">
+                <i class="bi bi-gear-fill text-gold-600 me-1"></i> Admin
+              </button>
+            </div>
+          </div>
+
+          <div class="text-center small text-muted">
+            Need a new account? 
+            <a href="{{ url_for('auth.register') }}" class="text-emerald-600 fw-bold text-decoration-none ms-1">Open an Account</a>
           </div>
         </div>
-
-        <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm mb-3">
-          <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Account
-        </button>
-      </form>
-
-      <!-- Quick Demo Credentials Fill -->
-      <div class="p-3 bg-light rounded-3 mb-3 border">
-        <div class="small fw-bold text-muted text-uppercase mb-2" style="font-size: 0.7rem;">Demo Test Accounts</div>
-        <div class="d-flex flex-wrap gap-1">
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillLogin('sarika', 'Password123')">
-            <i class="bi bi-person me-1"></i> Customer
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillLogin('staff1', 'Password123')">
-            <i class="bi bi-shield me-1"></i> Employee
-          </button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillLogin('admin1', 'Password123')">
-            <i class="bi bi-gear me-1"></i> Admin
-          </button>
-        </div>
-      </div>
-
-      <div class="text-center small text-muted">
-        Don't have an account yet? 
-        <a href="{{ url_for('auth.register') }}" class="text-primary fw-bold text-decoration-none">Open an Account</a>
       </div>
     </div>
   </div>
@@ -69,6 +122,18 @@
   function fillLogin(u, p) {
     document.getElementById('loginUsername').value = u;
     document.getElementById('loginPassword').value = p;
+  }
+
+  function togglePasswordVisibility() {
+    const input = document.getElementById('loginPassword');
+    const icon = document.getElementById('togglePassIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'bi bi-eye-slash';
+    } else {
+      input.type = 'password';
+      icon.className = 'bi bi-eye';
+    }
   }
 </script>
 {% endblock %}

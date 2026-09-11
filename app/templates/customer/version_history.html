@@ -1,33 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Version History{% endblock %}
+{% block title %}Version Control & Diff Engine{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
+  <!-- Top Header -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1"><i class="bi bi-git text-primary me-2"></i> Entity Version Control</h2>
-      <p class="text-muted mb-0">Immutable snapshots of all database entities. Inspect who changed what, when, and compare versions side-by-side.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-git text-emerald-600 me-2"></i> Database Version Control Engine</h2>
+      <p class="text-muted small mb-0">Git-like immutable database entity history, side-by-side diff comparison, and audit trail.</p>
     </div>
-    <div>
-      <button class="btn btn-outline-primary btn-sm" onclick="loadVersionHistory()">
-        <i class="bi bi-arrow-clockwise me-1"></i> Refresh History
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-custom btn-sm" onclick="loadVersionHistory()">
+        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+      </button>
+      <button class="btn btn-emerald btn-sm" data-bs-toggle="modal" data-bs-target="#customCompareModal">
+        <i class="bi bi-columns-gap me-1"></i> Compare Two Versions
       </button>
     </div>
   </div>
 
-  <!-- Filter Bar -->
-  <div class="fin-card mb-4 p-3">
-    <div class="row g-2 align-items-center">
+  <!-- View Toggle & Filters Card -->
+  <div class="card-custom p-3 mb-4">
+    <div class="row g-3 align-items-center">
       <div class="col-12 col-md-4">
-        <select class="form-select" id="versionEntityFilter" onchange="filterVersionList()">
-          <option value="">All Entities (Accounts, Beneficiaries, Profiles)</option>
+        <label class="form-label text-xs fw-bold text-uppercase text-muted mb-1">Entity Type Filter</label>
+        <select class="form-select form-select-custom" id="versionEntityFilter" onchange="filterVersionList()">
+          <option value="">All Entities (Account, Beneficiary, User Profile)</option>
           <option value="ACCOUNT">Accounts (ACCOUNT)</option>
           <option value="BENEFICIARY">Beneficiaries (BENEFICIARY)</option>
           <option value="USER_PROFILE">User Profiles (USER_PROFILE)</option>
         </select>
       </div>
-      <div class="col-6 col-md-4">
-        <select class="form-select" id="versionActionFilter" onchange="filterVersionList()">
+
+      <div class="col-12 col-md-4">
+        <label class="form-label text-xs fw-bold text-uppercase text-muted mb-1">Action Type Filter</label>
+        <select class="form-select form-select-custom" id="versionActionFilter" onchange="filterVersionList()">
           <option value="">All Actions (CREATE, UPDATE, DELETE, RESTORE)</option>
           <option value="CREATE">CREATE</option>
           <option value="UPDATE">UPDATE</option>
@@ -35,70 +42,90 @@
           <option value="RESTORE">RESTORE</option>
         </select>
       </div>
-      <div class="col-6 col-md-4 text-end">
-        <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#customCompareModal">
-          <i class="bi bi-columns-gap me-1"></i> Compare Two Versions
-        </button>
+
+      <div class="col-12 col-md-4 text-md-end">
+        <label class="form-label text-xs fw-bold text-uppercase text-muted mb-1 d-block">Visualization Mode</label>
+        <div class="btn-group w-100" role="group">
+          <button type="button" class="btn btn-outline-custom active" id="viewModeTimelineBtn" onclick="switchViewMode('timeline')">
+            <i class="bi bi-git me-1"></i> Git Graph
+          </button>
+          <button type="button" class="btn btn-outline-custom" id="viewModeTableBtn" onclick="switchViewMode('table')">
+            <i class="bi bi-table me-1"></i> Data Table
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Version Timeline Table -->
-  <div class="fin-card">
-    <div class="table-responsive">
-      <table class="fin-table align-middle">
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Entity Type</th>
-            <th>Record ID</th>
-            <th>Version</th>
-            <th>Action</th>
-            <th>Summary / Change Reason</th>
-            <th>Changed By</th>
-            <th class="text-end">Inspect</th>
-          </tr>
-        </thead>
-        <tbody id="versionTableBody">
-          <tr>
-            <td colspan="8" class="text-center py-5 text-muted">
-              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-              Loading entity versions from VCS engine...
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <!-- VISUAL 1: GIT-LIKE TIMELINE GRAPH CONTAINER -->
+  <div id="timelineContainerView">
+    <div class="card-custom p-4">
+      <h5 class="font-display fw-bold mb-4 d-flex align-items-center gap-2">
+        <i class="bi bi-diagram-3-fill text-emerald-600"></i> Entity State Evolution Timeline
+      </h5>
+      
+      <div id="gitTimelineGraph" class="version-timeline">
+        <div class="text-center py-5 text-muted">
+          <div class="spinner-border spinner-border-sm text-emerald-600 me-2"></div> Loading version timeline...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISUAL 2: STANDARD DATA TABLE CONTAINER -->
+  <div id="tableContainerView" class="d-none">
+    <div class="card-custom">
+      <div class="table-responsive">
+        <table class="table-custom align-middle">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Entity</th>
+              <th>Record ID</th>
+              <th>Version</th>
+              <th>Action</th>
+              <th>Change Summary</th>
+              <th>Changed By</th>
+              <th class="text-end">Compare Action</th>
+            </tr>
+          </thead>
+          <tbody id="versionTableBody">
+            <!-- Rendered via JS -->
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Side-by-Side Version Compare Modal -->
-<div class="modal fade" id="versionDiffModal" tabindex="-1" aria-labelledby="versionDiffModalLabel" aria-hidden="true">
+<!-- SIDE-BY-SIDE GIT DIFF MODAL -->
+<div class="modal fade" id="versionDiffModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-      <div class="modal-header border-bottom-0 pb-0">
-        <h5 class="modal-title fw-bold" id="versionDiffModalLabel">
-          <i class="bi bi-file-diff text-primary me-2"></i> Side-by-Side Version Comparison
+    <div class="modal-content card-custom border-0 shadow-xl">
+      <div class="card-header-custom">
+        <h5 class="modal-title font-display fw-bold d-flex align-items-center gap-2">
+          <i class="bi bi-file-diff text-emerald-600 fs-4"></i> Side-by-Side Version Diff View
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body py-4">
-        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded-3 mb-3">
+
+      <div class="card-body-custom">
+        <div class="p-3 bg-surface-elevated rounded-3 mb-4 d-flex justify-content-between align-items-center">
           <div>
-            <span class="badge bg-secondary-subtle text-secondary" id="diffEntityBadge">ENTITY #1</span>
-            <span class="badge bg-primary text-white ms-1" id="diffVersionBadge">v1 vs v2</span>
+            <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200" id="diffEntityBadge">ENTITY #1</span>
+            <span class="badge bg-emerald-500 text-white font-mono ms-2" id="diffVersionBadge">v1 vs v2</span>
           </div>
-          <div class="small text-muted" id="diffMetaText">Generated via <code>diff_versions()</code></div>
+          <span class="text-muted text-xs font-mono">Engine: <code>diff_versions()</code></span>
         </div>
 
-        <div class="table-responsive">
-          <table class="table table-bordered align-middle">
-            <thead class="table-light">
+        <div class="diff-container">
+          <table class="diff-table">
+            <thead>
               <tr>
-                <th style="width: 25%;">Field</th>
-                <th style="width: 35%;">Old Version Value</th>
-                <th style="width: 35%;">New Version Value</th>
-                <th style="width: 5%;">Diff</th>
+                <th style="width: 25%;">Property Field</th>
+                <th style="width: 35%;">Old Version (Base)</th>
+                <th style="width: 35%;">New Version (Target)</th>
+                <th style="width: 15%;">State Diff</th>
               </tr>
             </thead>
             <tbody id="diffTableBody">
@@ -107,51 +134,56 @@
           </table>
         </div>
       </div>
-      <div class="modal-footer border-top-0 pt-0">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close Diff View</button>
+
+      <div class="p-3 border-top d-flex justify-content-end bg-surface-elevated">
+        <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Close Diff View</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Custom Compare Modal -->
-<div class="modal fade" id="customCompareModal" tabindex="-1" aria-labelledby="customCompareModalLabel" aria-hidden="true">
+<!-- CUSTOM COMPARE MODAL -->
+<div class="modal fade" id="customCompareModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-      <div class="modal-header border-bottom-0 pb-0">
-        <h5 class="modal-title fw-bold" id="customCompareModalLabel">
-          <i class="bi bi-columns-gap text-primary me-2"></i> Select Versions to Compare
+    <div class="modal-content card-custom border-0 shadow-xl">
+      <div class="card-header-custom">
+        <h5 class="modal-title font-display fw-bold">
+          <i class="bi bi-columns-gap text-emerald-600 me-2"></i> Compare Any Two Versions
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+
       <form id="customCompareForm">
-        <div class="modal-body py-4">
+        <div class="card-body-custom">
           <div class="mb-3">
-            <label class="form-label fw-semibold small">Entity Type</label>
-            <select class="form-select" id="customCompareType" required>
+            <label class="form-label fw-semibold small">Target Entity Type</label>
+            <select class="form-select form-select-custom" id="customCompareType" required>
               <option value="BENEFICIARY">BENEFICIARY</option>
               <option value="ACCOUNT">ACCOUNT</option>
               <option value="USER_PROFILE">USER_PROFILE</option>
             </select>
           </div>
+
           <div class="mb-3">
             <label class="form-label fw-semibold small">Entity Record ID</label>
-            <input type="number" class="form-control" id="customCompareId" placeholder="e.g. 1" required min="1">
+            <input type="number" class="form-control form-control-custom" id="customCompareId" placeholder="e.g. 1" required min="1">
           </div>
+
           <div class="row g-2 mb-3">
             <div class="col-6">
               <label class="form-label fw-semibold small">Version A (Base)</label>
-              <input type="number" class="form-control" id="customCompareV1" placeholder="e.g. 1" required min="1">
+              <input type="number" class="form-control form-control-custom font-mono" id="customCompareV1" placeholder="1" required min="1">
             </div>
             <div class="col-6">
               <label class="form-label fw-semibold small">Version B (Target)</label>
-              <input type="number" class="form-control" id="customCompareV2" placeholder="e.g. 2" required min="1">
+              <input type="number" class="form-control form-control-custom font-mono" id="customCompareV2" placeholder="2" required min="1">
             </div>
           </div>
         </div>
-        <div class="modal-footer border-top-0 pt-0">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary px-4">Generate Diff</button>
+
+        <div class="p-3 border-top d-flex justify-content-end gap-2 bg-surface-elevated">
+          <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-emerald px-4">Generate Diff</button>
         </div>
       </form>
     </div>
@@ -162,61 +194,30 @@
 {% block scripts %}
 <script>
   let allVersions = [];
+  let currentViewMode = 'timeline';
 
   document.addEventListener('DOMContentLoaded', () => {
     loadVersionHistory();
   });
 
+  function switchViewMode(mode) {
+    currentViewMode = mode;
+    document.getElementById('viewModeTimelineBtn').classList.toggle('active', mode === 'timeline');
+    document.getElementById('viewModeTableBtn').classList.toggle('active', mode === 'table');
+
+    document.getElementById('timelineContainerView').classList.toggle('d-none', mode !== 'timeline');
+    document.getElementById('tableContainerView').classList.toggle('d-none', mode !== 'table');
+  }
+
   async function loadVersionHistory() {
     try {
       const res = await fetch('/api/versions');
-      if (!res.ok) {
-        document.getElementById('versionTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load versions</td></tr>';
-        return;
-      }
+      if (!res.ok) return;
       allVersions = await res.json();
-      renderVersionTable(allVersions);
+      renderVersionUI(allVersions);
     } catch (e) {
-      document.getElementById('versionTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Network error loading versions</td></tr>';
+      console.error('Failed to load version history', e);
     }
-  }
-
-  function renderVersionTable(versions) {
-    const tbody = document.getElementById('versionTableBody');
-    if (!versions || versions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted">No version history records found.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = versions.map(v => {
-      const dateStr = v.created_at ? new Date(v.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recent';
-      
-      let actionBadge = 'bg-primary-subtle text-primary';
-      if (v.change_type === 'CREATE') actionBadge = 'bg-success-subtle text-success';
-      else if (v.change_type === 'DELETE') actionBadge = 'bg-danger-subtle text-danger';
-      else if (v.change_type === 'RESTORE') actionBadge = 'bg-warning-subtle text-warning';
-
-      return `
-        <tr>
-          <td><span class="small fw-medium">${dateStr}</span></td>
-          <td><span class="badge bg-secondary-subtle text-secondary">${v.entity_type}</span></td>
-          <td><span class="font-monospace small">#${v.entity_id}</span></td>
-          <td><span class="badge bg-primary text-white">v${v.version_number}</span></td>
-          <td><span class="badge ${actionBadge}">${v.change_type}</span></td>
-          <td><div class="small fw-medium">${v.change_summary || v.change_type}</div></td>
-          <td><span class="text-muted small">User #${v.changed_by || 'System'}</span></td>
-          <td class="text-end">
-            ${v.version_number > 1 ? `
-              <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="compareWithPrior('${v.entity_type}', ${v.entity_id}, ${v.version_number - 1}, ${v.version_number})">
-                <i class="bi bi-file-diff me-1"></i> Diff v${v.version_number - 1} &harr; v${v.version_number}
-              </button>
-            ` : `
-              <span class="text-muted small">Initial Base</span>
-            `}
-          </td>
-        </tr>
-      `;
-    }).join('');
   }
 
   function filterVersionList() {
@@ -229,7 +230,92 @@
       return matchEnt && matchAct;
     });
 
-    renderVersionTable(filtered);
+    renderVersionUI(filtered);
+  }
+
+  function renderVersionUI(versions) {
+    renderTimelineGraph(versions);
+    renderVersionTable(versions);
+  }
+
+  function renderTimelineGraph(versions) {
+    const graph = document.getElementById('gitTimelineGraph');
+    if (!versions || versions.length === 0) {
+      graph.innerHTML = '<div class="text-center py-5 text-muted">No version control records match your filter.</div>';
+      return;
+    }
+
+    graph.innerHTML = versions.map(v => {
+      const isRestore = v.change_type === 'RESTORE';
+      const dateStr = v.created_at ? new Date(v.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recent';
+
+      let actionBadgeClass = 'badge-status-success';
+      if (v.change_type === 'RESTORE') actionBadgeClass = 'badge-status-processing';
+      else if (v.change_type === 'DELETE') actionBadgeClass = 'badge-status-failed';
+      else if (v.change_type === 'UPDATE') actionBadgeClass = 'badge-status-pending';
+
+      return `
+        <div class="timeline-item">
+          <div class="timeline-node ${isRestore ? 'node-restore' : ''}">
+            <i class="bi ${isRestore ? 'bi-arrow-counterclockwise' : 'bi-git'}"></i>
+          </div>
+
+          <div class="timeline-card">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-2 gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-emerald-500 text-white font-mono fs-6">v${v.version_number}</span>
+                <span class="badge-status ${actionBadgeClass}">${v.change_type}</span>
+                <span class="badge bg-surface-elevated text-secondary text-xs">${v.entity_type} #${v.entity_id}</span>
+              </div>
+              <div class="text-muted text-xs font-mono">
+                <i class="bi bi-clock me-1"></i> ${dateStr}
+              </div>
+            </div>
+
+            <div class="fw-bold mb-1">${v.change_summary || v.change_type}</div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+              <span class="text-muted text-xs"><i class="bi bi-person me-1"></i> Changed by User #${v.changed_by || 'System'}</span>
+              ${v.version_number > 1 ? `
+                <button class="btn btn-sm btn-outline-custom" onclick="compareWithPrior('${v.entity_type}', ${v.entity_id}, ${v.version_number - 1}, ${v.version_number})">
+                  <i class="bi bi-file-diff text-emerald-600 me-1"></i> Compare v${v.version_number - 1} &harr; v${v.version_number}
+                </button>
+              ` : '<span class="text-muted text-xs">Initial Base Version</span>'}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderVersionTable(versions) {
+    const tbody = document.getElementById('versionTableBody');
+    if (!versions || versions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted">No records found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = versions.map(v => {
+      const dateStr = v.created_at ? new Date(v.created_at).toLocaleString('en-IN') : 'Recent';
+      return `
+        <tr>
+          <td><span class="text-xs font-mono">${dateStr}</span></td>
+          <td><span class="badge bg-surface-elevated text-secondary text-xs">${v.entity_type}</span></td>
+          <td><span class="font-mono text-xs">#${v.entity_id}</span></td>
+          <td><span class="badge bg-emerald-500 text-white font-mono">v${v.version_number}</span></td>
+          <td><span class="badge-status badge-status-success">${v.change_type}</span></td>
+          <td><div class="small fw-semibold">${v.change_summary || v.change_type}</div></td>
+          <td><span class="text-muted small">User #${v.changed_by || 'System'}</span></td>
+          <td class="text-end">
+            ${v.version_number > 1 ? `
+              <button class="btn btn-sm btn-outline-custom" onclick="compareWithPrior('${v.entity_type}', ${v.entity_id}, ${v.version_number - 1}, ${v.version_number})">
+                <i class="bi bi-file-diff me-1"></i> Diff v${v.version_number - 1} &harr; v${v.version_number}
+              </button>
+            ` : '<span class="text-muted text-xs">Base</span>'}
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
   async function compareWithPrior(entity_type, entity_id, v1, v2) {
@@ -255,29 +341,29 @@
     const fields = data.fields || {};
 
     tbody.innerHTML = Object.entries(fields).map(([fieldName, diffInfo]) => {
-      let rowClass = '';
-      let badge = '<span class="badge bg-light text-dark">same</span>';
+      let rowClass = 'diff-row-unchanged';
+      let statusBadge = '<span class="badge bg-surface-elevated text-secondary text-xs">UNCHANGED</span>';
 
       if (diffInfo.status === 'modified') {
         rowClass = 'diff-row-modified';
-        badge = '<span class="badge bg-warning text-dark">MODIFIED</span>';
+        statusBadge = '<span class="badge bg-gold-50 text-gold-600 border border-gold-200">MODIFIED</span>';
       } else if (diffInfo.status === 'added') {
         rowClass = 'diff-row-added';
-        badge = '<span class="badge bg-success">ADDED</span>';
+        statusBadge = '<span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">ADDED</span>';
       } else if (diffInfo.status === 'removed') {
         rowClass = 'diff-row-removed';
-        badge = '<span class="badge bg-danger">REMOVED</span>';
+        statusBadge = '<span class="badge bg-rose-50 text-rose-600 border border-rose-200">REMOVED</span>';
       }
 
-      const oldVal = diffInfo.old !== null && diffInfo.old !== undefined ? JSON.stringify(diffInfo.old) : '<span class="text-muted">null</span>';
-      const newVal = diffInfo.new !== null && diffInfo.new !== undefined ? JSON.stringify(diffInfo.new) : '<span class="text-muted">null</span>';
+      const oldVal = diffInfo.old !== null && diffInfo.old !== undefined ? JSON.stringify(diffInfo.old) : '<span class="text-muted">none</span>';
+      const newVal = diffInfo.new !== null && diffInfo.new !== undefined ? JSON.stringify(diffInfo.new) : '<span class="text-muted">none</span>';
 
       return `
         <tr class="${rowClass}">
-          <td class="fw-bold font-monospace small">${fieldName}</td>
-          <td><span class="${diffInfo.status === 'modified' ? 'diff-val-old' : 'small'}">${oldVal}</span></td>
-          <td><span class="${diffInfo.status === 'modified' ? 'diff-val-new' : 'small'}">${newVal}</span></td>
-          <td>${badge}</td>
+          <td class="fw-bold font-mono small">${fieldName}</td>
+          <td><span class="${diffInfo.status === 'modified' ? 'diff-old-val' : 'font-mono small'}">${oldVal}</span></td>
+          <td><span class="${diffInfo.status === 'modified' ? 'diff-new-val' : 'font-mono small'}">${newVal}</span></td>
+          <td>${statusBadge}</td>
         </tr>
       `;
     }).join('');

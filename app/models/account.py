@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from app import db
+from app.models.base import BaseModel
 
 
 class AccountType:
@@ -20,7 +21,7 @@ def generate_account_number() -> str:
     return f"{random.randint(10**11, 10**12 - 1)}"  # 12-digit account number
 
 
-class Account(db.Model):
+class Account(BaseModel):
     __tablename__ = "accounts"
 
     id = db.Column(db.Integer, primary_key=True)

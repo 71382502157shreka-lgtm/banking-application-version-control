@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from app import db
 from app.models.beneficiary import Beneficiary, BeneficiaryStatus
 from app.models.audit_log import AuditAction
@@ -6,7 +7,7 @@ from app.services.version_service import create_version
 from app.utils.validators import require_fields, validate_ifsc, ValidationError
 
 
-def add_beneficiary(user_id: int, data: dict) -> Beneficiary:
+def add_beneficiary(user_id: int, data: dict, cool_off_minutes: int = 30) -> Beneficiary:
     require_fields(data, ["name", "account_number", "bank_name", "ifsc"])
     validate_ifsc(data["ifsc"])
 
@@ -27,7 +28,7 @@ def add_beneficiary(user_id: int, data: dict) -> Beneficiary:
         old_data=None,
         new_data=beneficiary.to_dict(),
         changed_by=user_id,
-        change_summary="Beneficiary added",
+        change_summary=f"Beneficiary added ({cool_off_minutes}m cooling-off)",
         audit_action=AuditAction.BENEFICIARY_CREATED,
     )
     db.session.commit()

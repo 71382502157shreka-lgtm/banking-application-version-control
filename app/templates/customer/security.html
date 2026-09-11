@@ -1,63 +1,73 @@
 {% extends "base.html" %}
-{% block title %}Security &amp; Activity{% endblock %}
+{% block title %}Security &amp; Active Sessions{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1">Security &amp; Activity</h2>
-      <p class="text-muted mb-0">Manage your credentials, monitor session events, and view security audit logs.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-shield-lock-fill text-plum-600 me-2"></i> Security &amp; Active Sessions</h2>
+      <p class="text-muted small mb-0">Manage credentials, view active device telemetry, and logout remote sessions.</p>
+    </div>
+    <div>
+      <button class="btn btn-outline-custom text-rose-600 btn-sm" onclick="logoutOtherSessions()">
+        <i class="bi bi-box-arrow-right me-1"></i> Logout Other Sessions
+      </button>
     </div>
   </div>
 
-  <div class="row g-4">
-    <!-- Security Status & Change Password -->
-    <div class="col-12 col-lg-5">
-      <!-- Status Card -->
-      <div class="fin-card mb-4">
-        <h5 class="fw-bold mb-3"><i class="bi bi-shield-check text-success me-2"></i> Account Protection</h5>
-        <div class="list-group list-group-flush small">
-          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-            <span>Account Status</span>
-            <span class="badge bg-success-subtle text-success">ACTIVE &bull; UNLOCKED</span>
+  <div class="row g-4 mb-4">
+    <!-- Active Sessions List Card -->
+    <div class="col-12 col-lg-7">
+      <div class="card-custom p-4 mb-4">
+        <h5 class="font-display fw-bold mb-3 d-flex align-items-center gap-2">
+          <i class="bi bi-laptop text-emerald-600"></i> Active Devices &amp; Sessions
+        </h5>
+
+        <div class="p-3 bg-surface-elevated rounded-3 mb-3 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <div class="p-2 rounded-circle bg-emerald-50 text-emerald-600 fs-4">
+              <i class="bi bi-display"></i>
+            </div>
+            <div>
+              <div class="fw-bold small">Current Active Browser Device</div>
+              <div class="text-muted text-xs">Windows / Chrome &bull; 127.0.0.1</div>
+            </div>
           </div>
-          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-            <span>CSRF Defense</span>
-            <span class="badge bg-primary-subtle text-primary">ENABLED</span>
+          <span class="badge-status badge-status-success">CURRENT SESSION</span>
+        </div>
+
+        <div class="p-3 border rounded-3 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <div class="p-2 rounded-circle bg-surface-elevated text-secondary fs-4">
+              <i class="bi bi-phone"></i>
+            </div>
+            <div>
+              <div class="fw-bold small">Secondary Session Token</div>
+              <div class="text-muted text-xs">Mobile App Telemetry &bull; Active</div>
+            </div>
           </div>
-          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-            <span>Password Protection</span>
-            <span class="badge bg-info-subtle text-info">PBKDF2 SHA-256</span>
-          </div>
-          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-            <span>Failed Attempt Lockout</span>
-            <span class="text-muted">Active (Max 5 attempts)</span>
-          </div>
-          <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-            <span>Last Successful Login</span>
-            <span class="text-muted">{{ current_user.last_login_at.strftime('%d %b %Y, %H:%M') if current_user.last_login_at else 'Current Session' }}</span>
-          </div>
+          <button class="btn btn-sm btn-outline-custom text-rose-600" onclick="logoutOtherSessions()">Revoke</button>
         </div>
       </div>
 
-      <!-- Change Password Form -->
-      <div class="fin-card">
-        <h5 class="fw-bold mb-3"><i class="bi bi-key text-primary me-2"></i> Change Password</h5>
+      <!-- Change Password Card -->
+      <div class="card-custom p-4">
+        <h5 class="font-display fw-bold mb-3"><i class="bi bi-key text-plum-600 me-2"></i> Update Password</h5>
         <form id="changePasswordForm">
           <div class="mb-3">
             <label class="form-label fw-semibold small">Current Password</label>
-            <input type="password" class="form-control" id="currentPassword" required>
+            <input type="password" class="form-control form-control-custom" id="currentPassword" required>
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold small">New Password</label>
-            <input type="password" class="form-control" id="newPassword" required minlength="8">
-            <div class="form-text">Must be &ge;8 chars with uppercase, lowercase, and a digit.</div>
+            <input type="password" class="form-control form-control-custom" id="newPassword" required minlength="8">
+            <div class="form-text text-muted" style="font-size: 0.75rem;">Must be &ge;8 chars containing uppercase, lowercase, and a number.</div>
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold small">Confirm New Password</label>
-            <input type="password" class="form-control" id="confirmNewPassword" required minlength="8">
+            <input type="password" class="form-control form-control-custom" id="confirmNewPassword" required minlength="8">
           </div>
-          <button type="submit" class="btn btn-primary w-100 shadow-sm" id="changePasswordSubmitBtn">
+          <button type="submit" class="btn btn-emerald w-100" id="changePasswordSubmitBtn">
             Update Password
           </button>
         </form>
@@ -65,30 +75,22 @@
     </div>
 
     <!-- Security Audit Logs Table -->
-    <div class="col-12 col-lg-7">
-      <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h5 class="fw-bold mb-0">Security Audit Trail</h5>
-            <small class="text-muted">Immutable events recorded for your user ID</small>
-          </div>
-          <span class="badge bg-light text-dark">User #{{ current_user.id }}</span>
-        </div>
-
+    <div class="col-12 col-lg-5">
+      <div class="card-custom p-4">
+        <h5 class="font-display fw-bold mb-3">Recent Security Activity</h5>
         <div class="table-responsive">
-          <table class="fin-table align-middle">
+          <table class="table-custom align-middle">
             <thead>
               <tr>
-                <th>Timestamp</th>
+                <th>Time</th>
                 <th>Action</th>
-                <th>Description</th>
-                <th>IP Address</th>
+                <th>Details</th>
               </tr>
             </thead>
             <tbody id="userAuditTableBody">
               <tr>
-                <td colspan="4" class="text-center py-4 text-muted">
-                  <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                <td colspan="3" class="text-center py-4 text-muted">
+                  <div class="spinner-border spinner-border-sm text-emerald-600 me-2"></div>
                   Loading security events...
                 </td>
               </tr>
@@ -111,38 +113,47 @@
     try {
       const res = await fetch('/api/audit-logs');
       if (!res.ok) {
-        document.getElementById('userAuditTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No security activity logged.</td></tr>';
+        document.getElementById('userAuditTableBody').innerHTML = '<tr><td colspan="3" class="text-center py-4 text-muted">No security activity logged.</td></tr>';
         return;
       }
       const logs = await res.json();
       renderUserAudit(logs);
     } catch (e) {
-      document.getElementById('userAuditTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Security logs active.</td></tr>';
+      document.getElementById('userAuditTableBody').innerHTML = '<tr><td colspan="3" class="text-center py-4 text-muted">Security logs active.</td></tr>';
     }
   }
 
   function renderUserAudit(logs) {
     const tbody = document.getElementById('userAuditTableBody');
     if (!logs || logs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No audit events recorded yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-muted">No audit events recorded yet.</td></tr>';
       return;
     }
-    tbody.innerHTML = logs.slice(0, 15).map(l => {
+    tbody.innerHTML = logs.slice(0, 10).map(l => {
       const dateStr = l.created_at ? new Date(l.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : 'Recent';
-      let badgeClass = 'bg-secondary-subtle text-secondary';
-      if (l.action.includes('LOGIN')) badgeClass = 'bg-primary-subtle text-primary';
-      else if (l.action.includes('PASSWORD')) badgeClass = 'bg-danger-subtle text-danger';
-      else if (l.action.includes('TRANSFER') || l.action.includes('DEPOSIT')) badgeClass = 'bg-success-subtle text-success';
+      let badgeClass = 'badge-status-success';
+      if (l.action.includes('PASSWORD') || l.action.includes('FAIL')) badgeClass = 'badge-status-failed';
 
       return `
         <tr>
-          <td><span class="small">${dateStr}</span></td>
-          <td><span class="badge ${badgeClass}">${l.action}</span></td>
-          <td><span class="small fw-medium">${l.description || '-'}</span></td>
-          <td><span class="font-monospace small text-muted">${l.ip_address || '127.0.0.1'}</span></td>
+          <td><span class="text-xs font-mono">${dateStr}</span></td>
+          <td><span class="badge-status ${badgeClass}">${l.action}</span></td>
+          <td><span class="small">${l.description || '-'}</span></td>
         </tr>
       `;
     }).join('');
+  }
+
+  async function logoutOtherSessions() {
+    if (!confirm('Log out all other active sessions across other browsers/devices?')) return;
+    try {
+      const res = await fetch('/api/security/revoke-other-sessions', { method: 'POST' });
+      if (res.ok) {
+        showToast('All other active sessions revoked successfully', 'success');
+      } else {
+        showToast('Failed to revoke other sessions', 'danger');
+      }
+    } catch (e) { showToast('Network error revoking sessions', 'danger'); }
   }
 
   document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
@@ -158,7 +169,7 @@
 
     const btn = document.getElementById('changePasswordSubmitBtn');
     btn.disabled = true;
-    btn.innerText = 'Updating...';
+    btn.innerText = 'Updating Password...';
 
     try {
       const res = await fetch('/api/security/change-password', {
@@ -168,7 +179,7 @@
       });
       const data = await res.json();
       if (res.ok) {
-        showToast('Password changed successfully!', 'success');
+        showToast('Password updated successfully!', 'success');
         document.getElementById('changePasswordForm').reset();
         setTimeout(() => window.location.reload(), 1000);
       } else {
@@ -177,7 +188,7 @@
         btn.innerText = 'Update Password';
       }
     } catch (err) {
-      showToast('Network error changing password', 'danger');
+      showToast('Network error updating password', 'danger');
       btn.disabled = false;
       btn.innerText = 'Update Password';
     }

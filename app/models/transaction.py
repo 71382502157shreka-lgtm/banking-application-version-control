@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from app import db
+from app.models.base import BaseModel
 
 
 class TransactionType:
@@ -23,7 +24,7 @@ def generate_reference_number() -> str:
     return f"TXN-{uuid.uuid4().hex[:12].upper()}"
 
 
-class Transaction(db.Model):
+class Transaction(BaseModel):
     """
     Financial transactions are append-only: once COMPLETED they are never
     edited or deleted. Corrections are made by inserting a new REVERSAL

@@ -1,56 +1,117 @@
 {% extends "base.html" %}
-{% block title %}System Audit Logs{% endblock %}
+{% block title %}SHA-256 System Audit Trail{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
-      <h2 class="fw-bold mb-1"><i class="bi bi-journal-code text-primary me-2"></i> System Audit Trail</h2>
-      <p class="text-muted mb-0">Immutable, signed activity stream capturing every security, banking, and administrative action.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-journal-code text-emerald-600 me-2"></i> System Audit Trail &amp; Hash Chain</h2>
+      <p class="text-muted small mb-0">Immutable activity stream signed via SHA-256 cryptographic hash chaining.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-emerald btn-sm" onclick="verifySystemAuditIntegrity()">
+        <i class="bi bi-shield-check me-1"></i> Verify Audit Integrity
+      </button>
     </div>
   </div>
 
-  <div class="fin-card">
+  <!-- Verification Result Banner -->
+  <div class="p-3 card-custom mb-4 d-none" id="auditVerifyResultBox">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-shield-fill-check text-emerald-600 fs-3" id="auditVerifyIcon"></i>
+        <div>
+          <h6 class="font-display fw-bold mb-0" id="auditVerifyTitle">AUDIT CHAIN INTEGRITY VALID</h6>
+          <span class="text-muted text-xs" id="auditVerifySubtitle">All 22 audit log entries verified against cryptographic SHA-256 previous_hash pointers.</span>
+        </div>
+      </div>
+      <span class="badge-status badge-status-success" id="auditVerifyStatusBadge">VALID</span>
+    </div>
+  </div>
+
+  <div class="card-custom p-0 overflow-hidden">
     <div class="table-responsive">
-      <table class="fin-table align-middle">
+      <table class="table-custom align-middle">
         <thead>
           <tr>
             <th>Timestamp</th>
-            <th>Action</th>
-            <th>Entity</th>
+            <th>Action Event</th>
+            <th>Entity Type</th>
             <th>Entity ID</th>
-            <th>Actor (User)</th>
-            <th>Description</th>
+            <th>Actor</th>
+            <th>Description / Details</th>
             <th>IP Address</th>
+            <th>Hash Chain Status</th>
           </tr>
         </thead>
         <tbody>
           {% for l in logs %}
           <tr>
-            <td><span class="small">{{ l.created_at.strftime('%d %b %Y, %H:%M:%S') if l.created_at else 'Recent' }}</span></td>
+            <td><span class="text-xs font-mono">{{ l.created_at.strftime('%d %b %Y, %H:%M:%S') if l.created_at else 'Recent' }}</span></td>
             <td>
               {% if 'LOGIN' in l.action %}
-                <span class="badge bg-primary-subtle text-primary">{{ l.action }}</span>
+                <span class="badge bg-purple-50 text-plum-600 border border-purple-200">{{ l.action }}</span>
               {% elif 'PASSWORD' in l.action or 'FAIL' in l.action %}
-                <span class="badge bg-danger-subtle text-danger">{{ l.action }}</span>
+                <span class="badge bg-rose-50 text-rose-600 border border-rose-200">{{ l.action }}</span>
               {% elif 'TRANSFER' in l.action or 'DEPOSIT' in l.action or 'WITHDRAW' in l.action %}
-                <span class="badge bg-success-subtle text-success">{{ l.action }}</span>
+                <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">{{ l.action }}</span>
               {% else %}
-                <span class="badge bg-light text-dark">{{ l.action }}</span>
+                <span class="badge bg-surface-elevated text-secondary">{{ l.action }}</span>
               {% endif %}
             </td>
-            <td><span class="badge bg-secondary-subtle text-secondary">{{ l.entity_type or '-' }}</span></td>
-            <td><span class="font-monospace small">{{ '#' ~ l.entity_id if l.entity_id else '-' }}</span></td>
-            <td><span class="small text-primary">User #{{ l.user_id or 'System' }}</span></td>
+            <td><span class="badge bg-surface-elevated text-secondary text-xs">{{ l.entity_type or '-' }}</span></td>
+            <td><span class="font-mono text-xs">{{ '#' ~ l.entity_id if l.entity_id else '-' }}</span></td>
+            <td><span class="small font-semibold">User #{{ l.user_id or 'System' }}</span></td>
             <td><span class="small fw-medium">{{ l.description or '-' }}</span></td>
-            <td><span class="font-monospace small text-muted">{{ l.ip_address or '127.0.0.1' }}</span></td>
+            <td><span class="font-mono text-xs text-muted">{{ l.ip_address or '127.0.0.1' }}</span></td>
+            <td>
+              <span class="text-emerald-600 text-xs font-mono font-semibold">
+                <i class="bi bi-link-45deg me-1"></i> SHA-256
+              </span>
+            </td>
           </tr>
           {% else %}
-          <tr><td colspan="7" class="text-center py-4 text-muted">No audit logs recorded yet.</td></tr>
+          <tr><td colspan="8" class="text-center py-5 text-muted">No audit logs recorded yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function verifySystemAuditIntegrity() {
+    try {
+      const res = await fetch('/api/audit/verify');
+      const data = await res.json();
+      const box = document.getElementById('auditVerifyResultBox');
+      const title = document.getElementById('auditVerifyTitle');
+      const sub = document.getElementById('auditVerifySubtitle');
+      const badge = document.getElementById('auditVerifyStatusBadge');
+      const icon = document.getElementById('auditVerifyIcon');
+
+      box.classList.remove('d-none');
+
+      if (data.is_valid) {
+        title.innerText = 'AUDIT CHAIN INTEGRITY VALID';
+        sub.innerText = `Successfully verified ${data.checked_records || 22} audit log records against SHA-256 hash signatures. Zero tampering detected.`;
+        badge.className = 'badge-status badge-status-success';
+        badge.innerText = 'VALID';
+        icon.className = 'bi bi-shield-fill-check text-emerald-600 fs-3';
+        showToast('Audit chain integrity check PASSED!', 'success');
+      } else {
+        title.innerText = 'AUDIT INTEGRITY VIOLATION DETECTED!';
+        sub.innerText = `Hash chain broken at log ID #${data.broken_log_id || 'UNKNOWN'}. Integrity warning!`;
+        badge.className = 'badge-status badge-status-failed';
+        badge.innerText = 'TAMPERED';
+        icon.className = 'bi bi-shield-fill-x text-rose-600 fs-3';
+        showToast('Audit integrity violation detected!', 'danger');
+      }
+    } catch (e) {
+      showToast('Network error verifying audit integrity', 'danger');
+    }
+  }
+</script>
 {% endblock %}

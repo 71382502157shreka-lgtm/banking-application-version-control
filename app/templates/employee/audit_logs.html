@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Audit Logs{% endblock %}
+{% block title %}Audit Trail Inspection{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1"><i class="bi bi-journal-text text-primary me-2"></i> Audit Trail</h2>
-      <p class="text-muted mb-0">Immutable compliance logs capturing all user and system activities.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-journal-text text-emerald-600 me-2"></i> Audit Trail &amp; Compliance Log</h2>
+      <p class="text-muted small mb-0">Immutable compliance logs capturing all user and system banking activities.</p>
     </div>
   </div>
 
-  <div class="fin-card">
+  <div class="card-custom p-0 overflow-hidden">
     <div class="table-responsive">
-      <table class="fin-table align-middle">
+      <table class="table-custom align-middle">
         <thead>
           <tr>
             <th>Timestamp</th>
@@ -27,16 +27,16 @@
         <tbody>
           {% for l in logs %}
           <tr>
-            <td><span class="small">{{ l.created_at.strftime('%d %b %Y, %H:%M:%S') if l.created_at else 'Recent' }}</span></td>
-            <td><span class="badge bg-light text-dark">{{ l.action }}</span></td>
-            <td><span class="badge bg-secondary-subtle text-secondary">{{ l.entity_type or '-' }}</span></td>
-            <td><span class="font-monospace small">{{ '#' ~ l.entity_id if l.entity_id else '-' }}</span></td>
-            <td><span class="small text-primary">User #{{ l.user_id or 'Guest' }}</span></td>
-            <td><span class="small fw-medium">{{ l.description or '-' }}</span></td>
-            <td><span class="font-monospace small text-muted">{{ l.ip_address or '127.0.0.1' }}</span></td>
+            <td><span class="text-xs font-mono">{{ l.created_at.strftime('%d %b %Y, %H:%M:%S') if l.created_at else 'Recent' }}</span></td>
+            <td><span class="badge-status badge-status-success">{{ l.action }}</span></td>
+            <td><span class="badge bg-surface-elevated text-secondary text-xs">{{ l.entity_type or '-' }}</span></td>
+            <td><span class="font-mono text-xs">{{ '#' ~ l.entity_id if l.entity_id else '-' }}</span></td>
+            <td><span class="small font-semibold">User #{{ l.user_id or 'Guest' }}</span></td>
+            <td><span class="small fw-semibold">{{ l.description or '-' }}</span></td>
+            <td><span class="font-mono text-xs text-muted">{{ l.ip_address or '127.0.0.1' }}</span></td>
           </tr>
           {% else %}
-          <tr><td colspan="7" class="text-center py-4 text-muted">No audit logs recorded yet.</td></tr>
+          <tr><td colspan="7" class="text-center py-5 text-muted">No audit logs recorded yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
