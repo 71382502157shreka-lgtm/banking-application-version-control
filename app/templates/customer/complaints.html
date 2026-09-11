@@ -107,8 +107,8 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if item.resolution_notes %}
-                            <span class="small text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>{{ item.resolution_notes }}</span>
+                        {% if item.resolution or item.resolution_notes %}
+                            <span class="small text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>{{ item.resolution or item.resolution_notes }}</span>
                         {% else %}
                             <span class="text-muted small">Pending review by support team</span>
                         {% endif %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Portal - Document Vault Verification Queue{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-file-earmark-check text-primary me-2"></i>KYC &amp; Document Verification Vault Queue</h3>
+      <p class="text-muted mb-0">Inspect customer uploaded identity, tax, and address proof documents for compliance and verification.</p>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">Uploaded Vault Documents ({{ documents_list|length }})</h5>
+      <div class="btn-group btn-group-sm">
+        <a href="{{ url_for('employee.documents') }}" class="btn btn-outline-secondary {% if not status_filter %}active{% endif %}">All</a>
+        <a href="{{ url_for('employee.documents', status='PENDING_VERIFICATION') }}" class="btn btn-outline-warning {% if status_filter == 'PENDING_VERIFICATION' %}active{% endif %}">Pending</a>
+        <a href="{{ url_for('employee.documents', status='VERIFIED') }}" class="btn btn-outline-success {% if status_filter == 'VERIFIED' %}active{% endif %}">Verified</a>
+        <a href="{{ url_for('employee.documents', status='REJECTED') }}" class="btn btn-outline-danger {% if status_filter == 'REJECTED' %}active{% endif %}">Rejected</a>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Customer</th>
+              <th>Document Type</th>
+              <th>Document Title</th>
+              <th>Status</th>
+              <th>Notes / Remarks</th>
+              <th>Uploaded Date</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for doc in documents_list %}
+            <tr>
+              <td><code>#{{ doc.id }}</code></td>
+              <td>User #{{ doc.user_id }}</td>
+              <td><span class="badge bg-info text-dark">{{ doc.document_type }}</span></td>
+              <td class="fw-semibold">{{ doc.document_name }}</td>
+              <td>
+                {% if doc.status == 'PENDING_VERIFICATION' %}
+                  <span class="badge bg-warning text-dark">Pending Verification</span>
+                {% elif doc.status == 'VERIFIED' %}
+                  <span class="badge bg-success">Verified</span>
+                {% else %}
+                  <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+              </td>
+              <td class="small text-muted text-truncate" style="max-width: 200px;">{{ doc.verification_notes or '-' }}</td>
+              <td class="small text-muted">{{ doc.created_at.strftime('%Y-%m-%d %H:%M') if doc.created_at }}</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#verifyModal{{ doc.id }}">
+                  <i class="bi bi-shield-check me-1"></i> Verify
+                </button>
+
+                <!-- Verification Modal -->
+                <div class="modal fade" id="verifyModal{{ doc.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content text-start">
+                      <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Verify Document #{{ doc.id }} - {{ doc.document_name }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <form method="POST" action="{{ url_for('employee.documents') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="doc_id" value="{{ doc.id }}">
+
+                        <div class="modal-body">
+                          <div class="mb-3">
+                            <label class="form-label fw-bold">Document Type</label>
+                            <input type="text" class="form-control" value="{{ doc.document_type }}" readonly>
+                          </div>
+
+                          <div class="mb-3">
+                            <label class="form-label fw-bold">Verification Decision</label>
+                            <select name="status" class="form-select">
+                              <option value="VERIFIED" {% if doc.status == 'VERIFIED' %}selected{% endif %}>VERIFIED (Approved)</option>
+                              <option value="REJECTED" {% if doc.status == 'REJECTED' %}selected{% endif %}>REJECTED (Declined)</option>
+                              <option value="PENDING_VERIFICATION" {% if doc.status == 'PENDING_VERIFICATION' %}selected{% endif %}>PENDING_VERIFICATION</option>
+                            </select>
+                          </div>
+
+                          <div class="mb-3">
+                            <label class="form-label fw-bold">Staff Verification Notes</label>
+                            <textarea name="notes" class="form-control" rows="3" placeholder="Enter compliance or rejection remarks...">{{ doc.verification_notes or '' }}</textarea>
+                          </div>
+                        </div>
+
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-primary">Save Verification</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted py-4">No uploaded vault documents found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

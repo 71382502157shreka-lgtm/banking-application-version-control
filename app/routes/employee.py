@@ -16,6 +16,7 @@ from app.models.security_session import SecurityEvent, LoginSession
 from app.models.workflow_risk import RiskAssessment, RiskDecision, RiskLevel, RollbackRequest, RollbackStatus
 from app.models.complaint import Complaint, ComplaintStatus, ComplaintPriority
 from app.models.service_request import ServiceRequest, ServiceRequestStatus
+from app.models.document_vault import CustomerDocument, DocumentStatus
 from app.services import (
     banking_service,
     approval_service,
@@ -349,7 +350,7 @@ def complaints():
         complaint_id = request.form.get("complaint_id", type=int)
         status = request.form.get("status", "").strip()
         notes = request.form.get("internal_notes", "").strip()
-        resolution = request.form.get("resolution", "").strip()
+        resolution = request.form.get("resolution", "").strip() or request.form.get("resolution_notes", "").strip()
 
         comp = Complaint.query.get(complaint_id)
         if comp:
@@ -564,3 +565,39 @@ def service_requests():
         requests_list = ServiceRequest.query.order_by(ServiceRequest.created_at.desc()).all()
 
     return render_template("employee/service_requests.html", requests_list=requests_list, status_filter=status_filter or "")
+
+
+@employee_bp.route("/documents", methods=["GET", "POST"])
+@login_required
+@roles_required(Role.EMPLOYEE, Role.ADMIN)
+def documents():
+    if request.method == "POST":
+        doc_id = request.form.get("doc_id", type=int)
+        new_status = request.form.get("status", "").strip()
+        notes = request.form.get("notes", "").strip()
+
+        doc = db.session.get(CustomerDocument, doc_id) if doc_id else None
+        if not doc:
+            flash("Document record not found.", "danger")
+        else:
+            doc.status = new_status
+            doc.verification_notes = notes
+            db.session.commit()
+
+            audit_service.log_action(
+                action=AuditAction.ADMIN_ACTION,
+                user_id=current_user.id,
+                entity_type="DOCUMENT",
+                entity_id=doc.id,
+                description=f"Staff updated verification status for document #{doc.id} ({doc.document_name}) to {new_status}"
+            )
+            flash(f"Document '{doc.document_name}' status updated to {new_status}.", "success")
+            return redirect(url_for("employee.documents"))
+
+    status_filter = request.args.get("status", "").strip()
+    query = CustomerDocument.query
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+
+    documents_list = query.order_by(CustomerDocument.created_at.desc()).all()
+    return render_template("employee/documents.html", documents_list=documents_list, status_filter=status_filter)

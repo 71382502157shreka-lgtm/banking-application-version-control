@@ -9,9 +9,12 @@ from app.models.account import Account
 from app.models.transaction import Transaction
 from app.models.beneficiary import Beneficiary
 from app.models.version import EntityVersion
-from app.models.audit_log import AuditLog
-from app.models.security_session import LoginSession
+from app.models.audit_log import AuditLog, AuditAction
+from app.models.security_session import LoginSession, SecurityEvent
 from app.models.workflow_risk import RollbackRequest, RiskAssessment
+from app.models.complaint import Complaint, ComplaintStatus, ComplaintPriority
+from app.models.service_request import ServiceRequest, ServiceRequestStatus
+from app.models.document_vault import CustomerDocument, DocumentStatus
 from app.services import (
     banking_service, beneficiary_service, version_service,
     audit_service, mfa_service, session_service, approval_service,
@@ -1192,5 +1195,149 @@ def ai_chat():
             "success": False,
             "error": "An error occurred while processing your request"
         }), 500
+
+
+# ---------------------------------------------------------------------------
+# Helpdesk Complaints, Service Requests & Documents API
+# ---------------------------------------------------------------------------
+@api_bp.route("/complaints", methods=["GET"])
+@api_bp.route("/v1/complaints", methods=["GET"])
+@login_required
+def list_api_complaints():
+    if current_user.role == Role.CUSTOMER:
+        items = Complaint.query.filter_by(customer_id=current_user.id).order_by(Complaint.created_at.desc()).all()
+    else:
+        status_filter = request.args.get("status")
+        query = Complaint.query
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+        items = query.order_by(Complaint.created_at.desc()).limit(200).all()
+    return jsonify([c.to_dict() for c in items])
+
+
+@api_bp.route("/complaints", methods=["POST"])
+@api_bp.route("/v1/complaints", methods=["POST"])
+@login_required
+@json_errors
+def create_api_complaint():
+    import uuid
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    subject = data.get("subject", "").strip()
+    description = data.get("description", "").strip()
+    category = data.get("category", "GENERAL").strip()
+
+    if not subject or not description:
+        raise ValidationError("Subject and description are required")
+
+    ticket_num = f"TICK-{uuid.uuid4().hex[:6].upper()}"
+    comp = Complaint(
+        ticket_number=ticket_num,
+        customer_id=current_user.id,
+        subject=subject,
+        description=description,
+        category=category,
+        priority=ComplaintPriority.MEDIUM,
+        status=ComplaintStatus.OPEN,
+    )
+    db.session.add(comp)
+    db.session.commit()
+
+    audit_service.log_action(
+        action=AuditAction.ADMIN_ACTION,
+        user_id=current_user.id,
+        entity_type="COMPLAINT",
+        entity_id=comp.id,
+        description=f"Submitted complaint ticket #{ticket_num}"
+    )
+
+    return jsonify(comp.to_dict()), 201
+
+
+@api_bp.route("/service-requests", methods=["GET"])
+@api_bp.route("/v1/service-requests", methods=["GET"])
+@login_required
+def list_api_service_requests():
+    if current_user.role == Role.CUSTOMER:
+        items = ServiceRequest.query.filter_by(user_id=current_user.id).order_by(ServiceRequest.created_at.desc()).all()
+    else:
+        status_filter = request.args.get("status")
+        query = ServiceRequest.query
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+        items = query.order_by(ServiceRequest.created_at.desc()).limit(200).all()
+    return jsonify([s.to_dict() for s in items])
+
+
+@api_bp.route("/service-requests/<int:req_id>/process", methods=["POST"])
+@api_bp.route("/v1/service-requests/<int:req_id>/process", methods=["POST"])
+@login_required
+@roles_required(Role.EMPLOYEE, Role.ADMIN)
+@json_errors
+def process_api_service_request(req_id):
+    data = request.get_json(force=True) or {}
+    new_status = data.get("status", "").strip()
+    notes = data.get("notes", "").strip()
+
+    sr = db.session.get(ServiceRequest, req_id)
+    if not sr:
+        return jsonify(error="Service request ticket not found"), 404
+
+    sr.status = new_status
+    if notes:
+        sr.admin_notes = notes
+    db.session.commit()
+
+    audit_service.log_action(
+        action=AuditAction.SERVICE_REQUEST,
+        user_id=current_user.id,
+        entity_type="SERVICE_REQUEST",
+        entity_id=sr.id,
+        description=f"Processed service request #{sr.ticket_number} to {new_status}"
+    )
+    return jsonify(sr.to_dict())
+
+
+@api_bp.route("/documents", methods=["GET"])
+@api_bp.route("/v1/documents", methods=["GET"])
+@login_required
+def list_api_documents():
+    if current_user.role == Role.CUSTOMER:
+        docs = CustomerDocument.query.filter_by(user_id=current_user.id).order_by(CustomerDocument.created_at.desc()).all()
+    else:
+        status_filter = request.args.get("status")
+        query = CustomerDocument.query
+        if status_filter:
+            query = query.filter_by(status=status_filter)
+        docs = query.order_by(CustomerDocument.created_at.desc()).limit(200).all()
+    return jsonify([d.to_dict() for d in docs])
+
+
+@api_bp.route("/documents/<int:doc_id>/verify", methods=["POST"])
+@api_bp.route("/v1/documents/<int:doc_id>/verify", methods=["POST"])
+@login_required
+@roles_required(Role.EMPLOYEE, Role.ADMIN)
+@json_errors
+def verify_api_document(doc_id):
+    data = request.get_json(force=True) or {}
+    new_status = data.get("status", DocumentStatus.VERIFIED).strip()
+    notes = data.get("notes", "").strip()
+
+    doc = db.session.get(CustomerDocument, doc_id)
+    if not doc:
+        return jsonify(error="Document not found"), 404
+
+    doc.status = new_status
+    if notes:
+        doc.verification_notes = notes
+    db.session.commit()
+
+    audit_service.log_action(
+        action=AuditAction.ADMIN_ACTION,
+        user_id=current_user.id,
+        entity_type="DOCUMENT",
+        entity_id=doc.id,
+        description=f"Verified document #{doc.id} status to {new_status}"
+    )
+    return jsonify(doc.to_dict())
 
 
