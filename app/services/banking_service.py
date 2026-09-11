@@ -55,7 +55,7 @@ def _bump_account_version(account: Account):
     account.version_number += 1
 
 
-def deposit(account: Account, amount, description: str, actor_user_id: int) -> Transaction:
+def deposit(account: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None) -> Transaction:
     amount = validate_amount(amount)
     old_data = account.to_dict()
 
@@ -66,6 +66,7 @@ def deposit(account: Account, amount, description: str, actor_user_id: int) -> T
     txn = Transaction(
         account_id=account.id,
         transaction_type=TransactionType.DEPOSIT,
+        transaction_mode=transaction_mode or "CASH_DEPOSIT",
         amount=amount,
         description=description,
         status=TransactionStatus.COMPLETED,
@@ -94,7 +95,7 @@ def deposit(account: Account, amount, description: str, actor_user_id: int) -> T
     return txn
 
 
-def withdraw(account: Account, amount, description: str, actor_user_id: int) -> Transaction:
+def withdraw(account: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None) -> Transaction:
     amount = validate_amount(amount)
     if Decimal(account.available_balance) < amount:
         raise InsufficientBalanceError("Insufficient available balance for this withdrawal")
@@ -107,6 +108,7 @@ def withdraw(account: Account, amount, description: str, actor_user_id: int) -> 
     txn = Transaction(
         account_id=account.id,
         transaction_type=TransactionType.WITHDRAWAL,
+        transaction_mode=transaction_mode or "CASH_WITHDRAWAL",
         amount=amount,
         description=description,
         status=TransactionStatus.COMPLETED,
@@ -135,12 +137,14 @@ def withdraw(account: Account, amount, description: str, actor_user_id: int) -> 
     return txn
 
 
-def transfer(source: Account, destination: Account, amount, description: str, actor_user_id: int):
+def transfer(source: Account, destination: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None):
     amount = validate_amount(amount)
     if source.id == destination.id:
         raise ValidationError("Cannot transfer to the same account")
     if Decimal(source.available_balance) < amount:
         raise InsufficientBalanceError("Insufficient available balance for this transfer")
+
+    mode = transaction_mode or "TRANSFER"
 
     # 1. Enforce Transfer Limits
     limit_rec = TransferLimit.query.filter_by(account_id=source.id).first()
@@ -159,6 +163,7 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
         debit_txn = Transaction(
             account_id=source.id,
             transaction_type=TransactionType.TRANSFER,
+            transaction_mode=mode,
             amount=amount,
             description=f"[REVIEW REQUIRED] {description}",
             status="BLOCKED_FOR_REVIEW",
@@ -197,6 +202,7 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
     debit_txn = Transaction(
         account_id=source.id,
         transaction_type=TransactionType.TRANSFER,
+        transaction_mode=mode,
         amount=amount,
         description=description,
         status=TransactionStatus.COMPLETED,
@@ -206,6 +212,7 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
     credit_txn = Transaction(
         account_id=destination.id,
         transaction_type=TransactionType.TRANSFER,
+        transaction_mode=mode,
         amount=amount,
         description=description,
         status=TransactionStatus.COMPLETED,
@@ -240,6 +247,7 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
         ))
     db.session.commit()
     return debit_txn, credit_txn
+
 
 
 def reverse_transaction(original: Transaction, actor_user_id: int, reason: str) -> Transaction:

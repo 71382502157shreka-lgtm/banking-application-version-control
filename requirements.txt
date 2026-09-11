@@ -6,3 +6,5 @@ Werkzeug==3.0.3
 python-dotenv==1.0.1
 pytest==8.2.2
 Flask-Migrate==4.0.7
+reportlab
+openpyxl

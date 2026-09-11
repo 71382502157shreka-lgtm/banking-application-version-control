@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Auditor Portal - Cryptographic Audit Ledger{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-journal-code text-primary me-2"></i>Cryptographic Audit Ledger</h3>
+      <p class="text-muted mb-0">Read-only immutable transaction & event ledger with cryptographic hash verification.</p>
+    </div>
+    <div>
+      <a href="{{ url_for('auditor.dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+      </a>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-3 mb-4">
+    <div class="card-body">
+      <form method="GET" action="{{ url_for('auditor.audit_ledger') }}" class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Entity Type</label>
+          <input type="text" name="entity_type" class="form-control form-control-sm" placeholder="e.g. ACCOUNT, TRANSACTION" value="{{ entity_type }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Entity ID</label>
+          <input type="number" name="entity_id" class="form-control form-control-sm" placeholder="e.g. 1001" value="{{ entity_id }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">User ID</label>
+          <input type="number" name="user_id" class="form-control form-control-sm" placeholder="e.g. 1" value="{{ user_id }}">
+        </div>
+        <div class="col-md-3 d-flex align-items-end gap-2">
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-search me-1"></i> Search Logs
+          </button>
+          <a href="{{ url_for('auditor.audit_ledger') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">Audit Records ({{ logs|length }})</h5>
+      {% if integrity_ok %}
+        <span class="badge bg-success"><i class="bi bi-shield-check me-1"></i> Integrity Verified</span>
+      {% else %}
+        <span class="badge bg-danger"><i class="bi bi-shield-x me-1"></i> Hash Mismatch #{{ broken_id }}</span>
+      {% endif %}
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Action</th>
+              <th>User ID</th>
+              <th>Entity</th>
+              <th>Description</th>
+              <th>Previous Hash</th>
+              <th>Log Hash</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td><code>#{{ log.id }}</code></td>
+              <td><span class="badge bg-secondary">{{ log.action }}</span></td>
+              <td>User #{{ log.user_id or 'System' }}</td>
+              <td><small class="text-uppercase text-muted">{{ log.entity_type or '-' }} #{{ log.entity_id or '' }}</small></td>
+              <td>{{ log.description }}</td>
+              <td><code class="small text-truncate d-inline-block" style="max-width: 100px;">{{ log.previous_hash or 'GENESIS' }}</code></td>
+              <td><code class="small text-truncate d-inline-block" style="max-width: 100px;">{{ log.hash }}</code></td>
+              <td class="small text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted py-4">No audit ledger records match your filter criteria.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

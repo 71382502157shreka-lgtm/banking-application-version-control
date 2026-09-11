@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Portal - Customer Service Requests{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-headset text-primary me-2"></i>Customer Service Requests Queue</h3>
+      <p class="text-muted mb-0">Review, process, approve, or reject customer service tickets and loan applications.</p>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold mb-0">Service Tickets ({{ requests_list|length }})</h5>
+      <div class="btn-group btn-group-sm">
+        <a href="{{ url_for('employee.service_requests') }}" class="btn btn-outline-secondary {% if not status_filter %}active{% endif %}">All</a>
+        <a href="{{ url_for('employee.service_requests', status='PENDING') }}" class="btn btn-outline-warning {% if status_filter == 'PENDING' %}active{% endif %}">Pending</a>
+        <a href="{{ url_for('employee.service_requests', status='APPROVED') }}" class="btn btn-outline-success {% if status_filter == 'APPROVED' %}active{% endif %}">Approved</a>
+        <a href="{{ url_for('employee.service_requests', status='REJECTED') }}" class="btn btn-outline-danger {% if status_filter == 'REJECTED' %}active{% endif %}">Rejected</a>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Ticket #</th>
+              <th>Customer</th>
+              <th>Category</th>
+              <th>Details</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sr in requests_list %}
+            <tr>
+              <td><code>{{ sr.ticket_number }}</code></td>
+              <td>User #{{ sr.user_id }}</td>
+              <td><span class="badge bg-secondary">{{ sr.request_type }}</span></td>
+              <td class="small text-truncate" style="max-width: 250px;">{{ sr.details or '-' }}</td>
+              <td>
+                {% if sr.status == 'PENDING' %}
+                  <span class="badge bg-warning text-dark">Pending</span>
+                {% elif sr.status == 'APPROVED' or sr.status == 'COMPLETED' %}
+                  <span class="badge bg-success">Approved</span>
+                {% else %}
+                  <span class="badge bg-danger">Rejected</span>
+                {% endif %}
+              </td>
+              <td class="small text-muted">{{ sr.created_at.strftime('%Y-%m-%d %H:%M') if sr.created_at }}</td>
+              <td>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reviewModal{{ sr.id }}">
+                  <i class="bi bi-pencil-square me-1"></i> Process
+                </button>
+
+                <!-- Process Modal -->
+                <div class="modal fade" id="reviewModal{{ sr.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Process Ticket #{{ sr.ticket_number }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <form method="POST" action="{{ url_for('employee.service_requests') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="ticket_id" value="{{ sr.id }}">
+
+                        <div class="modal-body">
+                          <div class="mb-3">
+                            <label class="form-label fw-bold">Update Status</label>
+                            <select name="status" class="form-select">
+                              <option value="APPROVED" {% if sr.status == 'APPROVED' %}selected{% endif %}>APPROVED</option>
+                              <option value="REJECTED" {% if sr.status == 'REJECTED' %}selected{% endif %}>REJECTED</option>
+                              <option value="COMPLETED" {% if sr.status == 'COMPLETED' %}selected{% endif %}>COMPLETED</option>
+                              <option value="PENDING" {% if sr.status == 'PENDING' %}selected{% endif %}>PENDING</option>
+                            </select>
+                          </div>
+
+                          <div class="mb-3">
+                            <label class="form-label fw-bold">Employee / Action Notes</label>
+                            <textarea name="notes" class="form-control" rows="3" placeholder="Provide notes or resolution details...">{{ sr.admin_notes or '' }}</textarea>
+                          </div>
+                        </div>
+
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4">No service requests found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

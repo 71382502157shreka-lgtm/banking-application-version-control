@@ -9,6 +9,8 @@ from app.models.base import BaseModel
 class AccountType:
     SAVINGS = "SAVINGS"
     CURRENT = "CURRENT"
+    FIXED_DEPOSIT = "FIXED_DEPOSIT"
+    RECURRING_DEPOSIT = "RECURRING_DEPOSIT"
 
 
 class AccountStatus:

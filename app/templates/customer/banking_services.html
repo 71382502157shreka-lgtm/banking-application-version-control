@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Banking Services Menu{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Page Header -->
+  <div class="mb-4">
+    <h3 class="fw-bold mb-1"><i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Banking Services &amp; Digital Hub</h3>
+    <p class="text-muted mb-0">Access all your digital banking features, statements, transfers, and security options.</p>
+  </div>
+
+  <!-- Services Grid -->
+  <div class="row g-3">
+    <!-- Active Services -->
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-primary-subtle text-primary fs-3">
+            <i class="bi bi-journal-bookmark-fill"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">E-Passbook</h6>
+            <p class="text-muted small mb-2">View digital passbook &amp; full ledger</p>
+            <a href="{{ url_for('customer.e_passbook') }}" class="btn btn-sm btn-primary">Open E-Passbook &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-warning-subtle text-warning fs-3">
+            <i class="bi bi-card-list"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">Mini Statement</h6>
+            <p class="text-muted small mb-2">Latest 10 instant transactions</p>
+            <a href="{{ url_for('customer.mini_statement') }}" class="btn btn-sm btn-outline-warning">View Mini Statement &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-success-subtle text-success fs-3">
+            <i class="bi bi-clock-history"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">Transaction History</h6>
+            <p class="text-muted small mb-2">Filter, search &amp; sort all txns</p>
+            <a href="{{ url_for('customer.transactions') }}" class="btn btn-sm btn-outline-success">View History &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-info-subtle text-info fs-3">
+            <i class="bi bi-file-earmark-pdf-fill"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">Download Statement</h6>
+            <p class="text-muted small mb-2">Export PDF, CSV, and XLSX statements</p>
+            <a href="{{ url_for('customer.statements') }}" class="btn btn-sm btn-outline-info">Download Files &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-secondary-subtle text-dark fs-3">
+            <i class="bi bi-person-vcard-fill"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">Account Details</h6>
+            <p class="text-muted small mb-2">Masked info, IFSC, branch &amp; balance</p>
+            <a href="{{ url_for('customer.account_details') }}" class="btn btn-sm btn-outline-dark">Account Details &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-primary-subtle text-primary fs-3">
+            <i class="bi bi-arrow-left-right"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">Fund Transfer</h6>
+            <p class="text-muted small mb-2">Interbank &amp; beneficiary transfers</p>
+            <a href="{{ url_for('customer.transfer') }}" class="btn btn-sm btn-outline-primary">Transfer Funds &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-primary-subtle text-primary fs-3">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">Beneficiaries</h6>
+            <p class="text-muted small mb-2">Manage saved payees &amp; accounts</p>
+            <a href="{{ url_for('customer.beneficiaries') }}" class="btn btn-sm btn-outline-primary">Beneficiaries &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-danger-subtle text-danger fs-3">
+            <i class="bi bi-chat-square-text-fill"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">Complaints &amp; Support</h6>
+            <p class="text-muted small mb-2">Submit and track service tickets</p>
+            <a href="{{ url_for('customer.complaints') }}" class="btn btn-sm btn-outline-danger">Support Portal &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 hover-shadow transition">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-dark-subtle text-dark fs-3">
+            <i class="bi bi-shield-lock-fill"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-1">Profile &amp; Security</h6>
+            <p class="text-muted small mb-2">Password, sessions &amp; MFA settings</p>
+            <a href="{{ url_for('customer.security') }}" class="btn btn-sm btn-outline-dark">Security Settings &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Future Module Placeholders with Clear "Coming Soon" Badge -->
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-light opacity-75">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-secondary text-white fs-3">
+            <i class="bi bi-calendar-check"></i>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h6 class="fw-bold mb-0">Scheduled Transfers</h6>
+              <span class="badge bg-secondary">Coming Soon</span>
+            </div>
+            <p class="text-muted small mb-2">Recurring standing orders</p>
+            <button class="btn btn-sm btn-light border" disabled>Feature Coming Soon</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-light opacity-75">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-secondary text-white fs-3">
+            <i class="bi bi-qr-code"></i>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h6 class="fw-bold mb-0">UPI QR Payments</h6>
+              <span class="badge bg-secondary">Coming Soon</span>
+            </div>
+            <p class="text-muted small mb-2">Instant merchant QR scan</p>
+            <button class="btn btn-sm btn-light border" disabled>Feature Coming Soon</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-light opacity-75">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-secondary text-white fs-3">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h6 class="fw-bold mb-0">Fixed Deposits (FD)</h6>
+              <span class="badge bg-secondary">Coming Soon</span>
+            </div>
+            <p class="text-muted small mb-2">Online term deposit creation</p>
+            <button class="btn btn-sm btn-light border" disabled>Feature Coming Soon</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

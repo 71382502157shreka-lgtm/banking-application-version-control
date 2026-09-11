@@ -68,6 +68,7 @@ def _register_blueprints(app):
     from app.routes.customer import customer_bp
     from app.routes.employee import employee_bp
     from app.routes.admin import admin_bp
+    from app.routes.auditor import auditor_bp
     from app.routes.api import api_bp
     from app.routes.errors import errors_bp
     from app.routes.reports import reports_bp
@@ -76,6 +77,7 @@ def _register_blueprints(app):
     app.register_blueprint(customer_bp)
     app.register_blueprint(employee_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(auditor_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(errors_bp)
     app.register_blueprint(reports_bp)

@@ -14,10 +14,12 @@ from app.models.security_session import LoginSession
 from app.models.workflow_risk import RollbackRequest, RiskAssessment
 from app.services import (
     banking_service, beneficiary_service, version_service,
-    audit_service, mfa_service, session_service, approval_service
+    audit_service, mfa_service, session_service, approval_service,
+    statement_service
 )
 from app.utils.decorators import roles_required, json_errors
 from app.utils.validators import ValidationError
+from datetime import datetime
 
 api_bp = Blueprint("api", __name__)
 
@@ -56,7 +58,7 @@ def open_account():
 
 
 # ---------------------------------------------------------------------------
-# Transactions
+# Transactions & Statements
 # ---------------------------------------------------------------------------
 @api_bp.route("/transactions", methods=["GET"])
 @api_bp.route("/v1/transactions", methods=["GET"])
@@ -64,6 +66,7 @@ def open_account():
 def list_transactions():
     account_id = request.args.get("account_id", type=int)
     query = Transaction.query
+
     if account_id:
         _get_owned_account_or_403(account_id)
         query = query.filter_by(account_id=account_id)
@@ -71,12 +74,293 @@ def list_transactions():
         owned_ids = [a.id for a in Account.query.filter_by(user_id=current_user.id).all()]
         query = query.filter(Transaction.account_id.in_(owned_ids))
 
-    txn_type = request.args.get("type")
-    if txn_type:
+    txn_type = request.args.get("type") or request.args.get("transaction_type")
+    if txn_type and txn_type != "ALL":
         query = query.filter_by(transaction_type=txn_type)
 
-    txns = query.order_by(Transaction.created_at.desc()).limit(500).all()
-    return jsonify([t.to_dict() for t in txns])
+    status = request.args.get("status")
+    if status and status != "ALL":
+        query = query.filter_by(status=status)
+
+    mode = request.args.get("mode") or request.args.get("transaction_mode")
+    if mode and mode != "ALL":
+        query = query.filter_by(transaction_mode=mode)
+
+    search = request.args.get("search")
+    if search:
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            (Transaction.description.ilike(term)) |
+            (Transaction.reference_number.ilike(term))
+        )
+
+    date_from = request.args.get("date_from") or request.args.get("start_date")
+    if date_from:
+        try:
+            d_from = datetime.strptime(date_from, "%Y-%m-%d")
+            query = query.filter(Transaction.created_at >= d_from)
+        except ValueError:
+            pass
+
+    date_to = request.args.get("date_to") or request.args.get("end_date")
+    if date_to:
+        try:
+            d_to = datetime.strptime(date_to, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(Transaction.created_at <= d_to)
+        except ValueError:
+            pass
+
+    preset = request.args.get("preset")
+    if preset:
+        s_date, e_date = statement_service.resolve_date_preset(preset)
+        if s_date:
+            query = query.filter(Transaction.created_at >= datetime.combine(s_date, datetime.min.time()))
+        if e_date:
+            query = query.filter(Transaction.created_at <= datetime.combine(e_date, datetime.max.time()))
+
+    sort_order = request.args.get("sort", "desc").lower()
+    if sort_order == "asc":
+        query = query.order_by(Transaction.created_at.asc())
+    else:
+        query = query.order_by(Transaction.created_at.desc())
+
+    page = request.args.get("page", 1, type=int)
+    limit = request.args.get("limit", 50, type=int)
+    limit = min(max(limit, 1), 500)
+
+    pagination = query.paginate(page=page, per_page=limit, error_out=False)
+    txns = pagination.items
+
+    return jsonify({
+        "success": True,
+        "items": [t.to_dict() for t in txns],
+        "total": pagination.total,
+        "page": page,
+        "pages": pagination.pages,
+        "limit": limit
+    })
+
+
+@api_bp.route("/transactions/mini-statement", methods=["GET"])
+@login_required
+def mini_statement():
+    account_id = request.args.get("account_id", type=int)
+    if account_id:
+        _get_owned_account_or_403(account_id)
+        txns = Transaction.query.filter_by(account_id=account_id).order_by(Transaction.created_at.desc()).limit(10).all()
+    elif current_user.role == Role.CUSTOMER:
+        owned_ids = [a.id for a in Account.query.filter_by(user_id=current_user.id).all()]
+        txns = Transaction.query.filter(Transaction.account_id.in_(owned_ids)).order_by(Transaction.created_at.desc()).limit(10).all()
+    else:
+        txns = Transaction.query.order_by(Transaction.created_at.desc()).limit(10).all()
+
+    return jsonify({
+        "success": True,
+        "count": len(txns),
+        "transactions": [t.to_dict() for t in txns]
+    })
+
+
+@api_bp.route("/transactions/<int:transaction_id>", methods=["GET"])
+@login_required
+def get_transaction_detail(transaction_id):
+    tx = Transaction.query.get_or_404(transaction_id)
+    account = Account.query.get(tx.account_id)
+
+    if current_user.role == Role.CUSTOMER:
+        if not account or account.user_id != current_user.id:
+            from flask import abort
+            abort(403)
+
+    return jsonify({
+        "success": True,
+        "transaction": tx.to_dict(),
+        "account_number": statement_service.mask_account_number(account.account_number if account else ""),
+        "account_type": account.account_type if account else "SAVINGS",
+        "customer_name": current_user.full_name or current_user.username
+    })
+
+
+@api_bp.route("/transactions/<int:transaction_id>/receipt", methods=["GET"])
+@login_required
+def download_transaction_receipt(transaction_id):
+    tx = Transaction.query.get_or_404(transaction_id)
+    account = Account.query.get(tx.account_id)
+
+    if current_user.role == Role.CUSTOMER:
+        if not account or account.user_id != current_user.id:
+            from flask import abort
+            abort(403)
+
+    pdf_bytes = statement_service.export_transaction_receipt_pdf(transaction_id)
+    if not pdf_bytes:
+        return jsonify({"success": False, "error": "Receipt generation failed"}), 500
+
+    filename = f"transaction_receipt_{tx.reference_number}.pdf"
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@api_bp.route("/statements", methods=["GET"])
+@login_required
+def get_statement_summary():
+    account_id = request.args.get("account_id", type=int)
+    if not account_id:
+        if current_user.role == Role.CUSTOMER:
+            acc = Account.query.filter_by(user_id=current_user.id).first()
+            if acc:
+                account_id = acc.id
+            else:
+                return jsonify({"success": False, "error": "No accounts found"}), 404
+        else:
+            return jsonify({"success": False, "error": "account_id parameter required"}), 400
+
+    _get_owned_account_or_403(account_id)
+
+    preset = request.args.get("preset")
+    s_date_str = request.args.get("date_from") or request.args.get("start_date")
+    e_date_str = request.args.get("date_to") or request.args.get("end_date")
+
+    s_date = datetime.strptime(s_date_str, "%Y-%m-%d").date() if s_date_str else None
+    e_date = datetime.strptime(e_date_str, "%Y-%m-%d").date() if e_date_str else None
+
+    statement_data = statement_service.generate_account_statement(
+        account_id=account_id,
+        start_date=s_date,
+        end_date=e_date,
+        transaction_type=request.args.get("type"),
+        status=request.args.get("status"),
+        mode=request.args.get("mode"),
+        search=request.args.get("search"),
+        preset=preset
+    )
+    # Exclude raw SQLAlchemy objects from JSON response
+    if "transactions" in statement_data:
+        statement_data["items"] = [t.to_dict() for t in statement_data["transactions"]]
+        del statement_data["transactions"]
+
+    return jsonify(statement_data)
+
+
+@api_bp.route("/statements/download/pdf", methods=["GET"])
+@login_required
+def download_statement_pdf():
+    account_id = request.args.get("account_id", type=int)
+    if not account_id:
+        acc = Account.query.filter_by(user_id=current_user.id).first()
+        if acc:
+            account_id = acc.id
+        else:
+            return jsonify({"success": False, "error": "No accounts found"}), 404
+
+    _get_owned_account_or_403(account_id)
+
+    preset = request.args.get("preset")
+    s_date_str = request.args.get("date_from") or request.args.get("start_date")
+    e_date_str = request.args.get("date_to") or request.args.get("end_date")
+
+    s_date = datetime.strptime(s_date_str, "%Y-%m-%d").date() if s_date_str else None
+    e_date = datetime.strptime(e_date_str, "%Y-%m-%d").date() if e_date_str else None
+
+    pdf_bytes = statement_service.export_statement_pdf(
+        account_id=account_id,
+        start_date=s_date,
+        end_date=e_date,
+        transaction_type=request.args.get("type"),
+        status=request.args.get("status"),
+        mode=request.args.get("mode"),
+        search=request.args.get("search"),
+        preset=preset
+    )
+
+    filename = f"account_statement_{datetime.now().strftime('%Y_%m_%d')}.pdf"
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@api_bp.route("/statements/download/csv", methods=["GET"])
+@login_required
+def download_statement_csv():
+    account_id = request.args.get("account_id", type=int)
+    if not account_id:
+        acc = Account.query.filter_by(user_id=current_user.id).first()
+        if acc:
+            account_id = acc.id
+        else:
+            return jsonify({"success": False, "error": "No accounts found"}), 404
+
+    _get_owned_account_or_403(account_id)
+
+    preset = request.args.get("preset")
+    s_date_str = request.args.get("date_from") or request.args.get("start_date")
+    e_date_str = request.args.get("date_to") or request.args.get("end_date")
+
+    s_date = datetime.strptime(s_date_str, "%Y-%m-%d").date() if s_date_str else None
+    e_date = datetime.strptime(e_date_str, "%Y-%m-%d").date() if e_date_str else None
+
+    csv_data = statement_service.export_statement_csv(
+        account_id=account_id,
+        start_date=s_date,
+        end_date=e_date,
+        transaction_type=request.args.get("type"),
+        status=request.args.get("status"),
+        mode=request.args.get("mode"),
+        search=request.args.get("search"),
+        preset=preset
+    )
+
+    filename = f"transaction_history_{datetime.now().strftime('%Y_%m_%d')}.csv"
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@api_bp.route("/statements/download/excel", methods=["GET"])
+@login_required
+def download_statement_excel():
+    account_id = request.args.get("account_id", type=int)
+    if not account_id:
+        acc = Account.query.filter_by(user_id=current_user.id).first()
+        if acc:
+            account_id = acc.id
+        else:
+            return jsonify({"success": False, "error": "No accounts found"}), 404
+
+    _get_owned_account_or_403(account_id)
+
+    preset = request.args.get("preset")
+    s_date_str = request.args.get("date_from") or request.args.get("start_date")
+    e_date_str = request.args.get("date_to") or request.args.get("end_date")
+
+    s_date = datetime.strptime(s_date_str, "%Y-%m-%d").date() if s_date_str else None
+    e_date = datetime.strptime(e_date_str, "%Y-%m-%d").date() if e_date_str else None
+
+    xlsx_bytes = statement_service.export_statement_xlsx(
+        account_id=account_id,
+        start_date=s_date,
+        end_date=e_date,
+        transaction_type=request.args.get("type"),
+        status=request.args.get("status"),
+        mode=request.args.get("mode"),
+        search=request.args.get("search"),
+        preset=preset
+    )
+
+    filename = f"account_statement_{datetime.now().strftime('%Y_%m_%d')}.xlsx"
+    return Response(
+        xlsx_bytes,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 
 
 @api_bp.route("/transactions/deposit", methods=["POST"])

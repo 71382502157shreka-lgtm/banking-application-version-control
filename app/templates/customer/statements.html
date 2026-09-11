@@ -1,45 +1,65 @@
 {% extends "base.html" %}
+
 {% block title %}Account Statements &amp; Export{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
+  <!-- Header -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="font-display fw-bold mb-1">Account Statement &amp; Export</h2>
-      <p class="text-muted small mb-0">Generate, view, and export official statement records for any date range.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-file-earmark-text-fill text-primary me-2"></i>Account Statement &amp; Export Center</h2>
+      <p class="text-muted small mb-0">Generate and export official PDF, CSV, and XLSX account statements.</p>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-outline-custom btn-sm" onclick="exportStatementCSV()">
-        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+      <button class="btn btn-outline-danger btn-sm" onclick="triggerDownload('pdf')">
+        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+      </button>
+      <button class="btn btn-outline-success btn-sm" onclick="triggerDownload('excel')">
+        <i class="bi bi-file-earmark-excel-fill me-1"></i> Download Excel (XLSX)
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="triggerDownload('csv')">
+        <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Download CSV
       </button>
       <button class="btn btn-emerald btn-sm" onclick="window.print()">
-        <i class="bi bi-printer me-1"></i> Print / Save PDF
+        <i class="bi bi-printer me-1"></i> Print Statement
       </button>
     </div>
   </div>
 
-  <!-- Filters -->
+  <!-- Filters & Preset Buttons Panel -->
   <div class="card-custom p-3 mb-4">
+    <div class="mb-3">
+      <label class="form-label text-xs fw-bold text-uppercase text-muted d-block mb-2">Quick Statement Period Presets</label>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-sm btn-outline-primary preset-btn active" onclick="selectPreset('30_DAYS', this)">Last 30 Days</button>
+        <button type="button" class="btn btn-sm btn-outline-primary preset-btn" onclick="selectPreset('7_DAYS', this)">Last 7 Days</button>
+        <button type="button" class="btn btn-sm btn-outline-primary preset-btn" onclick="selectPreset('3_MONTHS', this)">Last 3 Months</button>
+        <button type="button" class="btn btn-sm btn-outline-primary preset-btn" onclick="selectPreset('CURRENT_FY', this)">Current FY (Apr-Mar)</button>
+        <button type="button" class="btn btn-sm btn-outline-primary preset-btn" onclick="selectPreset('PREVIOUS_FY', this)">Previous FY</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" onclick="selectPreset('CUSTOM', this)">Custom Range</button>
+      </div>
+    </div>
+
     <div class="row g-3 align-items-end">
       <div class="col-12 col-md-4">
         <label class="form-label text-xs fw-bold text-uppercase text-muted">Select Target Account</label>
         <select class="form-select form-select-custom" id="statementAccountId" onchange="loadStatementData()">
           {% for acc in accounts %}
-          <option value="{{ acc.id }}">{{ acc.account_type }} &bull; {{ acc.account_number }} (Balance: ₹{{ "{:,.2f}".format(acc.balance) }})</option>
+          <option value="{{ acc.id }}">Account: XXXX XXXX {{ acc.account_number[-4:] }} ({{ acc.account_type }}) - ₹{{ "{:,.2f}".format(acc.balance) }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-3 custom-date-col d-none">
         <label class="form-label text-xs fw-bold text-uppercase text-muted">Start Date</label>
         <input type="date" class="form-control form-control-custom" id="statementStartDate" onchange="loadStatementData()">
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-3 custom-date-col d-none">
         <label class="form-label text-xs fw-bold text-uppercase text-muted">End Date</label>
         <input type="date" class="form-control form-control-custom" id="statementEndDate" onchange="loadStatementData()">
       </div>
       <div class="col-12 col-md-2">
         <button class="btn btn-emerald w-100" onclick="loadStatementData()">
-          <i class="bi bi-funnel me-1"></i> Filter
+          <i class="bi bi-funnel me-1"></i> Apply Filter
         </button>
       </div>
     </div>
@@ -55,10 +75,10 @@
           </div>
           <h4 class="font-display fw-bold mb-0">BankVCS 2.0</h4>
         </div>
-        <div class="text-muted text-xs">Official Ledger &bull; Immutable Database Audit Engine</div>
+        <div class="text-muted text-xs">Official Ledger &bull; Digital Banking E-Passbook Engine</div>
       </div>
       <div class="text-end">
-        <div class="fw-bold font-display text-uppercase fs-5 text-emerald-600">Statement of Account</div>
+        <div class="fw-bold font-display text-uppercase fs-5 text-emerald-600">Official Statement of Account</div>
         <div class="text-muted text-xs font-mono" id="statementGeneratedDate">Generated: --</div>
       </div>
     </div>
@@ -68,7 +88,7 @@
       <div class="col-12 col-md-6">
         <div class="text-muted text-xs">ACCOUNT HOLDER</div>
         <div class="fw-bold fs-6 font-display">{{ current_user.full_name or current_user.username }}</div>
-        <div class="text-muted text-xs">Email: {{ current_user.email }}</div>
+        <div class="text-muted text-xs">Customer ID: CUST-{{ "%05d"|format(current_user.id) }} &bull; Email: {{ current_user.email }}</div>
       </div>
       <div class="col-12 col-md-6 text-md-end">
         <div class="text-muted text-xs">ACCOUNT NUMBER</div>
@@ -82,9 +102,10 @@
       <table class="table-custom align-middle" id="statementTable">
         <thead>
           <tr>
-            <th>Date</th>
+            <th>Date &amp; Time</th>
             <th>Ref Number</th>
-            <th>Description</th>
+            <th>Description / Narration</th>
+            <th>Mode</th>
             <th>Type</th>
             <th class="text-end">Debit (₹)</th>
             <th class="text-end">Credit (₹)</th>
@@ -93,7 +114,7 @@
         </thead>
         <tbody id="statementTableBody">
           <tr>
-            <td colspan="7" class="text-center py-4 text-muted">Select an account to load statement records</td>
+            <td colspan="8" class="text-center py-4 text-muted">Loading statement records...</td>
           </tr>
         </tbody>
       </table>
@@ -101,16 +122,20 @@
 
     <!-- Summary Footer -->
     <div class="row g-3 p-3 bg-surface-elevated rounded-3">
-      <div class="col-6 col-md-4">
-        <div class="text-muted text-xs">TOTAL CREDITS</div>
-        <div class="financial-num text-emerald-600 fs-4" id="statTotalCredits">₹0.00</div>
+      <div class="col-6 col-md-3">
+        <div class="text-muted text-xs">OPENING BALANCE</div>
+        <div class="financial-num text-dark fs-5" id="statOpeningBalance">₹0.00</div>
       </div>
-      <div class="col-6 col-md-4">
-        <div class="text-muted text-xs">TOTAL DEBITS</div>
-        <div class="financial-num text-rose-600 fs-4" id="statTotalDebits">₹0.00</div>
+      <div class="col-6 col-md-3">
+        <div class="text-muted text-xs">TOTAL CREDITS (+)</div>
+        <div class="financial-num text-emerald-600 fs-5" id="statTotalCredits">₹0.00</div>
       </div>
-      <div class="col-12 col-md-4 text-md-end">
-        <div class="text-muted text-xs">CLOSING LEDGER BALANCE</div>
+      <div class="col-6 col-md-3">
+        <div class="text-muted text-xs">TOTAL DEBITS (-)</div>
+        <div class="financial-num text-rose-600 fs-5" id="statTotalDebits">₹0.00</div>
+      </div>
+      <div class="col-6 col-md-3 text-md-end">
+        <div class="text-muted text-xs">CLOSING BALANCE</div>
         <div class="financial-num text-plum-600 fs-4" id="statClosingBalance">₹0.00</div>
       </div>
     </div>
@@ -120,16 +145,11 @@
 
 {% block scripts %}
 <script>
-  let currentStatementTxns = [];
+  let activePreset = '30_DAYS';
 
   document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
-    const pastMonth = new Date(today);
-    pastMonth.setMonth(pastMonth.getMonth() - 1);
-
-    document.getElementById('statementEndDate').value = today.toISOString().split('T')[0];
-    document.getElementById('statementStartDate').value = pastMonth.toISOString().split('T')[0];
-    document.getElementById('statementGeneratedDate').innerText = 'Generated: ' + today.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    document.getElementById('statementGeneratedDate').innerText = 'Generated: ' + today.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
     const urlParams = new URLSearchParams(window.location.search);
     const acc = urlParams.get('account_id');
@@ -139,6 +159,22 @@
     loadStatementData();
   });
 
+  function selectPreset(preset, btn) {
+    activePreset = preset;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active', 'btn-primary'));
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.add('btn-outline-primary'));
+    btn.classList.add('active', 'btn-primary');
+    btn.classList.remove('btn-outline-primary');
+
+    const customCols = document.querySelectorAll('.custom-date-col');
+    if (preset === 'CUSTOM') {
+      customCols.forEach(col => col.classList.remove('d-none'));
+    } else {
+      customCols.forEach(col => col.classList.add('d-none'));
+      loadStatementData();
+    }
+  }
+
   async function loadStatementData() {
     const accId = document.getElementById('statementAccountId').value;
     if (!accId) return;
@@ -147,98 +183,79 @@
     const accText = accSelect.options[accSelect.selectedIndex].text;
     document.getElementById('statementAccountNumDisplay').innerText = accText;
 
-    const start = document.getElementById('statementStartDate').value;
-    const end = document.getElementById('statementEndDate').value;
+    let url = `/api/statements?account_id=${accId}&preset=${activePreset}`;
+    if (activePreset === 'CUSTOM') {
+      const s = document.getElementById('statementStartDate').value;
+      const e = document.getElementById('statementEndDate').value;
+      if (s) url += `&date_from=${s}`;
+      if (e) url += `&date_to=${e}`;
+    }
+
+    const tbody = document.getElementById('statementTableBody');
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-emerald-600 me-2"></div> Loading statement...</td></tr>';
 
     try {
-      const res = await fetch(`/api/transactions?account_id=${accId}`);
-      if (!res.ok) return;
-      let txns = await res.json();
+      const res = await fetch(url);
+      const data = await res.json();
 
-      if (start) {
-        txns = txns.filter(t => new Date(t.created_at) >= new Date(start));
-      }
-      if (end) {
-        const endDateObj = new Date(end);
-        endDateObj.setHours(23, 59, 59, 999);
-        txns = txns.filter(t => new Date(t.created_at) <= endDateObj);
+      if (!data.success) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">${data.error || 'Failed to load statement'}</td></tr>`;
+        return;
       }
 
-      currentStatementTxns = txns;
-      renderStatementTable(txns);
+      document.getElementById('statOpeningBalance').innerText = '₹' + data.opening_balance.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById('statTotalCredits').innerText = '₹' + data.total_credits.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById('statTotalDebits').innerText = '₹' + data.total_debits.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById('statClosingBalance').innerText = '₹' + data.closing_balance.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+      renderStatementTable(data.items);
     } catch (err) {
       console.error(err);
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Connection error.</td></tr>';
     }
   }
 
-  function renderStatementTable(txns) {
+  function renderStatementTable(items) {
     const tbody = document.getElementById('statementTableBody');
-    if (!txns || txns.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No statement records match selected filters.</td></tr>';
-      document.getElementById('statTotalCredits').innerText = '₹0.00';
-      document.getElementById('statTotalDebits').innerText = '₹0.00';
-      document.getElementById('statClosingBalance').innerText = '₹0.00';
+    if (!items || items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No statement records found for the selected period.</td></tr>';
       return;
     }
 
-    let totalCredits = 0;
-    let totalDebits = 0;
-    let closingBal = txns[0].balance_after || 0;
+    tbody.innerHTML = items.map(t => {
+      const isCredit = ['DEPOSIT', 'REVERSAL'].includes(t.transaction_type) || (t.transaction_type === 'TRANSFER' && parseFloat(t.amount) > 0);
+      const amt = Math.abs(parseFloat(t.amount));
 
-    tbody.innerHTML = txns.map(t => {
-      const isCredit = t.transaction_type === 'DEPOSIT' || t.transaction_type === 'REVERSAL';
-      const amt = parseFloat(t.amount);
-      if (isCredit) totalCredits += amt;
-      else totalDebits += amt;
-
-      const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
       const debitStr = !isCredit ? '₹' + amt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
       const creditStr = isCredit ? '₹' + amt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
-      const balStr = t.balance_after ? '₹' + parseFloat(t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
+      const dateStr = t.created_at ? new Date(t.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+      const balStr = (t.balance_after_transaction || t.balance_after) ? '₹' + parseFloat(t.balance_after_transaction || t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
 
       return `
         <tr>
           <td><span class="text-xs font-mono">${dateStr}</span></td>
-          <td><span class="font-mono text-xs">${t.reference_number}</span></td>
-          <td><span class="fw-semibold small">${t.description || 'Transaction'}</span></td>
+          <td><span class="font-mono text-xs text-dark fw-bold">${t.reference_number}</span></td>
+          <td><span class="fw-semibold small">${t.narration || t.description || 'Transaction'}</span></td>
+          <td><span class="badge bg-light text-dark border">${t.transaction_mode || 'TRANSFER'}</span></td>
           <td><span class="badge bg-surface-elevated text-secondary text-xs">${t.transaction_type}</span></td>
-          <td class="text-end text-rose-600 font-mono">${debitStr}</td>
-          <td class="text-end text-emerald-600 font-mono">${creditStr}</td>
+          <td class="text-end text-rose-600 font-mono fw-bold">${debitStr}</td>
+          <td class="text-end text-emerald-600 font-mono fw-bold">${creditStr}</td>
           <td class="text-end font-mono fw-bold">${balStr}</td>
         </tr>
       `;
     }).join('');
-
-    document.getElementById('statTotalCredits').innerText = '₹' + totalCredits.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    document.getElementById('statTotalDebits').innerText = '₹' + totalDebits.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    document.getElementById('statClosingBalance').innerText = '₹' + parseFloat(closingBal).toLocaleString('en-IN', { minimumFractionDigits: 2 });
   }
 
-  function exportStatementCSV() {
-    if (!currentStatementTxns || currentStatementTxns.length === 0) {
-      showToast('No statement data to export', 'warning');
-      return;
+  function triggerDownload(format) {
+    const accId = document.getElementById('statementAccountId').value;
+    let url = `/api/statements/download/${format}?account_id=${accId}&preset=${activePreset}`;
+    if (activePreset === 'CUSTOM') {
+      const s = document.getElementById('statementStartDate').value;
+      const e = document.getElementById('statementEndDate').value;
+      if (s) url += `&date_from=${s}`;
+      if (e) url += `&date_to=${e}`;
     }
-    const headers = ['Date', 'Reference Number', 'Description', 'Type', 'Amount', 'Balance After', 'Status'];
-    const rows = currentStatementTxns.map(t => [
-      t.created_at || '',
-      t.reference_number || '',
-      `"${(t.description || '').replace(/"/g, '""')}"`,
-      t.transaction_type || '',
-      t.amount || '',
-      t.balance_after || '',
-      t.status || ''
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Statement_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Statement CSV exported successfully!', 'success');
+    window.open(url, '_blank');
   }
 </script>
 {% endblock %}

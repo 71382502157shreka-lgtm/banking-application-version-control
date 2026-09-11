@@ -1,14 +1,18 @@
 {% extends "base.html" %}
+
 {% block title %}Transaction History{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="font-display fw-bold mb-1">Transaction History &amp; Ledger</h2>
-      <p class="text-muted small mb-0">Append-only financial transaction ledger. Search, filter, and inspect receipt signatures.</p>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-clock-history text-primary me-2"></i>Transaction History &amp; Ledger</h2>
+      <p class="text-muted small mb-0">Complete transaction history. Filter by date, type, mode, and download official PDF receipts.</p>
     </div>
     <div class="d-flex gap-2">
+      <a href="{{ url_for('customer.e_passbook') }}" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-journal-bookmark-fill"></i> Open E-Passbook
+      </a>
       <a href="{{ url_for('customer.statements') }}" class="btn btn-outline-custom btn-sm d-flex align-items-center gap-1">
         <i class="bi bi-file-earmark-text"></i> Statements
       </a>
@@ -21,22 +25,35 @@
   <!-- Search & Filter Bar -->
   <div class="card-custom p-3 mb-4">
     <div class="row g-2 align-items-center">
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-3">
         <div class="input-group">
           <span class="input-group-text bg-surface-elevated border-end-0 text-muted"><i class="bi bi-search"></i></span>
-          <input type="text" class="form-control form-control-custom border-start-0 ps-0" id="txnSearchInput" placeholder="Search by reference, description..." oninput="filterTransactions()">
+          <input type="text" class="form-control form-control-custom border-start-0 ps-0" id="txnSearchInput" placeholder="Search reference, description..." oninput="filterTransactions()">
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
         <select class="form-select form-select-custom" id="txnTypeFilter" onchange="filterTransactions()">
-          <option value="">All Transaction Types</option>
+          <option value="">All Types</option>
           <option value="DEPOSIT">Deposits</option>
           <option value="WITHDRAWAL">Withdrawals</option>
           <option value="TRANSFER">Transfers</option>
           <option value="REVERSAL">Reversals</option>
         </select>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
+        <select class="form-select form-select-custom" id="txnModeFilter" onchange="filterTransactions()">
+          <option value="">All Modes</option>
+          <option value="UPI">UPI</option>
+          <option value="IMPS">IMPS</option>
+          <option value="NEFT">NEFT</option>
+          <option value="RTGS">RTGS</option>
+          <option value="ATM">ATM</option>
+          <option value="CASH_DEPOSIT">Cash Deposit</option>
+          <option value="CASH_WITHDRAWAL">Cash Withdrawal</option>
+          <option value="TRANSFER">Transfer</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
         <select class="form-select form-select-custom" id="txnStatusFilter" onchange="filterTransactions()">
           <option value="">All Statuses</option>
           <option value="COMPLETED">Completed</option>
@@ -46,9 +63,15 @@
           <option value="BLOCKED_FOR_REVIEW">Blocked For Review</option>
         </select>
       </div>
-      <div class="col-12 col-md-2 text-end">
-        <button class="btn btn-outline-custom btn-sm w-100" onclick="resetTxnFilters()">
-          <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+      <div class="col-6 col-md-2">
+        <select class="form-select form-select-custom" id="txnSortFilter" onchange="filterTransactions()">
+          <option value="desc">Newest First</option>
+          <option value="asc">Oldest First</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-1 text-end">
+        <button class="btn btn-outline-custom btn-sm w-100" onclick="resetTxnFilters()" title="Reset Filters">
+          <i class="bi bi-arrow-counterclockwise"></i>
         </button>
       </div>
     </div>
@@ -63,18 +86,19 @@
             <th>Date &amp; Time</th>
             <th>Reference Number</th>
             <th>Description</th>
+            <th>Mode</th>
             <th>Type</th>
-            <th>Amount (₹)</th>
-            <th>Status</th>
-            <th>Ledger Balance</th>
-            <th class="text-end">Receipt</th>
+            <th class="text-end">Amount (₹)</th>
+            <th class="text-center">Status</th>
+            <th class="text-end">Balance After</th>
+            <th class="text-end pe-3">Receipt</th>
           </tr>
         </thead>
         <tbody id="txnTableBody">
           <tr>
-            <td colspan="8" class="text-center py-5 text-muted">
+            <td colspan="9" class="text-center py-5 text-muted">
               <div class="spinner-border spinner-border-sm text-emerald-600 me-2" role="status"></div>
-              Loading transactions from immutable ledger...
+              Loading transactions from ledger...
             </td>
           </tr>
         </tbody>
@@ -83,23 +107,23 @@
 
     <!-- Summary Counter -->
     <div class="d-flex justify-content-between align-items-center p-3 border-top bg-surface-elevated">
-      <div class="text-xs text-muted" id="txnCounterText">Showing all records</div>
-      <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">Append-Only Immutability</span>
+      <div class="text-xs text-muted" id="txnCounterText">Showing records</div>
+      <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">BankVCS 2.0 Encrypted Ledger</span>
     </div>
   </div>
 </div>
 
-<!-- Receipt Modal -->
+<!-- Receipt & Detail Modal -->
 <div class="modal fade" id="txnDetailReceiptModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content card-custom border-0 shadow-xl">
-      <div class="card-header-custom">
-        <h5 class="modal-title font-display fw-bold">
+      <div class="card-header-custom d-flex justify-content-between align-items-center">
+        <h5 class="modal-title font-display fw-bold mb-0">
           <i class="bi bi-receipt text-emerald-600 me-2"></i> Official Transaction Receipt
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="card-body-custom">
+      <div class="card-body-custom p-4">
         <div class="text-center p-3 bg-surface-elevated rounded-3 mb-3">
           <div class="text-muted text-xs text-uppercase font-semibold">Transaction Amount</div>
           <h2 class="financial-num text-emerald-600 mb-0" id="modalReceiptAmount">₹0.00</h2>
@@ -111,6 +135,10 @@
             <td class="fw-semibold font-mono text-xs text-end" id="modalReceiptRef">-</td>
           </tr>
           <tr>
+            <td class="text-muted small">Transaction Mode:</td>
+            <td class="fw-semibold text-end" id="modalReceiptMode">-</td>
+          </tr>
+          <tr>
             <td class="text-muted small">Type:</td>
             <td class="fw-semibold text-end" id="modalReceiptType">-</td>
           </tr>
@@ -119,7 +147,7 @@
             <td class="fw-semibold text-end" id="modalReceiptDate">-</td>
           </tr>
           <tr>
-            <td class="text-muted small">Description:</td>
+            <td class="text-muted small">Narration / Remarks:</td>
             <td class="fw-semibold text-end" id="modalReceiptDesc">-</td>
           </tr>
           <tr>
@@ -127,14 +155,16 @@
             <td class="fw-semibold text-end" id="modalReceiptBalAfter">-</td>
           </tr>
           <tr>
-            <td class="text-muted small">Audit Verification:</td>
-            <td class="fw-semibold text-emerald-600 text-end small"><i class="bi bi-shield-check me-1"></i> SHA-256 Verified</td>
+            <td class="text-muted small">Audit Status:</td>
+            <td class="fw-semibold text-emerald-600 text-end small"><i class="bi bi-shield-check me-1"></i> Computer Generated Receipt</td>
           </tr>
         </table>
       </div>
       <div class="p-3 border-top d-flex justify-content-end gap-2 bg-surface-elevated">
-        <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-emerald" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print Receipt</button>
+        <button type="button" class="btn btn-outline-custom btn-sm" data-bs-dismiss="modal">Close</button>
+        <a href="#" id="downloadPdfReceiptBtn" target="_blank" class="btn btn-emerald btn-sm">
+          <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF Receipt
+        </a>
       </div>
     </div>
   </div>
@@ -151,9 +181,10 @@
 
   async function loadTransactions() {
     try {
-      const res = await fetch('/api/transactions');
-      if (!res.ok) return;
-      allTransactions = await res.json();
+      const res = await fetch('/api/transactions?limit=500');
+      const data = await res.json();
+      if (!data.success && !Array.isArray(data)) return;
+      allTransactions = data.items || data;
       renderTransactions(allTransactions);
     } catch (err) {
       console.error('Failed to load transactions', err);
@@ -165,7 +196,7 @@
     const counter = document.getElementById('txnCounterText');
 
     if (!txns || txns.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted">No transactions found matching criteria.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>No transactions found matching criteria.</td></tr>';
       counter.innerText = '0 transactions found';
       return;
     }
@@ -173,8 +204,8 @@
     counter.innerText = `Showing ${txns.length} transaction(s)`;
 
     tbody.innerHTML = txns.map(t => {
-      const isCredit = t.transaction_type === 'DEPOSIT' || t.transaction_type === 'REVERSAL';
-      const amtStr = (isCredit ? '+' : '-') + '₹' + parseFloat(t.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      const isCredit = ['DEPOSIT', 'REVERSAL'].includes(t.transaction_type) || (t.transaction_type === 'TRANSFER' && parseFloat(t.amount) > 0);
+      const amtStr = (isCredit ? '+' : '-') + '₹' + Math.abs(parseFloat(t.amount)).toLocaleString('en-IN', { minimumFractionDigits: 2 });
       const amtClass = isCredit ? 'text-emerald-600' : 'text-rose-600';
       
       let badgeHtml = '<span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">DEPOSIT</span>';
@@ -183,20 +214,22 @@
       else if (t.transaction_type === 'REVERSAL') badgeHtml = '<span class="badge bg-gold-50 text-gold-600 border border-gold-200">REVERSAL</span>';
 
       const dateStr = t.created_at ? new Date(t.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Recent';
-      const balStr = t.balance_after ? '₹' + parseFloat(t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
+      const balStr = (t.balance_after_transaction || t.balance_after) ? '₹' + parseFloat(t.balance_after_transaction || t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-';
+      const modeStr = t.transaction_mode || 'TRANSFER';
 
       return `
         <tr>
           <td><span class="text-xs font-mono">${dateStr}</span></td>
-          <td><span class="font-mono text-xs">${t.reference_number}</span></td>
-          <td><div class="fw-semibold text-truncate" style="max-width: 220px;">${t.description || 'Transaction'}</div></td>
+          <td><span class="font-mono text-xs text-dark fw-bold">${t.reference_number}</span></td>
+          <td><div class="fw-semibold text-truncate" style="max-width: 220px;">${t.narration || t.description || 'Transaction'}</div></td>
+          <td><span class="badge bg-light text-dark border">${modeStr}</span></td>
           <td>${badgeHtml}</td>
-          <td><span class="financial-num ${amtClass}">${amtStr}</span></td>
-          <td><span class="badge-status badge-status-success">${t.status}</span></td>
-          <td><span class="text-muted text-xs font-mono">${balStr}</span></td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-custom" onclick='openReceiptModal(${JSON.stringify(t)})'>
-              <i class="bi bi-receipt"></i>
+          <td class="text-end"><span class="financial-num fw-bold ${amtClass}">${amtStr}</span></td>
+          <td class="text-center"><span class="badge-status badge-status-success">${t.status}</span></td>
+          <td class="text-end"><span class="text-muted text-xs font-mono fw-bold">${balStr}</span></td>
+          <td class="text-end pe-3">
+            <button class="btn btn-xs btn-outline-primary" onclick='openReceiptModal(${JSON.stringify(t)})' title="View Receipt">
+              <i class="bi bi-receipt me-1"></i> Receipt
             </button>
           </td>
         </tr>
@@ -207,15 +240,25 @@
   function filterTransactions() {
     const q = document.getElementById('txnSearchInput').value.toLowerCase();
     const typeFilter = document.getElementById('txnTypeFilter').value;
+    const modeFilter = document.getElementById('txnModeFilter').value;
     const statusFilter = document.getElementById('txnStatusFilter').value;
+    const sortFilter = document.getElementById('txnSortFilter').value;
 
-    const filtered = allTransactions.filter(t => {
+    let filtered = allTransactions.filter(t => {
       const matchQ = !q || (t.reference_number && t.reference_number.toLowerCase().includes(q)) || 
-                          (t.description && t.description.toLowerCase().includes(q));
+                          (t.description && t.description.toLowerCase().includes(q)) ||
+                          (t.narration && t.narration.toLowerCase().includes(q));
       const matchType = !typeFilter || t.transaction_type === typeFilter;
+      const matchMode = !modeFilter || (t.transaction_mode || 'TRANSFER') === modeFilter;
       const matchStatus = !statusFilter || t.status === statusFilter;
-      return matchQ && matchType && matchStatus;
+      return matchQ && matchType && matchMode && matchStatus;
     });
+
+    if (sortFilter === 'asc') {
+      filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    } else {
+      filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
 
     renderTransactions(filtered);
   }
@@ -223,19 +266,24 @@
   function resetTxnFilters() {
     document.getElementById('txnSearchInput').value = '';
     document.getElementById('txnTypeFilter').value = '';
+    document.getElementById('txnModeFilter').value = '';
     document.getElementById('txnStatusFilter').value = '';
+    document.getElementById('txnSortFilter').value = 'desc';
     renderTransactions(allTransactions);
   }
 
   function openReceiptModal(t) {
     document.getElementById('modalReceiptRef').innerText = t.reference_number;
+    document.getElementById('modalReceiptMode').innerText = t.transaction_mode || 'TRANSFER';
     document.getElementById('modalReceiptType').innerText = t.transaction_type;
-    document.getElementById('modalReceiptAmount').innerText = '₹' + parseFloat(t.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    document.getElementById('modalReceiptDesc').innerText = t.description || 'Account Transaction';
+    document.getElementById('modalReceiptAmount').innerText = '₹' + Math.abs(parseFloat(t.amount)).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    document.getElementById('modalReceiptDesc').innerText = t.narration || t.description || 'Account Transaction';
     document.getElementById('modalReceiptDate').innerText = t.created_at ? new Date(t.created_at).toLocaleString('en-IN') : 'Recent';
     document.getElementById('modalReceiptStatus').innerText = t.status || 'COMPLETED';
-    document.getElementById('modalReceiptBalAfter').innerText = t.balance_after ? '₹' + parseFloat(t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'Recorded';
+    document.getElementById('modalReceiptBalAfter').innerText = (t.balance_after_transaction || t.balance_after) ? '₹' + parseFloat(t.balance_after_transaction || t.balance_after).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : 'Recorded';
     
+    document.getElementById('downloadPdfReceiptBtn').href = `/api/transactions/${t.id}/receipt`;
+
     new bootstrap.Modal(document.getElementById('txnDetailReceiptModal')).show();
   }
 </script>

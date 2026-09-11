@@ -11,7 +11,9 @@ class Role:
     CUSTOMER = "customer"
     EMPLOYEE = "employee"
     ADMIN = "admin"
-    ALL = (CUSTOMER, EMPLOYEE, ADMIN)
+    AUDITOR = "auditor"
+    ALL = (CUSTOMER, EMPLOYEE, ADMIN, AUDITOR)
+
 
 
 class User(BaseModel, UserMixin):

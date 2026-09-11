@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Deposits & Loans{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1"><i class="bi bi-wallet2 text-primary me-2"></i>Deposits & Loan Applications</h3>
+      <p class="text-muted mb-0">Open Fixed / Recurring Deposits or apply for Personal, Home, or Vehicle Loans.</p>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <!-- Open New Deposit Card -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-primary text-white py-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-piggy-bank me-2"></i>Open Fixed / Recurring Deposit</h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('customer.deposits_loans') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="open_deposit">
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Source Savings Account</label>
+              <select name="source_account_id" class="form-select" required>
+                {% for acc in accounts %}
+                  {% if acc.account_type == 'SAVINGS' or acc.account_type == 'CHECKING' %}
+                    <option value="{{ acc.id }}">{{ acc.account_number }} - Balance: ₹{{ "{:,.2f}".format(acc.available_balance) }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Deposit Type</label>
+              <select name="deposit_type" class="form-select">
+                <option value="FIXED_DEPOSIT">Fixed Deposit (FD) - 7.5% p.a.</option>
+                <option value="RECURRING_DEPOSIT">Recurring Deposit (RD) - 7.1% p.a.</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Deposit Amount (Principal ₹)</label>
+              <input type="number" step="100" min="500" name="amount" class="form-control" placeholder="Minimum ₹500" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Tenure (Months)</label>
+              <select name="tenure_months" class="form-select">
+                <option value="6">6 Months</option>
+                <option value="12" selected>12 Months (1 Year)</option>
+                <option value="24">24 Months (2 Years)</option>
+                <option value="36">36 Months (3 Years)</option>
+                <option value="60">60 Months (5 Years)</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 fw-bold">
+              <i class="bi bi-plus-circle me-1"></i> Open Deposit Account Now
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apply for Loan Card -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-success text-white py-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-file-earmark-text me-2"></i>Apply for a Bank Loan</h5>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('customer.deposits_loans') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="apply_loan">
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Loan Type</label>
+              <select name="loan_type" class="form-select">
+                <option value="PERSONAL">Personal Loan</option>
+                <option value="HOME">Home Loan</option>
+                <option value="AUTO">Auto / Vehicle Loan</option>
+                <option value="EDUCATION">Education Loan</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Requested Amount (₹)</label>
+              <input type="number" min="10000" name="amount" class="form-control" placeholder="e.g. 200000" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Requested Tenure (Years)</label>
+              <select name="tenure_years" class="form-select">
+                <option value="1">1 Year</option>
+                <option value="3" selected>3 Years</option>
+                <option value="5">5 Years</option>
+                <option value="10">10 Years</option>
+                <option value="20">20 Years</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-bold">Monthly Income (₹)</label>
+              <input type="number" name="monthly_income" class="form-control" placeholder="e.g. 50000" required>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100 fw-bold">
+              <i class="bi bi-send-fill me-1"></i> Submit Loan Application
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Deposit Accounts Table -->
+  <div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-transparent border-0 pt-3 pb-0">
+      <h5 class="fw-bold mb-0"><i class="bi bi-card-checklist text-primary me-2"></i>Active Deposit Accounts</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Account Number</th>
+              <th>Deposit Type</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Created Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dep in deposits %}
+            <tr>
+              <td><code>{{ dep.account_number }}</code></td>
+              <td><span class="badge bg-info text-dark">{{ dep.account_type }}</span></td>
+              <td class="fw-bold text-success">₹{{ "{:,.2f}".format(dep.balance) }}</td>
+              <td><span class="badge bg-success">{{ dep.status }}</span></td>
+              <td class="small text-muted">{{ dep.created_at.strftime('%Y-%m-%d') if dep.created_at }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No active deposit accounts found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

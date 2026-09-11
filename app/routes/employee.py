@@ -15,6 +15,7 @@ from app.models.audit_log import AuditLog, AuditAction
 from app.models.security_session import SecurityEvent, LoginSession
 from app.models.workflow_risk import RiskAssessment, RiskDecision, RiskLevel, RollbackRequest, RollbackStatus
 from app.models.complaint import Complaint, ComplaintStatus, ComplaintPriority
+from app.models.service_request import ServiceRequest, ServiceRequestStatus
 from app.services import (
     banking_service,
     approval_service,
@@ -503,3 +504,40 @@ def profile():
 @roles_required(Role.EMPLOYEE)
 def help():
     return render_template("employee/help.html")
+
+
+@employee_bp.route("/service-requests", methods=["GET", "POST"])
+@login_required
+@roles_required(Role.EMPLOYEE)
+def service_requests():
+    if request.method == "POST":
+        ticket_id = request.form.get("ticket_id")
+        new_status = request.form.get("status")
+        notes = request.form.get("notes", "").strip()
+
+        sr = db.session.get(ServiceRequest, int(ticket_id)) if ticket_id else None
+
+        if not sr:
+            flash("Service request ticket not found.", "danger")
+        else:
+            sr.status = new_status
+            sr.admin_notes = notes
+            db.session.commit()
+
+            audit_service.log_action(
+                action=AuditAction.SERVICE_REQUEST,
+                user_id=current_user.id,
+                entity_type="SERVICE_REQUEST",
+                entity_id=sr.id,
+                description=f"Employee updated service request #{sr.ticket_number} status to {new_status}"
+            )
+            flash(f"Service Request #{sr.ticket_number} updated to {new_status}.", "success")
+            return redirect(url_for("employee.service_requests"))
+
+    status_filter = request.args.get("status")
+    if status_filter:
+        requests_list = ServiceRequest.query.filter_by(status=status_filter).order_by(ServiceRequest.created_at.desc()).all()
+    else:
+        requests_list = ServiceRequest.query.order_by(ServiceRequest.created_at.desc()).all()
+
+    return render_template("employee/service_requests.html", requests_list=requests_list, status_filter=status_filter or "")

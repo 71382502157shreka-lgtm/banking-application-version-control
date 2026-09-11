@@ -94,10 +94,48 @@
           <i class="bi bi-people-fill"></i>
           <span>Beneficiaries</span>
         </a>
+        <a href="{{ url_for('customer.e_passbook') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.e_passbook' else '' }}">
+          <i class="bi bi-journal-bookmark-fill"></i>
+          <span>E-Passbook</span>
+          <span class="badge bg-primary text-white ms-auto" style="font-size: 0.65rem;">NEW</span>
+        </a>
+        <a href="{{ url_for('customer.quick_pay') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.quick_pay' else '' }}">
+          <i class="bi bi-lightning-charge-fill text-warning"></i>
+          <span>Quick Pay &amp; Bills</span>
+        </a>
+        <a href="{{ url_for('customer.deposits_loans') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.deposits_loans' else '' }}">
+          <i class="bi bi-piggy-bank-fill text-success"></i>
+          <span>Deposits &amp; Loans</span>
+        </a>
+        <a href="{{ url_for('customer.calculators') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.calculators' else '' }}">
+          <i class="bi bi-calculator-fill text-info"></i>
+          <span>Calculators</span>
+        </a>
+        <a href="{{ url_for('customer.service_requests') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.service_requests' else '' }}">
+          <i class="bi bi-headset"></i>
+          <span>Service Requests</span>
+        </a>
+        <a href="{{ url_for('customer.document_vault') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.document_vault' else '' }}">
+          <i class="bi bi-folder-symlink-fill"></i>
+          <span>Document Vault</span>
+        </a>
+        <a href="{{ url_for('customer.mini_statement') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.mini_statement' else '' }}">
+          <i class="bi bi-card-list"></i>
+          <span>Mini Statement</span>
+        </a>
+        <a href="{{ url_for('customer.account_details') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.account_details' else '' }}">
+          <i class="bi bi-person-vcard-fill"></i>
+          <span>Account Details</span>
+        </a>
+        <a href="{{ url_for('customer.banking_services') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.banking_services' else '' }}">
+          <i class="bi bi-grid-3x3-gap-fill"></i>
+          <span>Banking Services</span>
+        </a>
         <a href="{{ url_for('customer.statements') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.statements' else '' }}">
           <i class="bi bi-file-earmark-text-fill"></i>
           <span>Statements &amp; Export</span>
         </a>
+
 
         <div class="nav-section-title">VERSION CONTROL &amp; SECURITY</div>
         <a href="{{ url_for('customer.version_history') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.version_history' else '' }}">
@@ -166,6 +204,10 @@
           <i class="bi bi-chat-left-dots-fill"></i>
           <span>Customer Complaints</span>
         </a>
+        <a href="{{ url_for('employee.service_requests') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.service_requests' else '' }}">
+          <i class="bi bi-headset"></i>
+          <span>Service Requests Queue</span>
+        </a>
         <a href="{{ url_for('employee.risk_alerts') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.risk_alerts' else '' }}">
           <i class="bi bi-shield-exclamation"></i>
           <span>Risk Alerts</span>
@@ -193,11 +235,26 @@
           <span>Help &amp; Support</span>
         </a>
 
+        {% elif current_user.role == 'auditor' %}
+        <div class="nav-section-title">AUDIT &amp; COMPLIANCE</div>
+        <a href="{{ url_for('auditor.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'auditor.dashboard' else '' }}">
+          <i class="bi bi-shield-check"></i>
+          <span>Auditor Dashboard</span>
+        </a>
+        <a href="{{ url_for('auditor.audit_ledger') }}" class="nav-item {{ 'active' if request.endpoint == 'auditor.audit_ledger' else '' }}">
+          <i class="bi bi-journal-code"></i>
+          <span>Cryptographic Audit Ledger</span>
+        </a>
+
         {% elif current_user.role == 'admin' %}
         <div class="nav-section-title">ADMINISTRATION</div>
         <a href="{{ url_for('admin.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.dashboard' else '' }}">
           <i class="bi bi-speedometer2"></i>
           <span>System Dashboard</span>
+        </a>
+        <a href="{{ url_for('auditor.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'auditor.dashboard' else '' }}">
+          <i class="bi bi-shield-check"></i>
+          <span>Auditor View</span>
         </a>
         <a href="{{ url_for('admin.security_center') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.security_center' else '' }}">
           <i class="bi bi-shield-check"></i>
@@ -255,6 +312,21 @@
         </div>
 
         <div class="d-flex align-items-center gap-3">
+          <!-- High Contrast Accessibility & Language Switcher -->
+          <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onclick="toggleHighContrast()" title="Toggle High Contrast Mode">
+            <i class="bi bi-eye-fill"></i> <span class="d-none d-sm-inline">Contrast</span>
+          </button>
+
+          <div class="dropdown">
+            <button class="btn btn-outline-primary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" id="langDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-translate"></i> <span id="langCurrentLabel">EN</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="langDropdownBtn">
+              <li><button class="dropdown-item py-1 text-sm" onclick="switchLanguage('EN')">English (EN)</button></li>
+              <li><button class="dropdown-item py-1 text-sm" onclick="switchLanguage('TA')">தமிழ் (Tamil)</button></li>
+            </ul>
+          </div>
+
           <!-- Theme Switcher Selector -->
           <div class="dropdown">
             <button class="theme-toggle-btn dropdown-toggle" type="button" id="themeDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -590,12 +662,50 @@
       } catch (err) { console.error(err); }
     }
 
-    async function markAllNotificationsRead() {
-      try {
-        await fetch('/api/notifications/read-all', { method: 'POST' });
-        showToast('All notifications marked as read', 'info');
-        loadHeaderNotifications();
-      } catch (err) { console.error(err); }
+    // High Contrast Mode & i18n Language Toggle
+    function toggleHighContrast() {
+      document.body.classList.toggle('high-contrast');
+      const isHc = document.body.classList.contains('high-contrast');
+      localStorage.setItem('bankvcs_high_contrast', isHc ? '1' : '0');
+      showToast(isHc ? 'High Contrast Mode Enabled' : 'High Contrast Mode Disabled', 'info');
+    }
+
+    if (localStorage.getItem('bankvcs_high_contrast') === '1') {
+      document.body.classList.add('high-contrast');
+    }
+
+    const translations = {
+      'TA': {
+        'Dashboard': 'முகப்பு பலகை',
+        'My Accounts': 'எனது கணக்குகள்',
+        'Transfer Funds': 'பணப் பரிமாற்றம்',
+        'E-Passbook': 'மின்-கடவுச்சீட்டு (Passbook)',
+        'Quick Pay & Bills': 'விரைவு கட்டணம்',
+        'Deposits & Loans': 'வைப்பு மற்றும் கடன்கள்',
+        'Calculators': 'கணக்கீடுகள்',
+        'Service Requests': 'சேவை கோரிக்கைகள்',
+        'Document Vault': 'ஆவண பெட்டகம்',
+      }
+    };
+
+    function switchLanguage(lang) {
+      document.getElementById('langCurrentLabel').innerText = lang;
+      localStorage.setItem('bankvcs_lang', lang);
+      if (lang === 'TA') {
+        document.querySelectorAll('.sidebar-nav .nav-item span').forEach(el => {
+          const txt = el.innerText.trim();
+          if (translations['TA'][txt]) {
+            el.innerText = translations['TA'][txt];
+          }
+        });
+        showToast('மொழி தமிழுக்கு மாற்றப்பட்டது', 'info');
+      } else {
+        location.reload();
+      }
+    }
+
+    if (localStorage.getItem('bankvcs_lang') === 'TA') {
+      document.addEventListener('DOMContentLoaded', () => switchLanguage('TA'));
     }
   </script>
   {% block scripts %}{% endblock %}
