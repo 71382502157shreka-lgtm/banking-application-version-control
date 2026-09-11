@@ -1,7 +1,7 @@
 from decimal import Decimal
 from datetime import date
 from app import db
-from app.models.account import Account, AccountType
+from app.models.account import Account, AccountType, AccountStatus
 from app.models.transaction import Transaction, TransactionType, TransactionStatus
 from app.models.audit_log import AuditAction
 from app.models.version import EntityType, ChangeType
@@ -139,114 +139,126 @@ def withdraw(account: Account, amount, description: str, actor_user_id: int, tra
 
 def transfer(source: Account, destination: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None):
     amount = validate_amount(amount)
-    if source.id == destination.id:
+
+    if not source or source.status != AccountStatus.ACTIVE:
+        raise ValidationError("Source account is inactive or invalid")
+    if not destination or destination.status != AccountStatus.ACTIVE:
+        raise ValidationError("Destination account is inactive or invalid")
+
+    if source.id == destination.id or source.account_number == destination.account_number:
         raise ValidationError("Cannot transfer to the same account")
+
     if Decimal(source.available_balance) < amount:
         raise InsufficientBalanceError("Insufficient available balance for this transfer")
 
     mode = transaction_mode or "TRANSFER"
 
-    # 1. Enforce Transfer Limits
-    limit_rec = TransferLimit.query.filter_by(account_id=source.id).first()
-    if limit_rec:
-        limit_rec.reset_if_new_day()
-        if amount > limit_rec.per_transaction_limit:
-            raise ValidationError(f"Transfer amount exceeds per-transaction limit of ₹{limit_rec.per_transaction_limit:,.2f}")
-        if (limit_rec.used_today + amount) > limit_rec.daily_limit:
-            raise ValidationError(f"Transfer exceeds remaining daily limit of ₹{(limit_rec.daily_limit - limit_rec.used_today):,.2f}")
+    try:
+        # 1. Enforce Transfer Limits
+        limit_rec = TransferLimit.query.filter_by(account_id=source.id).first()
+        if limit_rec:
+            limit_rec.reset_if_new_day()
+            if amount > limit_rec.per_transaction_limit:
+                raise ValidationError(f"Transfer amount exceeds per-transaction limit of ₹{limit_rec.per_transaction_limit:,.2f}")
+            if (limit_rec.used_today + amount) > limit_rec.daily_limit:
+                raise ValidationError(f"Transfer exceeds remaining daily limit of ₹{(limit_rec.daily_limit - limit_rec.used_today):,.2f}")
 
-    # 2. Risk Engine Evaluation
-    risk_assessment = evaluate_transaction_risk(source, destination, amount, actor_user_id)
+        # 2. Risk Engine Evaluation
+        risk_assessment = evaluate_transaction_risk(source, destination, amount, actor_user_id)
 
-    if risk_assessment.decision == RiskDecision.REVIEW_REQUIRED:
-        # Flag transaction as BLOCKED_FOR_REVIEW for Maker-Checker review
+        if risk_assessment.decision == RiskDecision.REVIEW_REQUIRED:
+            # Flag transaction as BLOCKED_FOR_REVIEW for Maker-Checker review
+            debit_txn = Transaction(
+                account_id=source.id,
+                transaction_type=TransactionType.TRANSFER,
+                transaction_mode=mode,
+                amount=amount,
+                description=f"[REVIEW REQUIRED] {description}",
+                status="BLOCKED_FOR_REVIEW",
+                counterparty_account_id=destination.id,
+                balance_after=source.balance,
+            )
+            db.session.add(debit_txn)
+            db.session.flush()
+
+            risk_assessment.transaction_id = debit_txn.id
+            db.session.add(risk_assessment)
+
+            db.session.add(Notification(
+                user_id=source.user_id,
+                title="Transfer Flagged for Review",
+                message=f"Your transfer of ₹{amount} was flagged by the security risk engine and is pending admin approval.",
+                notification_type="SECURITY"
+            ))
+            db.session.commit()
+            return debit_txn, None
+
+        # Normal Approved Transfer
+        src_old, dst_old = source.to_dict(), destination.to_dict()
+
+        source.balance = Decimal(source.balance) - amount
+        source.available_balance = Decimal(source.available_balance) - amount
+        _bump_account_version(source)
+
+        destination.balance = Decimal(destination.balance) + amount
+        destination.available_balance = Decimal(destination.available_balance) + amount
+        _bump_account_version(destination)
+
+        if limit_rec:
+            limit_rec.used_today += amount
+
         debit_txn = Transaction(
             account_id=source.id,
             transaction_type=TransactionType.TRANSFER,
             transaction_mode=mode,
             amount=amount,
-            description=f"[REVIEW REQUIRED] {description}",
-            status="BLOCKED_FOR_REVIEW",
+            description=description,
+            status=TransactionStatus.COMPLETED,
             counterparty_account_id=destination.id,
             balance_after=source.balance,
         )
-        db.session.add(debit_txn)
+        credit_txn = Transaction(
+            account_id=destination.id,
+            transaction_type=TransactionType.TRANSFER,
+            transaction_mode=mode,
+            amount=amount,
+            description=description,
+            status=TransactionStatus.COMPLETED,
+            counterparty_account_id=source.id,
+            balance_after=destination.balance,
+        )
+        db.session.add_all([debit_txn, credit_txn])
         db.session.flush()
 
         risk_assessment.transaction_id = debit_txn.id
         db.session.add(risk_assessment)
 
+        create_version(EntityType.ACCOUNT, source.id, ChangeType.UPDATE, src_old, source.to_dict(),
+                        actor_user_id, f"Transfer out {amount} to account {destination.account_number}",
+                        AuditAction.TRANSFER)
+        create_version(EntityType.ACCOUNT, destination.id, ChangeType.UPDATE, dst_old, destination.to_dict(),
+                        actor_user_id, f"Transfer in {amount} from account {source.account_number}",
+                        AuditAction.TRANSFER)
+
         db.session.add(Notification(
             user_id=source.user_id,
-            title="Transfer Flagged for Review",
-            message=f"Your transfer of ₹{amount} was flagged by the security risk engine and is pending admin approval.",
-            notification_type="SECURITY"
-        ))
-        db.session.commit()
-        return debit_txn, None
-
-    # Normal Approved Transfer
-    src_old, dst_old = source.to_dict(), destination.to_dict()
-
-    source.balance = Decimal(source.balance) - amount
-    source.available_balance = Decimal(source.available_balance) - amount
-    _bump_account_version(source)
-
-    destination.balance = Decimal(destination.balance) + amount
-    destination.available_balance = Decimal(destination.available_balance) + amount
-    _bump_account_version(destination)
-
-    if limit_rec:
-        limit_rec.used_today += amount
-
-    debit_txn = Transaction(
-        account_id=source.id,
-        transaction_type=TransactionType.TRANSFER,
-        transaction_mode=mode,
-        amount=amount,
-        description=description,
-        status=TransactionStatus.COMPLETED,
-        counterparty_account_id=destination.id,
-        balance_after=source.balance,
-    )
-    credit_txn = Transaction(
-        account_id=destination.id,
-        transaction_type=TransactionType.TRANSFER,
-        transaction_mode=mode,
-        amount=amount,
-        description=description,
-        status=TransactionStatus.COMPLETED,
-        counterparty_account_id=source.id,
-        balance_after=destination.balance,
-    )
-    db.session.add_all([debit_txn, credit_txn])
-    db.session.flush()
-
-    risk_assessment.transaction_id = debit_txn.id
-    db.session.add(risk_assessment)
-
-    create_version(EntityType.ACCOUNT, source.id, ChangeType.UPDATE, src_old, source.to_dict(),
-                    actor_user_id, f"Transfer out {amount} to account {destination.account_number}",
-                    AuditAction.TRANSFER)
-    create_version(EntityType.ACCOUNT, destination.id, ChangeType.UPDATE, dst_old, destination.to_dict(),
-                    actor_user_id, f"Transfer in {amount} from account {source.account_number}",
-                    AuditAction.TRANSFER)
-
-    db.session.add(Notification(
-        user_id=source.user_id,
-        title="Transfer Sent",
-        message=f"₹{amount} sent to account {destination.account_number}.",
-        notification_type="TRANSACTION"
-    ))
-    if destination.user_id != source.user_id:
-        db.session.add(Notification(
-            user_id=destination.user_id,
-            title="Transfer Received",
-            message=f"₹{amount} received from account {source.account_number}.",
+            title="Transfer Sent",
+            message=f"₹{amount} sent to account {destination.account_number}.",
             notification_type="TRANSACTION"
         ))
-    db.session.commit()
-    return debit_txn, credit_txn
+        if destination.user_id != source.user_id:
+            db.session.add(Notification(
+                user_id=destination.user_id,
+                title="Transfer Received",
+                message=f"₹{amount} received from account {source.account_number}.",
+                notification_type="TRANSACTION"
+            ))
+        db.session.commit()
+        return debit_txn, credit_txn
+    except Exception:
+        db.session.rollback()
+        raise
+
 
 
 

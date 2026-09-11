@@ -188,6 +188,13 @@
               </table>
             </div>
 
+            <div class="form-check p-3 bg-surface-elevated border rounded-3 mb-4 text-start">
+              <input class="form-check-input ms-0 me-2" type="checkbox" id="wizardConfirmCheck">
+              <label class="form-check-label fw-semibold small cursor-pointer" for="wizardConfirmCheck">
+                I confirm that all transfer details (recipient, account number, and amount) are correct and authorized.
+              </label>
+            </div>
+
             <div class="d-flex justify-content-between">
               <button type="button" class="btn btn-outline-custom" onclick="goToStep(2)">
                 <i class="bi bi-arrow-left me-1"></i> Back
@@ -242,8 +249,12 @@
                 <span class="font-mono fw-bold small text-emerald-600" id="successRefNo">-</span>
               </div>
               <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                <span class="text-muted small">Date &amp; Time:</span>
+                <span class="small font-mono fw-semibold text-muted" id="successTimestamp">-</span>
+              </div>
+              <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
                 <span class="text-muted small">Amount Transferred:</span>
-                <span class="financial-num fw-bold" id="successAmount">-</span>
+                <span class="financial-num fw-bold text-emerald-600" id="successAmount">-</span>
               </div>
               <div class="d-flex justify-content-between">
                 <span class="text-muted small">Audit Version:</span>
@@ -252,8 +263,11 @@
             </div>
 
             <div class="d-flex justify-content-center gap-2">
+              <a id="downloadReceiptBtn" href="#" class="btn btn-outline-custom" target="_blank">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF Receipt
+              </a>
               <a href="{{ url_for('customer.dashboard') }}" class="btn btn-outline-custom">
-                <i class="bi bi-grid-1x2 me-1"></i> Back to Dashboard
+                <i class="bi bi-grid-1x2 me-1"></i> Dashboard
               </a>
               <a href="{{ url_for('customer.transactions') }}" class="btn btn-emerald">
                 <i class="bi bi-clock-history me-1"></i> View Transactions
@@ -365,6 +379,12 @@
   }
 
   async function requestOTPAndGoToStep4() {
+    const confirmCheck = document.getElementById('wizardConfirmCheck');
+    if (confirmCheck && !confirmCheck.checked) {
+      showToast('Please confirm your transfer details by checking the confirmation box.', 'warning');
+      return;
+    }
+
     try {
       const res = await fetch('/api/mfa/generate-otp', { method: 'POST' });
       const data = await res.json();
@@ -401,8 +421,14 @@
       });
       const data = await res.json();
       if (res.ok) {
-        document.getElementById('successRefNo').innerText = data.debit ? data.debit.reference_number : 'TXN-' + Date.now();
+        const debitTxn = data.debit;
+        document.getElementById('successRefNo').innerText = debitTxn ? debitTxn.reference_number : 'TXN-' + Date.now();
+        document.getElementById('successTimestamp').innerText = debitTxn && debitTxn.created_at ? new Date(debitTxn.created_at).toLocaleString() : new Date().toLocaleString();
         document.getElementById('successAmount').innerText = '₹' + parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        if (debitTxn && debitTxn.id) {
+          const receiptBtn = document.getElementById('downloadReceiptBtn');
+          if (receiptBtn) receiptBtn.href = `/api/transactions/${debitTxn.id}/receipt`;
+        }
         goToStep(5);
         showToast('Money transfer completed successfully!', 'success');
       } else {

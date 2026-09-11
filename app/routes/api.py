@@ -394,20 +394,46 @@ def api_withdraw():
 @login_required
 @json_errors
 def api_transfer():
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
     source = _get_owned_account_or_403(data.get("source_account_id"))
 
-    dest_id = data.get("destination_account_id")
-    destination = db.session.get(Account, dest_id)
+    dest_val = data.get("destination_account_id") or data.get("destination_account_number")
+    beneficiary_id = data.get("beneficiary_id")
+    destination = None
+
+    if beneficiary_id:
+        from app.models.beneficiary import Beneficiary, BeneficiaryStatus
+        bene = Beneficiary.query.filter_by(id=beneficiary_id, user_id=current_user.id).first()
+        if not bene:
+            return jsonify(error="Beneficiary not found or unauthorized"), 404
+        if bene.status != BeneficiaryStatus.ACTIVE:
+            return jsonify(error="Selected beneficiary is inactive"), 400
+        destination = Account.query.filter_by(account_number=bene.account_number).first()
+    elif dest_val:
+        dest_str = str(dest_val).strip()
+        if dest_str.isdigit() and len(dest_str) < 9:
+            destination = db.session.get(Account, int(dest_str))
+        if not destination:
+            destination = Account.query.filter_by(account_number=dest_str).first()
+
     if not destination:
         return jsonify(error="Destination account not found"), 404
 
+    if destination.status != "ACTIVE":
+        return jsonify(error="Destination account is inactive"), 400
+
     try:
         debit, credit = banking_service.transfer(
-            source, destination, data.get("amount"), data.get("description", ""), current_user.id
+            source, destination, data.get("amount"), data.get("description", "Funds Transfer"), current_user.id
         )
     except banking_service.InsufficientBalanceError as e:
         return jsonify(error=str(e)), 422
+    except ValidationError as e:
+        return jsonify(error=str(e)), 400
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify(error="Transaction failed to process securely"), 500
 
     if credit is None:
         # High risk transaction flagged for review
@@ -418,6 +444,7 @@ def api_transfer():
         ), 202
 
     return jsonify(debit=debit.to_dict(), credit=credit.to_dict()), 201
+
 
 
 @api_bp.route("/transactions/<int:txn_id>/reverse", methods=["POST"])
