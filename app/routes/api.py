@@ -430,9 +430,7 @@ def api_transfer():
         return jsonify(error=str(e)), 422
     except ValidationError as e:
         return jsonify(error=str(e)), 400
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
+    except Exception:
         return jsonify(error="Transaction failed to process securely"), 500
 
     if credit is None:
