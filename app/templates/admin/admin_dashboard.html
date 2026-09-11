@@ -243,18 +243,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Chart 1: Status Distribution Doughnut
   const ctxStatus = document.getElementById('statusChart');
   if (ctxStatus) {
+    const completed = Number(ctxStatus.dataset.completed || 0);
+    const pending = Number(ctxStatus.dataset.pending || 0);
+    const blocked = Number(ctxStatus.dataset.blocked || 0);
+    const failed = Number(ctxStatus.dataset.failed || 0);
+    const reversed = Number(ctxStatus.dataset.reversed || 0);
+
     new Chart(ctxStatus, {
       type: 'doughnut',
       data: {
         labels: ['Completed', 'Pending', 'Blocked / Review', 'Failed', 'Reversed'],
         datasets: [{
-          data: [
-            {{ chart_status.completed }},
-            {{ chart_status.pending }},
-            {{ chart_status.blocked }},
-            {{ chart_status.failed }},
-            {{ chart_status.reversed }}
-          ],
+          data: [completed, pending, blocked, failed, reversed],
           backgroundColor: ['#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#6b7280'],
           borderWidth: 0
         }]
@@ -272,17 +272,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Chart 2: Type Volume Bar Chart
   const ctxVolume = document.getElementById('volumeChart');
   if (ctxVolume) {
+    const transfer = Number(ctxVolume.dataset.transfer || 0);
+    const deposit = Number(ctxVolume.dataset.deposit || 0);
+    const withdrawal = Number(ctxVolume.dataset.withdrawal || 0);
+
     new Chart(ctxVolume, {
       type: 'bar',
       data: {
         labels: ['Fund Transfers', 'Deposits', 'Withdrawals'],
         datasets: [{
           label: 'Total Settled Amount (₹)',
-          data: [
-            {{ chart_volume.transfer }},
-            {{ chart_volume.deposit }},
-            {{ chart_volume.withdrawal }}
-          ],
+          data: [transfer, deposit, withdrawal],
           backgroundColor: ['#10b981', '#6366f1', '#ec4899'],
           borderRadius: 6
         }]
