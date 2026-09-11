@@ -45,7 +45,7 @@ class Transaction(db.Model):
 
     balance_after = db.Column(db.Numeric(14, 2), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
 
     def to_dict(self):
         return {
