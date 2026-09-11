@@ -94,7 +94,10 @@
 
   <!-- Active Login Sessions Table -->
   <div class="card-custom p-4 mb-4">
-    <h5 class="font-display fw-bold mb-3">Active System Login Sessions</h5>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="font-display fw-bold mb-0">Active System Login Sessions</h5>
+      <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">{{ active_sessions|length }} Active</span>
+    </div>
     <div class="table-responsive">
       <table class="table-custom align-middle">
         <thead>
@@ -105,6 +108,7 @@
             <th>Operating System</th>
             <th>Session Created</th>
             <th>Last Activity</th>
+            <th class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -116,18 +120,73 @@
             <td><span class="small">{{ s.operating_system }}</span></td>
             <td><span class="text-xs text-muted font-mono">{{ s.login_time.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
             <td><span class="text-xs text-muted font-mono">{{ s.last_activity.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
+            <td class="text-end">
+              <button onclick="revokeSession({{ s.id }})" class="btn btn-outline-custom text-rose-600 btn-sm text-xs py-1">
+                <i class="bi bi-power me-1"></i> Revoke
+              </button>
+            </td>
           </tr>
           {% else %}
-          <tr><td colspan="6" class="text-center py-4 text-muted">No active login sessions recorded.</td></tr>
+          <tr><td colspan="7" class="text-center py-4 text-muted">No active login sessions recorded.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
 
+  <!-- Locked Accounts Section -->
+  {% if locked_users %}
+  <div class="card-custom p-4 mb-4 border-rose-200 bg-rose-50">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="font-display fw-bold text-rose-700 mb-0"><i class="bi bi-lock-fill me-2"></i> Locked User Accounts</h5>
+      <span class="badge bg-rose-100 text-rose-700">{{ locked_users|length }} Locked</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table-custom align-middle">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Locked Until</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in locked_users %}
+          <tr>
+            <td class="fw-bold font-mono">#{{ u.id }}</td>
+            <td>{{ u.username }}</td>
+            <td class="text-muted text-xs">{{ u.email }}</td>
+            <td><span class="text-xs text-rose-600 font-mono">{{ u.locked_until.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
+            <td class="text-end">
+              <button onclick="toggleLockout({{ u.id }})" class="btn btn-emerald btn-sm text-xs">
+                <i class="bi bi-unlock me-1"></i> Unlock Account
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Security Telemetry Stream -->
   <div class="card-custom p-4">
-    <h5 class="font-display fw-bold mb-3">Live Security Telemetry Stream</h5>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+      <h5 class="font-display fw-bold mb-0">Live Security Telemetry Stream</h5>
+      <form method="GET" action="{{ url_for('admin.security_center') }}" class="d-flex align-items-center gap-2">
+        <label class="text-xs text-muted font-semibold">Filter Severity:</label>
+        <select name="severity" onchange="this.form.submit()" class="form-select form-select-sm text-xs" style="width: auto;">
+          <option value="ALL" {% if not severity_filter or severity_filter == 'ALL' %}selected{% endif %}>ALL Severities</option>
+          <option value="CRITICAL" {% if severity_filter == 'CRITICAL' %}selected{% endif %}>CRITICAL Only</option>
+          <option value="HIGH" {% if severity_filter == 'HIGH' %}selected{% endif %}>HIGH Only</option>
+          <option value="MEDIUM" {% if severity_filter == 'MEDIUM' %}selected{% endif %}>MEDIUM Only</option>
+          <option value="LOW" {% if severity_filter == 'LOW' %}selected{% endif %}>LOW Only</option>
+        </select>
+      </form>
+    </div>
     <div class="d-flex flex-column gap-2" style="max-height: 380px; overflow-y: auto;">
       {% for evt in security_events %}
       <div class="p-3 rounded-3 border bg-surface-elevated d-flex justify-content-between align-items-center">
@@ -144,7 +203,7 @@
         </div>
       </div>
       {% else %}
-      <p class="text-center text-muted py-4 small">No security telemetry events logged.</p>
+      <p class="text-center text-muted py-4 small">No security telemetry events logged matching criteria.</p>
       {% endfor %}
     </div>
   </div>
@@ -180,6 +239,38 @@ async function runAuditIntegrityCheck() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i class="bi bi-shield-lock-fill me-1"></i> Verify Audit Chain Integrity`;
+    }
+}
+
+async function revokeSession(sessionId) {
+    if (!confirm(`Are you sure you want to revoke active session #${sessionId}?`)) return;
+    try {
+        const res = await fetch(`/api/v1/sessions/${sessionId}/revoke`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Session revoked successfully.', 'success');
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast(data.error || 'Failed to revoke session.', 'danger');
+        }
+    } catch(err) {
+        showToast('Error revoking session.', 'danger');
+    }
+}
+
+async function toggleLockout(userId) {
+    if (!confirm(`Toggle account lockout status for User #${userId}?`)) return;
+    try {
+        const res = await fetch(`/api/v1/users/${userId}/toggle-lockout`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(`User #${userId} account status updated to ${data.status}`, 'success');
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast(data.error || 'Failed to toggle lockout.', 'danger');
+        }
+    } catch(err) {
+        showToast('Error toggling account lockout.', 'danger');
     }
 }
 </script>

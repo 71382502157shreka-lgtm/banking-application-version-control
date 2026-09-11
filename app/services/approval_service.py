@@ -4,7 +4,7 @@ from app.models.workflow_risk import RollbackRequest, RollbackStatus, RiskAssess
 from app.models.account import Account
 from app.models.beneficiary import Beneficiary
 from app.models.user import User
-from app.models.transaction import Transaction, TransactionStatus
+from app.models.transaction import Transaction, TransactionStatus, TransactionType
 from app.models.audit_log import AuditAction
 from app.models.version import EntityType, ChangeType
 from app.services.version_service import restore_version, get_version

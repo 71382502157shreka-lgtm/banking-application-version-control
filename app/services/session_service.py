@@ -89,7 +89,7 @@ def toggle_user_lockout(user_id: int, actor_id: int) -> dict:
         action_name = "LOCKED"
 
     log_action(
-        action=AuditAction.USER_LOCKED if action_name == "LOCKED" else AuditAction.USER_UNLOCKED,
+        action=AuditAction.ADMIN_ACTION,
         user_id=actor_id,
         entity_type="USER",
         entity_id=user_id,

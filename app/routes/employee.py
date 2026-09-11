@@ -402,6 +402,29 @@ def risk_alerts():
     return render_template("employee/risk_alerts.html", assessments=assessments, security_events=security_events)
 
 
+@employee_bp.route("/risk-reviews", methods=["GET", "POST"])
+@login_required
+@roles_required(Role.EMPLOYEE)
+def risk_reviews():
+    if request.method == "POST":
+        assessment_id = request.form.get("assessment_id", type=int)
+        action = request.form.get("action", "").strip()  # approve or block
+        notes = request.form.get("review_notes", "").strip()
+
+        try:
+            approval_service.review_risk_assessment(
+                assessment_id, current_user.id, approve=(action == "approve"), review_notes=notes
+            )
+            flash(f"Risk Assessment #{assessment_id} marked as {action.upper()}!", "success")
+        except Exception as e:
+            flash(f"Action failed: {str(e)}", "error")
+        return redirect(url_for("employee.risk_reviews"))
+
+    assessments = RiskAssessment.query.order_by(RiskAssessment.created_at.desc()).all()
+    pending_reviews = Transaction.query.filter_by(status="BLOCKED_FOR_REVIEW").all()
+    return render_template("employee/risk_reviews.html", assessments=assessments, pending_reviews=pending_reviews)
+
+
 @employee_bp.route("/audit-logs")
 @login_required
 @roles_required(Role.EMPLOYEE)

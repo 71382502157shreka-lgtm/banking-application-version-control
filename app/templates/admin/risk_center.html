@@ -44,8 +44,35 @@
   </div>
   {% endif %}
 
+  <!-- Search & Filter Controls -->
+  <div class="card-custom p-3 mb-4">
+    <form method="GET" action="{{ url_for('admin.risk_center') }}" class="row g-3 align-items-center">
+      <div class="col-12 col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-surface text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" name="search" class="form-control text-xs" placeholder="Search by decision or risk factors..." value="{{ search or '' }}">
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <select name="risk_level" class="form-select form-select-sm text-xs" onchange="this.form.submit()">
+          <option value="ALL" {% if not risk_level_filter or risk_level_filter == 'ALL' %}selected{% endif %}>ALL Risk Levels</option>
+          <option value="CRITICAL" {% if risk_level_filter == 'CRITICAL' %}selected{% endif %}>CRITICAL Only</option>
+          <option value="HIGH" {% if risk_level_filter == 'HIGH' %}selected{% endif %}>HIGH Only</option>
+          <option value="MEDIUM" {% if risk_level_filter == 'MEDIUM' %}selected{% endif %}>MEDIUM Only</option>
+          <option value="LOW" {% if risk_level_filter == 'LOW' %}selected{% endif %}>LOW Only</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-emerald btn-sm text-xs w-100"><i class="bi bi-filter me-1"></i> Apply Filter</button>
+        {% if search or (risk_level_filter and risk_level_filter != 'ALL') %}
+        <a href="{{ url_for('admin.risk_center') }}" class="btn btn-outline-secondary btn-sm text-xs"><i class="bi bi-x-circle"></i> Clear</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
   <!-- Risk Assessments Stream -->
-  <div class="card-custom p-0 overflow-hidden">
+  <div class="card-custom p-0 overflow-hidden mb-4">
     <div class="table-responsive">
       <table class="table-custom align-middle">
         <thead>
@@ -91,11 +118,24 @@
             <td class="text-end font-mono text-xs text-muted">{{ a.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
           </tr>
           {% else %}
-          <tr><td colspan="7" class="text-center py-5 text-muted">No risk assessments recorded yet.</td></tr>
+          <tr><td colspan="7" class="text-center py-5 text-muted">No risk assessments recorded matching filter.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    {% if pagination and pagination.pages > 1 %}
+    <div class="p-3 bg-surface-elevated border-top d-flex justify-content-between align-items-center">
+      <span class="text-xs text-muted font-mono">Page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} total items)</span>
+      <ul class="pagination pagination-sm mb-0">
+        {% if pagination.has_prev %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('admin.risk_center', page=pagination.prev_num, search=search, risk_level=risk_level_filter) }}">Prev</a></li>
+        {% endif %}
+        {% if pagination.has_next %}
+        <li class="page-item"><a class="page-link" href="{{ url_for('admin.risk_center', page=pagination.next_num, search=search, risk_level=risk_level_filter) }}">Next</a></li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
