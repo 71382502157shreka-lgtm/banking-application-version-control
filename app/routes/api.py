@@ -49,6 +49,7 @@ def get_account(account_id):
 @api_bp.route("/accounts", methods=["POST"])
 @api_bp.route("/v1/accounts", methods=["POST"])
 @login_required
+
 @json_errors
 def open_account():
     data = request.get_json(force=True) or {}
@@ -464,9 +465,31 @@ def get_transaction_receipt(txn_id):
 @api_bp.route("/beneficiaries", methods=["GET"])
 @api_bp.route("/v1/beneficiaries", methods=["GET"])
 @login_required
+@json_errors
 def list_beneficiaries():
-    beneficiaries = Beneficiary.query.filter_by(user_id=current_user.id).all()
+    q = request.args.get("q", "").strip().lower()
+    query = Beneficiary.query.filter_by(user_id=current_user.id)
+    if q:
+        from sqlalchemy import or_
+        query = query.filter(
+            or_(
+                Beneficiary.name.ilike(f"%{q}%"),
+                Beneficiary.bank_name.ilike(f"%{q}%"),
+                Beneficiary.account_number.ilike(f"%{q}%"),
+                Beneficiary.ifsc.ilike(f"%{q}%"),
+            )
+        )
+    beneficiaries = query.order_by(Beneficiary.created_at.desc()).all()
     return jsonify([b.to_dict() for b in beneficiaries])
+
+
+@api_bp.route("/beneficiaries/<int:beneficiary_id>", methods=["GET"])
+@api_bp.route("/v1/beneficiaries/<int:beneficiary_id>", methods=["GET"])
+@login_required
+@json_errors
+def get_beneficiary(beneficiary_id):
+    beneficiary = _get_owned_beneficiary_or_403(beneficiary_id)
+    return jsonify(beneficiary.to_dict())
 
 
 @api_bp.route("/beneficiaries", methods=["POST"])
@@ -474,20 +497,20 @@ def list_beneficiaries():
 @login_required
 @json_errors
 def api_add_beneficiary():
-    data = request.get_json(force=True) or {}
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
     beneficiary = beneficiary_service.add_beneficiary(current_user.id, data)
     return jsonify(beneficiary.to_dict()), 201
 
 
-@api_bp.route("/beneficiaries/<int:beneficiary_id>", methods=["PUT"])
-@api_bp.route("/v1/beneficiaries/<int:beneficiary_id>", methods=["PUT"])
+@api_bp.route("/beneficiaries/<int:beneficiary_id>", methods=["PUT", "PATCH"])
+@api_bp.route("/v1/beneficiaries/<int:beneficiary_id>", methods=["PUT", "PATCH"])
 @login_required
 @json_errors
 def api_update_beneficiary(beneficiary_id):
     beneficiary = _get_owned_beneficiary_or_403(beneficiary_id)
-    data = request.get_json(force=True) or {}
-    beneficiary = beneficiary_service.update_beneficiary(beneficiary, data, current_user.id)
-    return jsonify(beneficiary.to_dict())
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    updated = beneficiary_service.update_beneficiary(beneficiary, data, current_user.id)
+    return jsonify(updated.to_dict())
 
 
 @api_bp.route("/beneficiaries/<int:beneficiary_id>", methods=["DELETE"])
@@ -496,8 +519,9 @@ def api_update_beneficiary(beneficiary_id):
 @json_errors
 def api_delete_beneficiary(beneficiary_id):
     beneficiary = _get_owned_beneficiary_or_403(beneficiary_id)
-    beneficiary_service.deactivate_beneficiary(beneficiary, current_user.id)
-    return jsonify(status="deactivated")
+    deactivated = beneficiary_service.deactivate_beneficiary(beneficiary, current_user.id)
+    return jsonify({"message": "Beneficiary deleted successfully", "beneficiary": deactivated.to_dict()})
+
 
 
 # ---------------------------------------------------------------------------

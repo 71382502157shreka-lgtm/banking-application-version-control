@@ -420,6 +420,24 @@
   // Pre-select if URL params
   document.addEventListener('DOMContentLoaded', () => {
     onSourceChanged();
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetAccount = urlParams.get('account');
+    if (targetAccount) {
+      const beneRadio = document.getElementById('destTypeBene');
+      if (beneRadio) {
+        beneRadio.checked = true;
+        toggleDestType();
+      }
+      const beneSelect = document.getElementById('wizardBeneSelect');
+      if (beneSelect) {
+        beneSelect.value = targetAccount;
+        onBeneSelected();
+      } else {
+        const customInput = document.getElementById('wizardCustomDestId');
+        if (customInput) customInput.value = targetAccount;
+      }
+    }
   });
 </script>
 {% endblock %}
+

@@ -88,14 +88,18 @@ def transactions():
 @login_required
 @roles_required(Role.CUSTOMER)
 def transfer():
-    return render_template("customer/transfer.html")
+    accounts = Account.query.filter_by(user_id=current_user.id, status=AccountStatus.ACTIVE).all()
+    beneficiaries = Beneficiary.query.filter_by(user_id=current_user.id, status="ACTIVE").all()
+    return render_template("customer/transfer.html", accounts=accounts, beneficiaries=beneficiaries)
 
 
 @customer_bp.route("/beneficiaries")
 @login_required
 @roles_required(Role.CUSTOMER)
 def beneficiaries():
-    return render_template("customer/beneficiaries.html")
+    beneficiaries = Beneficiary.query.filter_by(user_id=current_user.id).order_by(Beneficiary.created_at.desc()).all()
+    return render_template("customer/beneficiaries.html", beneficiaries=beneficiaries)
+
 
 
 @customer_bp.route("/profile")
