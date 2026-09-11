@@ -1,0 +1,32 @@
+{# Reusable Table Component Macro #}
+{% macro data_table(headers, rows, empty_message='No data available') %}
+<div class="table-responsive rounded-3 border border-subtle">
+  <table class="table table-hover align-middle mb-0">
+    <thead class="bg-surface-elevated text-muted small text-uppercase">
+      <tr>
+        {% for header in headers %}
+          <th class="py-3 px-3 fw-semibold">{{ header }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% if rows %}
+        {% for row in rows %}
+          <tr>
+            {% for cell in row %}
+              <td class="py-3 px-3">{{ cell|safe }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="{{ headers|length }}" class="text-center py-4 text-muted">
+            <i class="bi bi-inbox d-block fs-3 mb-2"></i>
+            {{ empty_message }}
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}

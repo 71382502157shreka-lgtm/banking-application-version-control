@@ -1,0 +1,32 @@
+{# Reusable Modal Component Macro #}
+{% macro modal_dialog(modal_id, title, body_content, action_url='', action_label='Submit', btn_class='btn-primary') %}
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-labelledby="{{ modal_id }}Label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold" id="{{ modal_id }}Label">{{ title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      {% if action_url %}
+      <form action="{{ action_url }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body py-4">
+          {{ body_content|safe }}
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn {{ btn_class }}">{{ action_label }}</button>
+        </div>
+      </form>
+      {% else %}
+        <div class="modal-body py-4">
+          {{ body_content|safe }}
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endmacro %}

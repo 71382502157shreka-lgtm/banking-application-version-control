@@ -1,0 +1,17 @@
+{# Reusable Stat Card Component Macros #}
+{% macro stat_card(title, value, subtitle='', icon='bi-wallet2', bg_color='primary', text_color='white') %}
+<div class="card shadow-sm border-0 rounded-4 overflow-hidden h-100" style="background: var(--bg-surface);">
+  <div class="card-body p-4 d-flex align-items-center justify-content-between">
+    <div>
+      <span class="text-muted small fw-semibold text-uppercase tracking-wider d-block mb-1">{{ title }}</span>
+      <h3 class="fw-extrabold mb-0 font-display">{{ value }}</h3>
+      {% if subtitle %}
+        <span class="small text-muted mt-1 d-block">{{ subtitle }}</span>
+      {% endif %}
+    </div>
+    <div class="stat-icon-wrapper rounded-3 p-3 text-{{ bg_color }}" style="background: rgba(var(--bs-primary-rgb), 0.1);">
+      <i class="bi {{ icon }} fs-3"></i>
+    </div>
+  </div>
+</div>
+{% endmacro %}

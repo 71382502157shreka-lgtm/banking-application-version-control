@@ -119,3 +119,7 @@ class BankingApp:
     def verify_audit_chain(self) -> Tuple[bool, str]:
         res = audit_service.verify_audit_integrity()
         return res.get("valid", False), res.get("message", "")
+
+
+BankVCSAPI = BankingApp
+

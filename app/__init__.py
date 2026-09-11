@@ -69,27 +69,18 @@ def _register_blueprints(app):
     from app.routes.employee import employee_bp
     from app.routes.admin import admin_bp
     from app.routes.api import api_bp
+    from app.routes.errors import errors_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(customer_bp)
     app.register_blueprint(employee_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(errors_bp)
 
 
 def _register_error_handlers(app):
-    @app.errorhandler(404)
-    def not_found(e):
-        return jsonify(error="Resource not found"), 404
-
-    @app.errorhandler(403)
-    def forbidden(e):
-        return jsonify(error="You do not have permission to perform this action"), 403
-
-    @app.errorhandler(500)
-    def server_error(e):
-        app.logger.exception("Unhandled server error")
-        return jsonify(error="An unexpected error occurred. Please try again."), 500
+    pass
 
 
 def _register_user_loader():
