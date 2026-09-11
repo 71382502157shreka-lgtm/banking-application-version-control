@@ -28,11 +28,11 @@
       <div class="col-12 col-md-3">
         <div class="input-group">
           <span class="input-group-text bg-surface-elevated border-end-0 text-muted"><i class="bi bi-search"></i></span>
-          <input type="text" class="form-control form-control-custom border-start-0 ps-0" id="txnSearchInput" placeholder="Search reference, description..." oninput="filterTransactions()">
+          <input type="text" class="form-control form-control-custom border-start-0 ps-0" id="txnSearchInput" placeholder="Search reference, description..." oninput="debounceFilter()">
         </div>
       </div>
       <div class="col-6 col-md-2">
-        <select class="form-select form-select-custom" id="txnTypeFilter" onchange="filterTransactions()">
+        <select class="form-select form-select-custom" id="txnTypeFilter" onchange="loadTransactions(1)">
           <option value="">All Types</option>
           <option value="DEPOSIT">Deposits</option>
           <option value="WITHDRAWAL">Withdrawals</option>
@@ -41,7 +41,7 @@
         </select>
       </div>
       <div class="col-6 col-md-2">
-        <select class="form-select form-select-custom" id="txnModeFilter" onchange="filterTransactions()">
+        <select class="form-select form-select-custom" id="txnModeFilter" onchange="loadTransactions(1)">
           <option value="">All Modes</option>
           <option value="UPI">UPI</option>
           <option value="IMPS">IMPS</option>
@@ -54,7 +54,7 @@
         </select>
       </div>
       <div class="col-6 col-md-2">
-        <select class="form-select form-select-custom" id="txnStatusFilter" onchange="filterTransactions()">
+        <select class="form-select form-select-custom" id="txnStatusFilter" onchange="loadTransactions(1)">
           <option value="">All Statuses</option>
           <option value="COMPLETED">Completed</option>
           <option value="PENDING">Pending</option>
@@ -64,7 +64,7 @@
         </select>
       </div>
       <div class="col-6 col-md-2">
-        <select class="form-select form-select-custom" id="txnSortFilter" onchange="filterTransactions()">
+        <select class="form-select form-select-custom" id="txnSortFilter" onchange="loadTransactions(1)">
           <option value="desc">Newest First</option>
           <option value="asc">Oldest First</option>
         </select>
@@ -73,6 +73,29 @@
         <button class="btn btn-outline-custom btn-sm w-100" onclick="resetTxnFilters()" title="Reset Filters">
           <i class="bi bi-arrow-counterclockwise"></i>
         </button>
+      </div>
+    </div>
+    <!-- Date Range & Export Toolbar -->
+    <div class="row g-2 align-items-center mt-2 pt-2 border-top">
+      <div class="col-6 col-md-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-surface-elevated text-muted"><i class="bi bi-calendar-event"></i> From</span>
+          <input type="date" class="form-control form-control-custom" id="txnDateFrom" onchange="loadTransactions(1)">
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-surface-elevated text-muted"><i class="bi bi-calendar-event"></i> To</span>
+          <input type="date" class="form-control form-control-custom" id="txnDateTo" onchange="loadTransactions(1)">
+        </div>
+      </div>
+      <div class="col-12 col-md-6 d-flex justify-content-md-end gap-2">
+        <a id="exportCsvBtn" href="#" onclick="exportStatement('csv')" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
+          <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+        </a>
+        <a id="exportPdfBtn" href="#" onclick="exportStatement('pdf')" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1">
+          <i class="bi bi-file-earmark-pdf"></i> Export PDF
+        </a>
       </div>
     </div>
   </div>
@@ -105,9 +128,28 @@
       </table>
     </div>
 
-    <!-- Summary Counter -->
-    <div class="d-flex justify-content-between align-items-center p-3 border-top bg-surface-elevated">
+    <!-- Summary Counter & Pagination Bar -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3 border-top bg-surface-elevated gap-2">
       <div class="text-xs text-muted" id="txnCounterText">Showing records</div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-1 me-3">
+          <span class="text-xs text-muted">Per page:</span>
+          <select class="form-select form-select-sm form-select-custom py-0 px-2 text-xs" id="txnLimitFilter" onchange="loadTransactions(1)" style="width: auto;">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+        <button class="btn btn-outline-custom btn-sm py-1 px-2" id="prevPageBtn" onclick="changePage(-1)" disabled>
+          <i class="bi bi-chevron-left"></i> Previous
+        </button>
+        <span class="text-xs font-mono fw-bold text-dark px-2" id="pageIndicator">Page 1 of 1</span>
+        <button class="btn btn-outline-custom btn-sm py-1 px-2" id="nextPageBtn" onclick="changePage(1)" disabled>
+          Next <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+
       <span class="badge bg-emerald-50 text-emerald-600 border border-emerald-200">BankVCS 2.0 Encrypted Ledger</span>
     </div>
   </div>
@@ -173,25 +215,63 @@
 
 {% block scripts %}
 <script>
-  let allTransactions = [];
+  let currentPage = 1;
+  let totalPages = 1;
+  let debounceTimer = null;
 
   document.addEventListener('DOMContentLoaded', () => {
-    loadTransactions();
+    loadTransactions(1);
   });
 
-  async function loadTransactions() {
+  function debounceFilter() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      loadTransactions(1);
+    }, 300);
+  }
+
+  function getQueryUrlParams() {
+    const q = document.getElementById('txnSearchInput').value.trim();
+    const typeFilter = document.getElementById('txnTypeFilter').value;
+    const modeFilter = document.getElementById('txnModeFilter').value;
+    const statusFilter = document.getElementById('txnStatusFilter').value;
+    const sortFilter = document.getElementById('txnSortFilter').value;
+    const dateFrom = document.getElementById('txnDateFrom').value;
+    const dateTo = document.getElementById('txnDateTo').value;
+    const limit = document.getElementById('txnLimitFilter').value;
+
+    const params = new URLSearchParams();
+    if (q) params.append('search', q);
+    if (typeFilter) params.append('type', typeFilter);
+    if (modeFilter) params.append('mode', modeFilter);
+    if (statusFilter) params.append('status', statusFilter);
+    if (sortFilter) params.append('sort', sortFilter);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    params.append('limit', limit);
+    return params;
+  }
+
+  async function loadTransactions(page = 1) {
+    currentPage = page;
+    const params = getQueryUrlParams();
+    params.append('page', currentPage);
+
     try {
-      const res = await fetch('/api/transactions?limit=500');
+      const res = await fetch(`/api/transactions?${params.toString()}`);
       const data = await res.json();
-      if (!data.success && !Array.isArray(data)) return;
-      allTransactions = data.items || data;
-      renderTransactions(allTransactions);
+      if (!data.success) return;
+
+      const txns = data.items || [];
+      totalPages = data.pages || 1;
+      renderTransactions(txns, data.total || txns.length);
+      updatePaginationControls(data.page || 1, totalPages, data.total || 0);
     } catch (err) {
       console.error('Failed to load transactions', err);
     }
   }
 
-  function renderTransactions(txns) {
+  function renderTransactions(txns, totalCount) {
     const tbody = document.getElementById('txnTableBody');
     const counter = document.getElementById('txnCounterText');
 
@@ -201,7 +281,7 @@
       return;
     }
 
-    counter.innerText = `Showing ${txns.length} transaction(s)`;
+    counter.innerText = `Showing ${txns.length} of ${totalCount} transaction(s)`;
 
     tbody.innerHTML = txns.map(t => {
       const isCredit = ['DEPOSIT', 'REVERSAL'].includes(t.transaction_type) || (t.transaction_type === 'TRANSFER' && parseFloat(t.amount) > 0);
@@ -237,30 +317,19 @@
     }).join('');
   }
 
-  function filterTransactions() {
-    const q = document.getElementById('txnSearchInput').value.toLowerCase();
-    const typeFilter = document.getElementById('txnTypeFilter').value;
-    const modeFilter = document.getElementById('txnModeFilter').value;
-    const statusFilter = document.getElementById('txnStatusFilter').value;
-    const sortFilter = document.getElementById('txnSortFilter').value;
+  function updatePaginationControls(page, total, totalRecords) {
+    currentPage = page;
+    totalPages = total || 1;
+    document.getElementById('pageIndicator').innerText = `Page ${currentPage} of ${totalPages}`;
+    document.getElementById('prevPageBtn').disabled = (currentPage <= 1);
+    document.getElementById('nextPageBtn').disabled = (currentPage >= totalPages);
+  }
 
-    let filtered = allTransactions.filter(t => {
-      const matchQ = !q || (t.reference_number && t.reference_number.toLowerCase().includes(q)) || 
-                          (t.description && t.description.toLowerCase().includes(q)) ||
-                          (t.narration && t.narration.toLowerCase().includes(q));
-      const matchType = !typeFilter || t.transaction_type === typeFilter;
-      const matchMode = !modeFilter || (t.transaction_mode || 'TRANSFER') === modeFilter;
-      const matchStatus = !statusFilter || t.status === statusFilter;
-      return matchQ && matchType && matchMode && matchStatus;
-    });
-
-    if (sortFilter === 'asc') {
-      filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    } else {
-      filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  function changePage(delta) {
+    const targetPage = currentPage + delta;
+    if (targetPage >= 1 && targetPage <= totalPages) {
+      loadTransactions(targetPage);
     }
-
-    renderTransactions(filtered);
   }
 
   function resetTxnFilters() {
@@ -269,7 +338,15 @@
     document.getElementById('txnModeFilter').value = '';
     document.getElementById('txnStatusFilter').value = '';
     document.getElementById('txnSortFilter').value = 'desc';
-    renderTransactions(allTransactions);
+    document.getElementById('txnDateFrom').value = '';
+    document.getElementById('txnDateTo').value = '';
+    document.getElementById('txnLimitFilter').value = '20';
+    loadTransactions(1);
+  }
+
+  function exportStatement(format) {
+    const params = getQueryUrlParams();
+    window.open(`/api/statements/download/${format}?${params.toString()}`, '_blank');
   }
 
   function openReceiptModal(t) {

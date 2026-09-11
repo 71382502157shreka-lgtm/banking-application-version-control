@@ -39,6 +39,10 @@ def run():
             "staff1", "staff1@bank.local", "Password123",
             full_name="Senior Operations Officer", role=Role.EMPLOYEE,
         )
+        auditor = auth_service.register_user(
+            "auditor", "auditor@bank.local", "Password123",
+            full_name="Compliance Auditor", role=Role.AUDITOR,
+        )
         customer = auth_service.register_user(
             "customer", "customer@bank.local", app.config["SEED_CUSTOMER_PASSWORD"],
             full_name="John Doe", phone="9876543210", role=Role.CUSTOMER,
