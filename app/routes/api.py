@@ -699,3 +699,34 @@ def _validate_entity_ownership_for_customer(entity_type, entity_id):
         else:
             from flask import abort
             abort(403)
+
+
+# ---------------------------------------------------------------------------
+# AI Banking Assistant Chat Endpoint
+# ---------------------------------------------------------------------------
+@api_bp.route("/ai/chat", methods=["POST"])
+@login_required
+def ai_chat():
+    from app.services import ai_service
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    message = data.get("message", "").strip()
+
+    if not message:
+        return jsonify({
+            "success": False,
+            "error": "Message content is required"
+        }), 400
+
+    context = {
+        "username": getattr(current_user, "username", "Customer"),
+        "user_id": getattr(current_user, "id", None),
+        "role": current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    }
+
+    result = ai_service.generate_ai_response(message, user_context=context)
+    return jsonify({
+        "success": True,
+        "reply": result.get("reply", ""),
+        "mode": result.get("mode", "rule_engine")
+    }), 200
+
