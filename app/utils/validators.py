@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.]{3,32}$")
 IFSC_RE = re.compile(r"^[A-Z]{4}0[A-Z0-9]{6}$")
+ACCOUNT_NUM_RE = re.compile(r"^\d{9,18}$")
 
 
 class ValidationError(Exception):
@@ -58,3 +59,9 @@ def validate_amount(raw_amount) -> Decimal:
 def validate_ifsc(ifsc: str):
     if not ifsc or not IFSC_RE.match(ifsc.upper()):
         raise ValidationError("Invalid IFSC code format", field="ifsc")
+
+
+def validate_account_number(account_number: str):
+    if not account_number or not ACCOUNT_NUM_RE.match(str(account_number).strip()):
+        raise ValidationError("Account number must be 9-18 digits", field="account_number")
+
