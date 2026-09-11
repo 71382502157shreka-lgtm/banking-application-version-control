@@ -606,6 +606,61 @@ def compare_versions():
     return jsonify(result)
 
 
+@api_bp.route("/versions/restore", methods=["POST"])
+@api_bp.route("/v1/versions/restore", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def restore_version_api():
+    data = request.get_json(force=True) or {}
+    entity_type = data.get("entity_type", "").upper()
+    entity_id = int(data.get("entity_id", 0))
+    version_number = int(data.get("version_number", 0))
+
+    if entity_type == "TRANSACTION":
+        return jsonify({"error": "Transactions cannot be restored; use a reversal transaction instead"}), 400
+
+    if entity_type == "BENEFICIARY":
+        b = db.session.get(Beneficiary, entity_id)
+        if not b:
+            return jsonify({"error": "Beneficiary not found"}), 404
+        def apply_fn(snap):
+            if not snap: return {}
+            b.name = snap.get("name", b.name)
+            b.account_number = snap.get("account_number", b.account_number)
+            b.bank_name = snap.get("bank_name", b.bank_name)
+            b.ifsc_code = snap.get("ifsc_code", b.ifsc_code)
+            b.status = snap.get("status", b.status)
+            return snap
+    elif entity_type in ["USER_PROFILE", "USER"]:
+        u = db.session.get(User, entity_id)
+        if not u:
+            return jsonify({"error": "User not found"}), 404
+        def apply_fn(snap):
+            if not snap: return {}
+            u.full_name = snap.get("full_name", u.full_name)
+            u.email = snap.get("email", u.email)
+            u.phone = snap.get("phone", u.phone)
+            return snap
+    else:
+        return jsonify({"error": f"Restoration for entity type '{entity_type}' is not supported"}), 400
+
+    try:
+        new_version = version_service.restore_version(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            version_number=version_number,
+            changed_by=current_user.id,
+            apply_fn=apply_fn
+        )
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+    return jsonify({"success": True, "new_version": new_version.to_dict()})
+
+
 # ---------------------------------------------------------------------------
 # Audit Logs & Integrity Verification
 # ---------------------------------------------------------------------------
@@ -627,6 +682,8 @@ def list_audit_logs():
 
 @api_bp.route("/audit/verify-integrity", methods=["POST", "GET"])
 @api_bp.route("/v1/audit/verify-integrity", methods=["POST", "GET"])
+@api_bp.route("/audit/verify", methods=["POST", "GET"])
+@api_bp.route("/v1/audit/verify", methods=["POST", "GET"])
 @login_required
 @roles_required(Role.ADMIN)
 def verify_audit_chain():

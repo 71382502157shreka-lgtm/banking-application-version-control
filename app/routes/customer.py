@@ -113,7 +113,8 @@ def profile():
 @login_required
 @roles_required(Role.CUSTOMER)
 def version_history():
-    return render_template("customer/version_history.html")
+    versions = EntityVersion.query.filter_by(changed_by=current_user.id).order_by(EntityVersion.created_at.desc()).all()
+    return render_template("customer/version_history.html", versions=versions)
 
 
 @customer_bp.route("/deposit")

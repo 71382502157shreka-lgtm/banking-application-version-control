@@ -283,6 +283,26 @@ def version_history():
     )
 
 
+@admin_bp.route("/security-center")
+@login_required
+@roles_required(Role.ADMIN)
+def security_center():
+    audit_report = verify_audit_integrity()
+    security_events = SecurityEvent.query.order_by(SecurityEvent.created_at.desc()).limit(100).all()
+    active_sessions = LoginSession.query.filter_by(is_active=True).all()
+    locked_users = User.query.filter(User.locked_until != None).all()
+    failed_logins_count = AuditLog.query.filter_by(action="FAILED_LOGIN").count()
+
+    return render_template(
+        "admin/security_center.html",
+        audit_report=audit_report,
+        security_events=security_events,
+        active_sessions=active_sessions,
+        locked_users=locked_users,
+        failed_logins_count=failed_logins_count,
+    )
+
+
 @admin_bp.route("/rollback-requests")
 @login_required
 @roles_required(Role.ADMIN)
