@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://www.sqlalchemy.org/)
-[![Tests](https://img.shields.io/badge/Tests-31%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-42%20Passed%20%7C%2074%25%20Coverage-brightgreen.svg)]()
 [![Architecture](https://img.shields.io/badge/Architecture-Python--First%20%2F%20Backend--Heavy-purple.svg)]()
 [![Audit Chain](https://img.shields.io/badge/Audit%20Chain-SHA--256%20Tamper--Evident-emerald.svg)]()
 
@@ -15,9 +15,9 @@
 
 Traditional web applications often leak business or calculation logic into frontend JavaScript. **BankVCS 2.0** enforces strict architectural boundaries:
 
-- **100% Python Backend Logic**: Account balances, transaction processing, transfer approvals, risk scores, version creation, audit hashing, rollbacks, and permissions are verified and executed inside Python services.
+- **100% Python Backend Logic**: Account balances, transaction processing, transfer approvals, risk scores, version creation, audit hashing, rollbacks, and role-based access permissions are verified and executed inside Python services.
 - **Server-Side Rendering (SSR)**: Pages are rendered through Flask routes and Jinja2 templates.
-- **Minimal JavaScript**: Frontend JS handles only theme switching, chart rendering, sidebar toggling, and minor UI updates. No financial logic exists in JavaScript.
+- **Minimal JavaScript**: Frontend JS handles only theme switching, chart rendering, sidebar toggling, and minor UI updates. No financial or security logic exists in JavaScript.
 - **Pure Python SDK & Interactive CLI**: The application can run entirely in a terminal or python script without a web browser via `cli.py` and `bankvcs.py`.
 
 ---
@@ -26,16 +26,16 @@ Traditional web applications often leak business or calculation logic into front
 
 The language composition of the codebase, generated automatically via `python scripts/analyze_project_languages.py` (excluding virtual environments, `.git`, and cache files), is:
 
-```
+```text
 ============================================================
 BANKVCS 2.0 - REPOSITORY LANGUAGE STATISTICS
 ============================================================
-Python      :   56 files ( 58.9%) |   4,850 lines ( 41.9%)
-HTML (Jinja):   38 files ( 40.0%) |   5,796 lines ( 50.0%)
-CSS         :    1 file  (  1.1%) |     936 lines (  8.1%)
+Python      :   59 files ( 52.7%) |   5,991 lines ( 40.7%)
+HTML (Jinja):   52 files ( 46.4%) |   7,778 lines ( 52.9%)
+CSS         :    1 file  (  0.9%) |     936 lines (  6.4%)
 JavaScript  :    0 files (  0.0%) |       0 lines (  0.0%)
 ------------------------------------------------------------
-Total       :   95 files         |  11,582 lines
+Total       :  112 files         |  14,705 lines
 ============================================================
 ```
 
@@ -43,7 +43,86 @@ Total       :   95 files         |  11,582 lines
 
 ---
 
-## 3. Key Innovations & Python Service Architecture
+## 3. System Roles & Access Control Model
+
+BankVCS 2.0 enforces explicit **Role-Based Access Control (RBAC)** across three distinct system roles:
+
+### 👤 Customer (`Role.CUSTOMER`)
+- **Primary Function**: Digital banking client who manages personal accounts, beneficiaries, and transactions.
+- **Capabilities**:
+  - Self-service registration & secure login.
+  - View personal accounts, balances, and real-time transaction history.
+  - Perform deposit, withdrawal, intra-bank, and inter-bank transfers.
+  - Add, edit, and track version history (diffs) of personal beneficiaries.
+  - View and download account statements (CSV export).
+  - Submit complaints / service tickets to bank support.
+  - Manage personal user profile.
+
+### 💼 Provider / Employee (`Role.EMPLOYEE`)
+- **Primary Function**: Banking Service Officer / Staff Provider responsible for customer support, service request handling, and risk/approval workflows.
+- **Capabilities**:
+  - Secure employee login and access to the dedicated Employee Portal (`/employee/dashboard`).
+  - Search customer directory and inspect customer profile details.
+  - Assist customers with deposit and withdrawal requests.
+  - View assigned customer requests, pending transactions, and service tickets.
+  - Create and review Maker-Checker rollback requests (cannot approve self-created requests).
+  - Resolve customer complaints and update ticket statuses.
+  - View provider performance and transaction service metrics.
+
+### 🛡️ Admin (`Role.ADMIN`)
+- **Primary Function**: System Administrator with full platform oversight, security auditing, and governance controls.
+- **Capabilities**:
+  - Full access to the Admin Dashboard (`/admin/dashboard`).
+  - System User & Provider/Employee administration.
+  - Verify and manage service provider profiles.
+  - Inspect Security Telemetry Center and manage active user sessions.
+  - Execute cryptographic **SHA-256 Audit Chain Verification** to detect any data tampering.
+  - Approve or reject Maker-Checker version rollback requests on the **Rollback Approval Board**.
+  - Monitor platform risk metrics, audit logs, and compliance reports.
+
+---
+
+## 4. Role Permission Matrix
+
+| Feature / Resource | Customer | Provider (Employee) | Admin | Unauthenticated |
+| :--- | :---: | :---: | :---: | :---: |
+| **Public Landing & Login (`/`, `/login`)** | ✅ | ✅ | ✅ | ✅ |
+| **User Registration (`/register`)** | ✅ (Forces Customer Role) | ❌ | ❌ | ✅ |
+| **Customer Portal (`/customer/*`)** | ✅ (Own Data Only) | ❌ (403 Forbidden) | ❌ (403 Forbidden) | 302 Redirect |
+| **Deposit / Withdraw (`/customer/deposit`, `/withdraw`)** | ✅ (Own Account) | ❌ (Must use staff portal) | ❌ | 302 Redirect |
+| **Transfers & Beneficiaries (`/customer/transfer`)** | ✅ (Own Account) | ❌ | ❌ | 302 Redirect |
+| **View Version Diffs (`/customer/version/*`)** | ✅ (Own Data) | ❌ | ❌ | 302 Redirect |
+| **CSV Statement Download (`/customer/statement`)** | ✅ (Own Statements) | ❌ | ❌ | 302 Redirect |
+| **Employee Portal (`/employee/*`)** | ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
+| **Customer Directory & Search (`/employee/customers`)** | ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
+| **Staff Deposit/Withdraw Helper (`/employee/deposit`)** | ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
+| **Create Rollback Request (`/employee/rollback/request`)**| ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
+| **Complaint Resolution Board (`/employee/complaints`)** | ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
+| **Admin Portal (`/admin/*`)** | ❌ (403 Forbidden) | ❌ (403 Forbidden) | ✅ | 302 Redirect |
+| **SHA-256 Audit Verifier (`/admin/audit`)** | ❌ (403 Forbidden) | ❌ (403 Forbidden) | ✅ | 302 Redirect |
+| **Security Center & Session Revoke (`/admin/security`)** | ❌ (403 Forbidden) | ❌ (403 Forbidden) | ✅ | 302 Redirect |
+| **Rollback Approval Board (`/admin/rollback/board`)** | ❌ (403 Forbidden) | ❌ (403 Forbidden) | ✅ | 302 Redirect |
+| **Rest APIs (`/api/*`)** | ✅ (Role Restricted) | ✅ (Role Restricted) | ✅ (Full Scope) | 401 Unauthorized |
+
+---
+
+## 5. Security & Authorization Guarantees
+
+- **Strict Portal Redirection & Isolation**:
+  - Upon authentication, users are redirected exclusively to their designated role portal (`/customer`, `/employee`, or `/admin`).
+  - Attempting to cross boundaries (e.g., a Customer accessing `/employee/dashboard` or `/admin/users`) returns an explicit **HTTP 403 Forbidden**.
+  - Admins and Employees are strictly isolated to their respective portals (`/admin/*` and `/employee/*`).
+- **HTTP Status Code Protocol**:
+  - **HTTP 401 Unauthorized**: Returned for unauthenticated API requests or unauthenticated page access (web routes redirect to `/login`).
+  - **HTTP 403 Forbidden**: Returned whenever an authenticated user attempts to access a route or API beyond their role's permission matrix.
+- **Sensitive Data Scrubbing**:
+  - Passwords, secret keys, OTP tokens, session hashes, and internal tracebacks are never exposed in error responses, JSON error payloads, or logs.
+- **IDOR Protection & Ownership Validation**:
+  - Database queries check `account.user_id == current_user.id` or `beneficiary.user_id == current_user.id` to prevent Horizontal Privilege Escalation.
+
+---
+
+## 6. Key Innovations & Python Service Architecture
 
 ### ⭐ 1. Python-Based Git-Like Entity Version Control Engine (`app/services/version_service.py`)
 - **Polymorphic Snapshots**: Entity state changes (`ACCOUNT`, `BENEFICIARY`, `USER_PROFILE`) are stored as JSON snapshots in an immutable `EntityVersion` ledger.
@@ -75,16 +154,16 @@ Total       :   95 files         |  11,582 lines
 
 ---
 
-## 4. Project Structure
+## 7. Project Structure
 
-```
+```text
 banking-application-version-control-main/
 ├── app/
 │   ├── __init__.py                # Flask application factory
 │   ├── config.py                  # Environment configurations
 │   ├── models/                    # SQLAlchemy ORM Models
 │   │   ├── base.py                # Base model class
-│   │   ├── user.py                # User & Role models
+│   │   ├── user.py                # User & Role models (CUSTOMER, EMPLOYEE, ADMIN)
 │   │   ├── account.py             # Bank Account model
 │   │   ├── transaction.py         # Transaction model
 │   │   ├── beneficiary.py         # Payee beneficiary model
@@ -93,13 +172,14 @@ banking-application-version-control-main/
 │   │   ├── notification.py        # System notifications model
 │   │   ├── security_session.py    # Login sessions & security events
 │   │   ├── workflow_risk.py       # Risk assessments & rollback requests
+│   │   └── complaint.py           # Customer complaint tickets
 │   ├── routes/                    # Server-rendered Flask Blueprints
 │   │   ├── auth.py                # Authentication & session routes
 │   │   ├── customer.py            # Customer portal & banking routes
 │   │   ├── employee.py            # Staff portal & review routes
 │   │   ├── admin.py               # Admin dashboard, audit & rollback board
-│   │   ├── api.py                 # REST endpoints
-│   │   └── errors.py              # HTTP 404, 403, 500 error handlers
+│   │   ├── api.py                 # REST endpoints with RBAC & IDOR guards
+│   │   └── errors.py              # HTTP 404, 401, 403, 500 error handlers
 │   ├── services/                  # Core Python Business Logic
 │   │   ├── auth_service.py        # Authentication & password management
 │   │   ├── banking_service.py     # Deposit, withdrawal, transfer, limits
@@ -114,19 +194,19 @@ banking-application-version-control-main/
 │   │   ├── security_service.py    # Telemetry & session security
 │   │   └── mfa_service.py         # OTP & 2FA verification
 │   ├── utils/                     # Python Utilities
-│   │   ├── decorators.py          # RBAC decorators
+│   │   ├── decorators.py          # RBAC decorators (@login_required, @roles_required)
 │   │   ├── diff.py                # Field diffing utility
 │   │   ├── formatting.py          # Currency & date formatters
 │   │   ├── security.py            # Token generation & sanitization
 │   │   └── validators.py          # Form input validation
 │   ├── templates/                 # Jinja2 Server-Rendered Templates
 │   │   ├── base.html              # Base layout with theme toggle
-│   │   ├── components/            # Reusable UI macros (cards, tables, modals, pagination)
+│   │   ├── components/            # Reusable UI macros (cards, tables, modals)
 │   │   ├── auth/                  # Login, register, MFA pages
 │   │   ├── customer/              # Customer dashboard, transfer, statement pages
-│   │   ├── employee/              # Staff directory & review pages
+│   │   ├── employee/              # Staff directory, deposits & complaint review pages
 │   │   ├── admin/                 # Admin dashboard, security center, rollback board
-│   │   └── errors/                # 404, 403, 500 error pages
+│   │   └── errors/                # 404, 401, 403, 500 error pages
 │   └── static/                    # Styling & Images
 │       ├── css/style.css          # Vanilla CSS design tokens & themes
 │       └── images/                # Brand logos & icons
@@ -137,26 +217,30 @@ banking-application-version-control-main/
 ├── scripts/
 │   ├── analyze_project_languages.py # Language stats analyzer
 │   └── generate_architecture_diagram.py
-└── tests/                         # Pytest Suite & Workflow Verifiers
-    ├── test_auth.py
-    ├── test_banking_features.py
-    ├── test_bankvcs2_features.py
-    ├── test_csrf.py
-    ├── test_python_architecture.py
-    ├── test_transactions.py
-    ├── test_version_control.py
-    └── verify_all_workflows.py
+└── tests/                         # Pytest Suite & Automated Verifiers
+    ├── test_auth.py               # Authentication & lockout tests
+    ├── test_banking_features.py   # Banking transactions & limits tests
+    ├── test_bankvcs2_features.py  # Audit, risk & MFA tests
+    ├── test_csrf.py               # CSRF protection tests
+    ├── test_employee_portal.py    # Employee portal & maker-checker tests
+    ├── test_python_architecture.py# Unit tests for core services
+    ├── test_security_audit.py     # Role isolation & RBAC security tests
+    ├── test_transactions.py       # Transaction engine & reversal tests
+    ├── test_version_control.py    # Versioning & diffing tests
+    └── verify_all_workflows.py    # Live end-to-end integration test runner
 ```
 
 ---
 
-## 5. Installation & Execution
+## 8. Installation & Execution
 
 ### 1. Set Up Environment & Install Dependencies
 ```bash
 python -m venv .venv
+
 # Windows PowerShell:
 .\.venv\Scripts\Activate.ps1
+
 # Linux / macOS:
 source .venv/bin/activate
 
@@ -181,31 +265,35 @@ Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser.
 
 ---
 
-## 6. Running Tests & Automated Verification
+## 9. Running Tests & Automated Verification
 
-Run the full Pytest suite:
+Run the full Pytest suite with coverage:
 ```bash
-python -m pytest -v
+.\.venv\Scripts\python.exe -m pytest -v --cov=app --cov-report=term-missing
 ```
-**Test Results**: `31 passed, 0 failed` (100% pass rate across auth, RBAC, deposits, transfers, limits, version control, field diffing, audit hash chaining, risk scoring, MFA OTP, statements, and SDK operations).
+- **Total Tests Executed**: 42
+- **Passed**: 42
+- **Failed**: 0
+- **Pass Rate**: 100%
+- **Code Coverage**: **74% Statement Coverage** across all Python modules and services.
 
-Run end-to-end workflow verification:
+Run live end-to-end workflow verification:
 ```bash
-python tests/verify_all_workflows.py
+.\.venv\Scripts\python.exe tests/verify_all_workflows.py
 ```
 
 ---
 
-## 7. Demo Credentials
+## 10. Demo Credentials
 
 | Role | Username | Password | Key Features |
 | :--- | :--- | :--- | :--- |
 | **Customer** | `customer` | `ChangeMe_Customer123!` | Dashboard, transfers, CSV statements, version history |
 | **Customer (Sarika)** | `sarika` | `Password123` | Secondary customer with active accounts |
-| **Employee** | `employee` | `ChangeMe_Employee123!` | Customer directory, version reviews, risk reviews |
+| **Provider / Employee** | `employee` | `ChangeMe_Employee123!` | Customer directory, version reviews, staff deposits, risk reviews |
 | **Admin** | `admin` | `ChangeMe_Admin123!` | Security Center, SHA-256 Audit Verifier, Rollback Board |
 
 ---
 
-## 8. License
+## 11. License
 MIT License - BankVCS 2.0 - Secure Intelligent Banking & Database Version Control System
