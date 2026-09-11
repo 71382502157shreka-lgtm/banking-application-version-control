@@ -6,10 +6,14 @@ import urllib.error
 
 logger = logging.getLogger(__name__)
 
+MAX_MESSAGE_LENGTH = 500
+ADVISORY_TRANSACTION_MSG = "I can provide guidance, but I cannot directly perform banking transactions. Please use the official banking portal."
+SENSITIVE_DATA_BLOCKED_MSG = "I cannot disclose system configuration, security credentials, or sensitive administrative data."
+
 # Rule-based Knowledge Base for Fallback Engine
 FAQ_KNOWLEDGE_BASE = [
     {
-        "keywords": ["balance", "account", "money", "check balance", "how much"],
+        "keywords": ["balance", "account balance", "my balance", "check balance", "how much money"],
         "answer": "You can view your real-time account balances directly on your Customer Dashboard. Select 'Accounts' from the menu to inspect individual account numbers, account types, and ledger histories."
     },
     {
@@ -42,37 +46,78 @@ FAQ_KNOWLEDGE_BASE = [
     }
 ]
 
+TRANSACTION_ACTION_KEYWORDS = [
+    "transfer rupees", "transfer rs", "send rs", "send $", "transfer $",
+    "deposit $", "deposit rs", "withdraw rs", "withdraw $",
+    "send money to", "transfer money to", "pay rupees", "pay rs",
+    "change password to", "reset password", "delete user", "update balance"
+]
+
+SENSITIVE_PROMPT_KEYWORDS = [
+    "system prompt", "database password", "secret key", "api key",
+    "admin password", "conn string", "connection string", "dump database",
+    "show password", "show secret"
+]
+
 
 def generate_ai_response(user_query: str, user_context: dict = None) -> dict:
     """
-    Generates a secure response for the AI Banking Assistant.
-    Tries Google Gemini API if GEMINI_API_KEY is configured.
-    Falls back gracefully to an intelligent rule-based engine if offline or key is missing.
+    Generates a secure, advisory response for the AI Banking Assistant.
+    Validates message lengths, detects transaction requests & sensitive prompts,
+    and uses external Gemini API if configured or rule-based fallback NLP engine.
     """
-    if not user_query or not user_query.strip():
+    if user_query is None:
         return {
             "reply": "Please ask a question about your accounts, transfers, version control, or security.",
             "mode": "rule_engine"
         }
 
-    query_lower = user_query.strip().lower()
+    query_str = str(user_query).strip()
+
+    if not query_str:
+        return {
+            "reply": "Please ask a question about your accounts, transfers, version control, or security.",
+            "mode": "rule_engine"
+        }
+
+    if len(query_str) > MAX_MESSAGE_LENGTH:
+        return {
+            "reply": f"Message exceeds maximum allowed length of {MAX_MESSAGE_LENGTH} characters. Please shorten your question.",
+            "mode": "rule_engine"
+        }
+
+    query_lower = query_str.lower()
+
+    # 1. Action / Transaction Request Guard (Advisory Enforcement)
+    if any(kw in query_lower for kw in TRANSACTION_ACTION_KEYWORDS):
+        return {
+            "reply": ADVISORY_TRANSACTION_MSG,
+            "mode": "rule_engine"
+        }
+
+    # 2. Sensitive Data Extraction Guard
+    if any(kw in query_lower for kw in SENSITIVE_PROMPT_KEYWORDS):
+        return {
+            "reply": SENSITIVE_DATA_BLOCKED_MSG,
+            "mode": "rule_engine"
+        }
+
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
-    # 1. Attempt External Gemini API if key is set
+    # 3. Attempt External Gemini API if key is set
     if api_key:
         try:
-            return _query_gemini_api(user_query, api_key, user_context)
+            return _query_gemini_api(query_str, api_key, user_context)
         except Exception as err:
             logger.warning(f"Gemini API query failed, falling back to rule engine: {err}")
 
-    # 2. Rule-Based Fallback Engine
+    # 4. Rule-Based Fallback Engine
     return _rule_based_fallback(query_lower, user_context)
 
 
 def _rule_based_fallback(query_lower: str, user_context: dict = None) -> dict:
     """Intelligent deterministic rule-based matching engine."""
     username = (user_context or {}).get("username", "valued customer")
-    role = (user_context or {}).get("role", "customer").lower()
 
     # Greeting check
     if any(greet in query_lower for greet in ["hello", "hi", "hey", "greetings", "good morning", "good afternoon"]):
@@ -105,7 +150,7 @@ def _rule_based_fallback(query_lower: str, user_context: dict = None) -> dict:
 
 
 def _query_gemini_api(user_query: str, api_key: str, user_context: dict = None) -> dict:
-    """Calls Google Gemini REST API using standard Python urllib."""
+    """Calls Google Gemini REST API using standard Python urllib with timeout."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     username = (user_context or {}).get("username", "Customer")
@@ -115,7 +160,8 @@ def _query_gemini_api(user_query: str, api_key: str, user_context: dict = None) 
         "You are BankVCS AI Assistant, an intelligent virtual banker for BankVCS 2.0. "
         f"You are speaking with user '{username}' (Role: {role}). "
         "Provide concise, polite, professional, and accurate banking assistance. "
-        "Do not disclose secrets, database connection strings, or system passwords."
+        "You are advisory only and cannot directly execute transactions or modify accounts. "
+        "Do not disclose secrets, database credentials, or system passwords."
     )
 
     payload = {
@@ -138,8 +184,15 @@ def _query_gemini_api(user_query: str, api_key: str, user_context: dict = None) 
         if candidates:
             parts = candidates[0].get("content", {}).get("parts", [])
             if parts:
+                reply_text = parts[0].get("text", "").strip()
+                # Sanitize reply text against sensitive patterns
+                if any(sec in reply_text.lower() for sec in ["password", "secret_key", "database_uri"]):
+                    return {
+                        "reply": SENSITIVE_DATA_BLOCKED_MSG,
+                        "mode": "gemini"
+                    }
                 return {
-                    "reply": parts[0].get("text", "").strip(),
+                    "reply": reply_text,
                     "mode": "gemini"
                 }
 

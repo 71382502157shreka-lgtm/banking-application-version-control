@@ -708,13 +708,37 @@ def _validate_entity_ownership_for_customer(entity_type, entity_id):
 @login_required
 def ai_chat():
     from app.services import ai_service
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    message = data.get("message", "").strip()
+    
+    # Verify request payload
+    if request.is_json:
+        data = request.get_json(silent=True)
+        if data is None:
+            return jsonify({
+                "success": False,
+                "error": "Invalid JSON format"
+            }), 400
+    else:
+        data = request.form.to_dict()
 
-    if not message:
+    if not isinstance(data, dict) or "message" not in data:
         return jsonify({
             "success": False,
             "error": "Message content is required"
+        }), 400
+
+    raw_message = data.get("message")
+    if raw_message is None or not str(raw_message).strip():
+        return jsonify({
+            "success": False,
+            "error": "Message content is required"
+        }), 400
+
+    message = str(raw_message).strip()
+
+    if len(message) > 500:
+        return jsonify({
+            "success": False,
+            "error": "Message exceeds maximum allowed length of 500 characters"
         }), 400
 
     context = {
@@ -723,10 +747,17 @@ def ai_chat():
         "role": current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
     }
 
-    result = ai_service.generate_ai_response(message, user_context=context)
-    return jsonify({
-        "success": True,
-        "reply": result.get("reply", ""),
-        "mode": result.get("mode", "rule_engine")
-    }), 200
+    try:
+        result = ai_service.generate_ai_response(message, user_context=context)
+        return jsonify({
+            "success": True,
+            "reply": result.get("reply", ""),
+            "mode": result.get("mode", "rule_engine")
+        }), 200
+    except Exception as err:
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while processing your request"
+        }), 500
+
 
