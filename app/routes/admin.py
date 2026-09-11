@@ -287,9 +287,15 @@ def version_history():
 @login_required
 @roles_required(Role.ADMIN)
 def security_center():
+    severity_filter = request.args.get("severity", "").strip().upper()
     audit_report = verify_audit_integrity()
-    security_events = SecurityEvent.query.order_by(SecurityEvent.created_at.desc()).limit(100).all()
-    active_sessions = LoginSession.query.filter_by(is_active=True).all()
+
+    query = SecurityEvent.query
+    if severity_filter and severity_filter != "ALL":
+        query = query.filter_by(severity=severity_filter)
+
+    security_events = query.order_by(SecurityEvent.created_at.desc()).limit(100).all()
+    active_sessions = LoginSession.query.filter_by(is_active=True).order_by(LoginSession.last_activity.desc()).all()
     locked_users = User.query.filter(User.locked_until != None).all()
     failed_logins_count = AuditLog.query.filter_by(action="FAILED_LOGIN").count()
 
@@ -300,6 +306,7 @@ def security_center():
         active_sessions=active_sessions,
         locked_users=locked_users,
         failed_logins_count=failed_logins_count,
+        severity_filter=severity_filter,
     )
 
 
@@ -341,9 +348,35 @@ def rollback_requests():
 @login_required
 @roles_required(Role.ADMIN)
 def risk_center():
-    assessments = RiskAssessment.query.order_by(RiskAssessment.created_at.desc()).limit(150).all()
+    risk_level_filter = request.args.get("risk_level", "").strip().upper()
+    search = request.args.get("search", "").strip()
+    page = request.args.get("page", 1, type=int)
+    per_page = 15
+
+    query = RiskAssessment.query
+
+    if risk_level_filter and risk_level_filter != "ALL":
+        query = query.filter_by(risk_level=risk_level_filter)
+
+    if search:
+        s_pat = f"%{search}%"
+        query = query.filter(
+            (RiskAssessment.decision.ilike(s_pat)) |
+            (RiskAssessment.risk_factors.ilike(s_pat))
+        )
+
+    pagination = query.order_by(RiskAssessment.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    assessments = pagination.items
     pending_reviews = Transaction.query.filter_by(status="BLOCKED_FOR_REVIEW").all()
-    return render_template("admin/risk_center.html", assessments=assessments, pending_reviews=pending_reviews)
+
+    return render_template(
+        "admin/risk_center.html",
+        assessments=assessments,
+        pending_reviews=pending_reviews,
+        pagination=pagination,
+        risk_level_filter=risk_level_filter,
+        search=search,
+    )
 
 
 @admin_bp.route("/settings")

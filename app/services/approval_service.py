@@ -153,7 +153,10 @@ def reject_rollback_request(request_id: int, admin_user_id: int, review_notes: s
 
 
 def review_risk_assessment(assessment_id: int, admin_user_id: int, approve: bool, review_notes: str = None):
+    from decimal import Decimal
     assessment = db.session.get(RiskAssessment, assessment_id)
+    if not assessment:
+        assessment = RiskAssessment.query.filter_by(transaction_id=assessment_id).first()
     if not assessment:
         raise ValidationError("Risk assessment record not found")
 
@@ -166,13 +169,43 @@ def review_risk_assessment(assessment_id: int, admin_user_id: int, approve: bool
     if approve:
         assessment.decision = RiskDecision.APPROVED
         if txn and txn.status == "BLOCKED_FOR_REVIEW":
+            source = db.session.get(Account, txn.account_id)
+            destination = db.session.get(Account, txn.counterparty_account_id) if txn.counterparty_account_id else None
+            amount = Decimal(str(txn.amount))
+
+            if source:
+                if Decimal(source.available_balance) < amount:
+                    raise ValidationError("Source account has insufficient available balance for approved release")
+                source.balance = Decimal(source.balance) - amount
+                source.available_balance = Decimal(source.available_balance) - amount
+                source.version_number += 1
+                txn.balance_after = source.balance
+
+            if destination:
+                destination.balance = Decimal(destination.balance) + amount
+                destination.available_balance = Decimal(destination.available_balance) + amount
+                destination.version_number += 1
+
+                credit_txn = Transaction(
+                    account_id=destination.id,
+                    transaction_type=TransactionType.TRANSFER,
+                    transaction_mode=txn.transaction_mode or "TRANSFER",
+                    amount=amount,
+                    description=txn.description,
+                    status=TransactionStatus.COMPLETED,
+                    counterparty_account_id=source.id if source else None,
+                    balance_after=destination.balance,
+                )
+                db.session.add(credit_txn)
+
             txn.status = TransactionStatus.COMPLETED
+
         log_action(
             action=AuditAction.RISK_REVIEW_APPROVED,
             user_id=admin_user_id,
             entity_type=EntityType.TRANSACTION,
             entity_id=txn.id if txn else None,
-            description=f"High-risk transaction #{txn.id if txn else ''} approved by admin.",
+            description=f"High-risk transaction #{txn.id if txn else ''} approved and released by admin.",
         )
     else:
         assessment.decision = RiskDecision.BLOCKED
@@ -188,3 +221,4 @@ def review_risk_assessment(assessment_id: int, admin_user_id: int, approve: bool
 
     db.session.commit()
     return assessment
+

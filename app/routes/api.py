@@ -794,6 +794,49 @@ def revoke_other_user_sessions():
     return jsonify(message=f"Revoked {count} other active session(s)", count=count)
 
 
+@api_bp.route("/sessions/<int:session_id>/revoke", methods=["POST"])
+@api_bp.route("/v1/sessions/<int:session_id>/revoke", methods=["POST"])
+@login_required
+@json_errors
+def revoke_specific_session(session_id):
+    sess = db.session.get(LoginSession, session_id)
+    if not sess:
+        return jsonify(error="Session not found"), 404
+    if current_user.role != Role.ADMIN and sess.user_id != current_user.id:
+        return jsonify(error="Forbidden: Cannot revoke another user's session"), 403
+
+    success = session_service.revoke_session_by_id(session_id, current_user.id)
+    if not success:
+        return jsonify(error="Session is already inactive or invalid"), 400
+    return jsonify(message=f"Session #{session_id} successfully revoked", session_id=session_id)
+
+
+@api_bp.route("/users/<int:user_id>/toggle-lockout", methods=["POST"])
+@api_bp.route("/v1/users/<int:user_id>/toggle-lockout", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def toggle_user_lockout_api(user_id):
+    try:
+        res = session_service.toggle_user_lockout(user_id, current_user.id)
+    except ValueError as e:
+        return jsonify(error=str(e)), 404
+    return jsonify(res)
+
+
+@api_bp.route("/security/events", methods=["GET"])
+@api_bp.route("/v1/security/events", methods=["GET"])
+@login_required
+@roles_required(Role.ADMIN)
+def get_security_events():
+    severity = request.args.get("severity")
+    query = SecurityEvent.query
+    if severity and severity.upper() != "ALL":
+        query = query.filter_by(severity=severity.upper())
+    events = query.order_by(SecurityEvent.created_at.desc()).limit(200).all()
+    return jsonify([e.to_dict() for e in events])
+
+
 @api_bp.route("/mfa/generate", methods=["POST"])
 @api_bp.route("/v1/mfa/generate", methods=["POST"])
 @login_required
