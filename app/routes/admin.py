@@ -204,36 +204,82 @@ def transactions():
 @login_required
 @roles_required(Role.ADMIN)
 def audit_logs():
-    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(150).all()
+    search = request.args.get("search", "").strip()
+    action_filter = request.args.get("action", "").strip()
+    page = request.args.get("page", 1, type=int)
+    per_page = 15
+
+    query = AuditLog.query
+
+    if search:
+        s_pat = f"%{search}%"
+        query = query.filter(
+            (AuditLog.description.ilike(s_pat)) |
+            (AuditLog.entity_type.ilike(s_pat)) |
+            (AuditLog.action.ilike(s_pat))
+        )
+
+    if action_filter:
+        query = query.filter(AuditLog.action == action_filter)
+
+    pagination = query.order_by(AuditLog.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    logs = pagination.items
     audit_report = verify_audit_integrity()
-    return render_template("admin/admin_audit_logs.html", logs=logs, audit_report=audit_report)
+
+    # Get distinct action types for filter dropdown
+    distinct_actions = [row[0] for row in db.session.query(AuditLog.action).distinct().all() if row[0]]
+
+    return render_template(
+        "admin/admin_audit_logs.html",
+        logs=logs,
+        pagination=pagination,
+        audit_report=audit_report,
+        search=search,
+        action_filter=action_filter,
+        distinct_actions=distinct_actions,
+    )
 
 
 @admin_bp.route("/version-history")
 @login_required
 @roles_required(Role.ADMIN)
 def version_history():
-    versions = EntityVersion.query.order_by(EntityVersion.created_at.desc()).limit(150).all()
-    return render_template("admin/admin_version_history.html", versions=versions)
+    search = request.args.get("search", "").strip()
+    entity_type = request.args.get("entity_type", "").strip()
+    change_type = request.args.get("change_type", "").strip()
+    page = request.args.get("page", 1, type=int)
+    per_page = 15
 
+    query = EntityVersion.query
 
-@admin_bp.route("/security-center")
-@login_required
-@roles_required(Role.ADMIN)
-def security_center():
-    audit_report = verify_audit_integrity()
-    security_events = SecurityEvent.query.order_by(SecurityEvent.created_at.desc()).limit(100).all()
-    active_sessions = LoginSession.query.filter_by(is_active=True).all()
-    locked_users = User.query.filter(User.locked_until != None).all()
-    failed_logins_count = AuditLog.query.filter_by(action="FAILED_LOGIN").count()
+    if search:
+        s_pat = f"%{search}%"
+        query = query.filter(
+            (EntityVersion.change_summary.ilike(s_pat)) |
+            (EntityVersion.entity_type.ilike(s_pat))
+        )
+
+    if entity_type:
+        query = query.filter(EntityVersion.entity_type == entity_type)
+
+    if change_type:
+        query = query.filter(EntityVersion.change_type == change_type)
+
+    pagination = query.order_by(EntityVersion.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    versions = pagination.items
+
+    distinct_entity_types = [row[0] for row in db.session.query(EntityVersion.entity_type).distinct().all() if row[0]]
+    distinct_change_types = [row[0] for row in db.session.query(EntityVersion.change_type).distinct().all() if row[0]]
 
     return render_template(
-        "admin/security_center.html",
-        audit_report=audit_report,
-        security_events=security_events,
-        active_sessions=active_sessions,
-        locked_users=locked_users,
-        failed_logins_count=failed_logins_count,
+        "admin/admin_version_history.html",
+        versions=versions,
+        pagination=pagination,
+        search=search,
+        entity_type_filter=entity_type,
+        change_type_filter=change_type,
+        distinct_entity_types=distinct_entity_types,
+        distinct_change_types=distinct_change_types,
     )
 
 
@@ -241,8 +287,34 @@ def security_center():
 @login_required
 @roles_required(Role.ADMIN)
 def rollback_requests():
-    requests_list = RollbackRequest.query.order_by(RollbackRequest.created_at.desc()).all()
-    return render_template("admin/rollback_requests.html", requests=requests_list)
+    status_filter = request.args.get("status", "").strip()
+    search = request.args.get("search", "").strip()
+    page = request.args.get("page", 1, type=int)
+    per_page = 15
+
+    query = RollbackRequest.query
+
+    if status_filter:
+        query = query.filter(RollbackRequest.status == status_filter)
+
+    if search:
+        s_pat = f"%{search}%"
+        query = query.filter(
+            (RollbackRequest.reason.ilike(s_pat)) |
+            (RollbackRequest.entity_type.ilike(s_pat)) |
+            (RollbackRequest.review_notes.ilike(s_pat))
+        )
+
+    pagination = query.order_by(RollbackRequest.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    requests_list = pagination.items
+
+    return render_template(
+        "admin/rollback_requests.html",
+        requests=requests_list,
+        pagination=pagination,
+        status_filter=status_filter,
+        search=search,
+    )
 
 
 @admin_bp.route("/risk-center")
