@@ -1,5 +1,6 @@
 import re
 import pytest
+from datetime import datetime
 from decimal import Decimal
 from app import db
 from app.models.user import Role
@@ -197,3 +198,38 @@ def test_empty_transaction_search_results(client, admin_user):
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
     assert "No transactions found matching the selected search criteria" in html
+
+
+def test_transaction_date_filters(client, admin_user, customer_user, receiver_user):
+    c_user, c_acc = customer_user
+    _, r_acc = receiver_user
+
+    debit_txn, _ = banking_service.transfer(c_acc, r_acc, Decimal("100.00"), "Date Filter Test", c_user.id)
+    ref_no = debit_txn.reference_number
+
+    login(client, admin_user.username)
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    # Match today's range
+    r_pass = client.get(f"/admin/transactions?date_from={today_str}&date_to={today_str}")
+    assert r_pass.status_code == 200
+    assert ref_no in r_pass.get_data(as_text=True)
+
+    # Future date range (should return no results)
+    r_empty = client.get("/admin/transactions?date_from=2099-01-01&date_to=2099-01-02")
+    assert r_empty.status_code == 200
+    assert "No transactions found matching the selected search criteria" in r_empty.get_data(as_text=True)
+
+
+def test_admin_user_management_search(client, admin_user, customer_user):
+    c_user, _ = customer_user
+    login(client, admin_user.username)
+
+    resp = client.get(f"/admin/users?search={c_user.username}")
+    assert resp.status_code == 200
+    assert c_user.username in resp.get_data(as_text=True)
+
+    c_resp = client.get(f"/admin/customer-management?search={c_user.username}")
+    assert c_resp.status_code == 200
+    assert c_user.username in c_resp.get_data(as_text=True)
