@@ -121,7 +121,7 @@
             <td><span class="text-xs text-muted font-mono">{{ s.login_time.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
             <td><span class="text-xs text-muted font-mono">{{ s.last_activity.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
             <td class="text-end">
-              <button onclick="revokeSession({{ s.id }})" class="btn btn-outline-custom text-rose-600 btn-sm text-xs py-1">
+              <button data-id="{{ s.id }}" onclick="revokeSession(this.dataset.id)" class="btn btn-outline-custom text-rose-600 btn-sm text-xs py-1">
                 <i class="bi bi-power me-1"></i> Revoke
               </button>
             </td>
@@ -160,7 +160,7 @@
             <td class="text-muted text-xs">{{ u.email }}</td>
             <td><span class="text-xs text-rose-600 font-mono">{{ u.locked_until.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
             <td class="text-end">
-              <button onclick="toggleLockout({{ u.id }})" class="btn btn-emerald btn-sm text-xs">
+              <button data-id="{{ u.id }}" onclick="toggleLockout(this.dataset.id)" class="btn btn-emerald btn-sm text-xs">
                 <i class="bi bi-unlock me-1"></i> Unlock Account
               </button>
             </td>
