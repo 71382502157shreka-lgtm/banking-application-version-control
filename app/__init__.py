@@ -85,7 +85,8 @@ def _register_blueprints(app):
 
 
 def _register_security_middleware(app):
-    from app.utils.security_utils import apply_security_headers
+    from app.utils.security_utils import apply_security_headers, check_global_rate_limit
+    app.before_request(check_global_rate_limit)
     app.after_request(apply_security_headers)
 
 
