@@ -115,17 +115,29 @@ class BankingApp:
         return version_service.get_history(entity_type, entity_id)
 
     def compare_versions(self, entity_type: str, entity_id: int, v1: int, v2: int) -> Dict[str, Any]:
-        return version_service.compare_versions(entity_type, entity_id, v1, v2)
+        return version_service.diff_versions(entity_type, entity_id, v1, v2)
 
     def request_rollback(self, requested_by: int, entity_type: str, entity_id: int,
                          target_version: int, reason: str) -> Tuple[Any, Optional[str]]:
-        return approval_service.request_rollback(requested_by, entity_type, entity_id, target_version, reason)
+        try:
+            req = approval_service.request_rollback(requested_by, entity_type, entity_id, target_version, reason)
+            return req, None
+        except Exception as e:
+            return None, str(e)
 
-    def approve_rollback(self, request_id: int, reviewer_id: int, review_notes: str = "") -> Tuple[bool, str]:
-        return approval_service.approve_rollback(request_id, reviewer_id, review_notes)
+    def approve_rollback(self, request_id: int, reviewer_id: int, review_notes: str = "") -> Tuple[Any, Optional[str]]:
+        try:
+            req = approval_service.approve_rollback_request(request_id, reviewer_id, review_notes)
+            return req, None
+        except Exception as e:
+            return None, str(e)
 
     def review_risk(self, assessment_id: int, reviewer_id: int, approve: bool, review_notes: str = "") -> Tuple[Any, Optional[str]]:
-        return risk_engine.review_risk_assessment(assessment_id, reviewer_id, approve, review_notes)
+        try:
+            res = approval_service.review_risk_assessment(assessment_id, reviewer_id, approve, review_notes)
+            return res, None
+        except Exception as e:
+            return None, str(e)
 
     def verify_audit_chain(self) -> Tuple[bool, str]:
         res = audit_service.verify_audit_integrity()
