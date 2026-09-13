@@ -22,6 +22,28 @@ class LoginSession(BaseModel):
     last_activity = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
+    step_up_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    step_up_expires_at = db.Column(db.DateTime, nullable=True)
+
+    def issue_step_up_token(self, ttl_minutes: int = 5) -> str:
+        token = secrets.token_hex(32)
+        self.step_up_token = token
+        self.step_up_expires_at = datetime.utcnow() + timedelta(minutes=ttl_minutes)
+        db.session.commit()
+        return token
+
+    def is_step_up_valid(self, token: str) -> bool:
+        if not self.step_up_token or self.step_up_token != token:
+            return False
+        if not self.step_up_expires_at or datetime.utcnow() > self.step_up_expires_at:
+            return False
+        return True
+
+    def consume_step_up_token(self):
+        self.step_up_token = None
+        self.step_up_expires_at = None
+        db.session.commit()
+
     @classmethod
     def create_session(cls, user_id: int, ip_address: str, user_agent_str: str):
         token = secrets.token_hex(32)
