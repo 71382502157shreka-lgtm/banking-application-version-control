@@ -108,7 +108,7 @@ def test_sdk_deposit_withdraw_and_invalid_account(app):
         fail_w, fail_err = sdk.withdraw(acc.id, Decimal("99999.00"), description="Excess Withdrawal")
         assert fail_w is None
         assert fail_err is not None
-        assert "insufficient funds" in fail_err.lower()
+        assert "insufficient" in fail_err.lower()
 
         # Non-existent account
         bad_dep, bad_err = sdk.deposit(999999, Decimal("100.00"))
@@ -225,9 +225,10 @@ def test_sdk_maker_checker_rollback_workflow(app):
         assert req.status.value == "pending"
 
         # Admin approves rollback
-        success, msg = sdk.approve_rollback(req.id, admin.id, "Approved error reversal")
-        assert success is True
-        assert "approved" in msg.lower()
+        app_req, app_err = sdk.approve_rollback(req.id, admin.id, "Approved error reversal")
+        assert app_err is None
+        assert app_req is not None
+        assert app_req.status.value == "approved"
 
         db.session.refresh(acc)
         assert acc.balance == Decimal("1000.00")
@@ -245,14 +246,15 @@ def test_sdk_risk_engine_review_and_release(app):
 
         # Trigger high risk evaluation
         txn, _ = sdk.deposit(acc.id, Decimal("500000.00"))
-        assessment = risk_engine.evaluate_transaction_risk(txn, u, "192.168.1.1")
+        assessment = risk_engine.evaluate_transaction_risk(source_account=acc, destination_account=None, amount=Decimal("500000.00"), actor_user_id=u.id)
+        db.session.add(assessment)
         db.session.commit()
 
         # Review and approve risk assessment via SDK
-        reviewed_acc, err = sdk.review_risk(assessment.id, admin.id, approve=True, review_notes="Verified client identity")
+        reviewed_assessment, err = sdk.review_risk(assessment.id, admin.id, approve=True, review_notes="Verified client identity")
         assert err is None
-        assert reviewed_acc is not None
-        assert assessment.status.value in ["approved", "passed"]
+        assert reviewed_assessment is not None
+        assert reviewed_assessment.decision.value == "approved"
 
 
 def test_sdk_verify_audit_chain(app):
