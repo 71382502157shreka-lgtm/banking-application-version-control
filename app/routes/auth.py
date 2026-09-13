@@ -4,6 +4,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app.models.user import Role
 from app.services import auth_service, banking_service
 from app.utils.validators import ValidationError
+from app.utils.security_utils import rate_limit
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -17,6 +18,7 @@ def index():
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 @auth_bp.route("/login/<role>", methods=["GET", "POST"])
+@rate_limit(limit=5, window_seconds=60, key_prefix="auth_login")
 def login(role=None):
     if current_user.is_authenticated:
         return redirect(url_for(f"{current_user.role}.dashboard"))
@@ -44,6 +46,7 @@ def login(role=None):
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 @auth_bp.route("/register/<role>", methods=["GET", "POST"])
+@rate_limit(limit=5, window_seconds=60, key_prefix="auth_register")
 def register(role=None):
     if current_user.is_authenticated:
         return redirect(url_for(f"{current_user.role}.dashboard"))
