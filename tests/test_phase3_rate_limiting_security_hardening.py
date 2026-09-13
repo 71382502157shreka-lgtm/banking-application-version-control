@@ -103,13 +103,13 @@ def test_rate_limit_ip_isolation(rate_limit_client):
     """Test requests from different IP addresses are tracked in isolated buckets."""
     # Exhaust rate limit for IP 10.0.0.1
     for _ in range(5):
-        rate_limit_client.get("/", headers={"REMOTE_ADDR": "10.0.0.1"})
+        rate_limit_client.get("/", environ_base={"REMOTE_ADDR": "10.0.0.1"})
 
-    ip1_res = rate_limit_client.get("/", headers={"REMOTE_ADDR": "10.0.0.1"})
+    ip1_res = rate_limit_client.get("/", environ_base={"REMOTE_ADDR": "10.0.0.1"})
     assert ip1_res.status_code == 429
 
     # IP 10.0.0.2 should still be allowed
-    ip2_res = rate_limit_client.get("/", headers={"REMOTE_ADDR": "10.0.0.2"})
+    ip2_res = rate_limit_client.get("/", environ_base={"REMOTE_ADDR": "10.0.0.2"})
     assert ip2_res.status_code in (200, 302)
 
 
