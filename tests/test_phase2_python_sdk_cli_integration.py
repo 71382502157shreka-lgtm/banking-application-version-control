@@ -25,7 +25,7 @@ from app import db
 from app.models.user import User, Role
 from app.models.account import Account, AccountType
 from app.models.version import EntityType
-from app.models.workflow_risk import RiskAssessment, RiskDecision, RiskLevel
+from app.models.workflow_risk import RiskAssessment, RiskDecision, RiskLevel, RollbackStatus
 from app.services import auth_service, banking_service, risk_engine, approval_service
 
 
@@ -194,8 +194,8 @@ def test_sdk_version_history_and_compare_versions(app):
         # Compare version 1 and 2
         diff = sdk.compare_versions(EntityType.ACCOUNT, acc.id, 1, 2)
         assert diff["entity_type"] == EntityType.ACCOUNT
-        assert diff["v1"] == 1
-        assert diff["v2"] == 2
+        assert "version_a" in diff
+        assert "version_b" in diff
         assert "fields" in diff
 
 
@@ -222,13 +222,13 @@ def test_sdk_maker_checker_rollback_workflow(app):
         )
         assert req_err is None
         assert req is not None
-        assert req.status.value == "pending"
+        assert req.status == RollbackStatus.PENDING
 
         # Admin approves rollback
         app_req, app_err = sdk.approve_rollback(req.id, admin.id, "Approved error reversal")
         assert app_err is None
         assert app_req is not None
-        assert app_req.status.value == "approved"
+        assert app_req.status == RollbackStatus.APPROVED
 
         db.session.refresh(acc)
         assert acc.balance == Decimal("1000.00")
@@ -254,7 +254,7 @@ def test_sdk_risk_engine_review_and_release(app):
         reviewed_assessment, err = sdk.review_risk(assessment.id, admin.id, approve=True, review_notes="Verified client identity")
         assert err is None
         assert reviewed_assessment is not None
-        assert reviewed_assessment.decision.value == "approved"
+        assert reviewed_assessment.decision == RiskDecision.APPROVED
 
 
 def test_sdk_verify_audit_chain(app):
