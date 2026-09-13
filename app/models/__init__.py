@@ -17,6 +17,10 @@ from app.models.service_request import ServiceRequest, ServiceRequestType, Servi
 from app.models.document_vault import CustomerDocument, DocumentStatus
 from app.models.behavioral_profile import UserBehavioralProfile
 from app.models.fraud_alert import FraudAlert, FraudAlertSeverity, FraudAlertStatus
+from app.models.security_incident import (
+    SecurityIncident, IncidentEvent, AccountFreeze,
+    FreezeType, IncidentSeverity, IncidentStatus,
+)
 
 __all__ = [
     "BaseModel",
@@ -36,4 +40,6 @@ __all__ = [
     "CustomerDocument", "DocumentStatus",
     "UserBehavioralProfile",
     "FraudAlert", "FraudAlertSeverity", "FraudAlertStatus",
+    "SecurityIncident", "IncidentEvent", "AccountFreeze",
+    "FreezeType", "IncidentSeverity", "IncidentStatus",
 ]

@@ -412,3 +412,12 @@ def customer_management():
 def approvals():
     requests_list = RollbackRequest.query.order_by(RollbackRequest.created_at.desc()).all()
     return render_template("admin/rollback_requests.html", requests=requests_list)
+
+
+@admin_bp.route("/soc")
+@login_required
+@roles_required(Role.ADMIN)
+def soc_dashboard():
+    from app.services import soc_service
+    metrics = soc_service.get_soc_dashboard_metrics()
+    return render_template("admin/soc_dashboard.html", metrics=metrics)

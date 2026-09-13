@@ -23,6 +23,7 @@ class FraudAlert(BaseModel):
     id = db.Column(db.Integer, primary_key=True)
     transaction_id = db.Column(db.Integer, db.ForeignKey("transactions.id"), nullable=True, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    incident_id = db.Column(db.Integer, db.ForeignKey("security_incidents.id"), nullable=True, index=True)
 
     alert_type = db.Column(db.String(50), nullable=False, index=True)  # DUPLICATE_ATTEMPT, MULE_ACCOUNT_SUSPECT, HIGH_VELOCITY_BURST, CRITICAL_RISK_HOLD
     severity = db.Column(db.String(20), nullable=False, default=FraudAlertSeverity.MEDIUM)
@@ -40,6 +41,7 @@ class FraudAlert(BaseModel):
             "id": self.id,
             "transaction_id": self.transaction_id,
             "user_id": self.user_id,
+            "incident_id": self.incident_id,
             "alert_type": self.alert_type,
             "severity": self.severity,
             "status": self.status,

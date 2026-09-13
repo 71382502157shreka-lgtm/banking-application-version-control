@@ -57,6 +57,8 @@ def _bump_account_version(account: Account):
 
 def deposit(account: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None) -> Transaction:
     amount = validate_amount(amount)
+    if account.is_credit_frozen():
+        raise ValidationError("Account is frozen for deposit/credit operations")
     old_data = account.to_dict()
 
     account.balance = Decimal(account.balance) + amount
@@ -97,6 +99,8 @@ def deposit(account: Account, amount, description: str, actor_user_id: int, tran
 
 def withdraw(account: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None) -> Transaction:
     amount = validate_amount(amount)
+    if account.is_debit_frozen():
+        raise ValidationError("Account is frozen for withdrawal/debit operations")
     if Decimal(account.available_balance) < amount:
         raise InsufficientBalanceError("Insufficient available balance for this withdrawal")
 
@@ -140,10 +144,10 @@ def withdraw(account: Account, amount, description: str, actor_user_id: int, tra
 def transfer(source: Account, destination: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None, idempotency_key: str = None):
     amount = validate_amount(amount)
 
-    if not source or source.status != AccountStatus.ACTIVE:
-        raise ValidationError("Source account is inactive or invalid")
-    if not destination or destination.status != AccountStatus.ACTIVE:
-        raise ValidationError("Destination account is inactive or invalid")
+    if not source or source.status != AccountStatus.ACTIVE or source.is_debit_frozen():
+        raise ValidationError("Source account is inactive or frozen")
+    if not destination or destination.status != AccountStatus.ACTIVE or destination.is_credit_frozen():
+        raise ValidationError("Destination account is inactive or frozen")
 
     if source.id == destination.id or source.account_number == destination.account_number:
         raise ValidationError("Cannot transfer to the same account")

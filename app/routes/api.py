@@ -1534,3 +1534,216 @@ def verify_api_document(doc_id):
     return jsonify(doc.to_dict())
 
 
+# =========================================================================
+# SOC & FRAUD INVESTIGATION REST API ENDPOINTS
+# =========================================================================
+
+@api_bp.route("/v1/admin/soc/dashboard", methods=["GET"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_soc_dashboard():
+    from app.services import soc_service
+    return jsonify(soc_service.get_soc_dashboard_metrics())
+
+
+@api_bp.route("/v1/admin/soc/incidents", methods=["GET"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_list_incidents():
+    from app.services import soc_service
+    status_filter = request.args.get("status")
+    severity_filter = request.args.get("severity")
+    user_id = request.args.get("user_id", type=int)
+    search = request.args.get("search")
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
+
+    return jsonify(soc_service.get_incidents(
+        status=status_filter,
+        severity=severity_filter,
+        user_id=user_id,
+        search=search,
+        page=page,
+        per_page=per_page
+    ))
+
+
+@api_bp.route("/v1/admin/soc/incidents", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_create_incident():
+    from app.services import soc_service
+    data = request.get_json(force=True) or {}
+    title = data.get("title")
+    description = data.get("description")
+    severity = data.get("severity", "MEDIUM")
+    user_id = data.get("user_id")
+    alert_ids = data.get("alert_ids")
+
+    incident = soc_service.create_incident(
+        title=title,
+        description=description,
+        severity=severity,
+        user_id=user_id,
+        alert_ids=alert_ids,
+        actor_id=current_user.id
+    )
+    return jsonify(incident.to_dict()), 201
+
+
+@api_bp.route("/v1/admin/soc/incidents/<int:inc_id>", methods=["GET"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_get_incident(inc_id):
+    from app.services import soc_service
+    return jsonify(soc_service.get_incident_detail(inc_id))
+
+
+@api_bp.route("/v1/admin/soc/incidents/<int:inc_id>/update-status", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_update_incident_status(inc_id):
+    from app.services import soc_service
+    data = request.get_json(force=True) or {}
+    new_status = data.get("status")
+    notes = data.get("resolution_notes", data.get("notes", "Status updated by admin"))
+
+    incident = soc_service.update_incident_status(inc_id, new_status, notes, current_user.id)
+    return jsonify(incident.to_dict())
+
+
+@api_bp.route("/v1/admin/soc/incidents/<int:inc_id>/assign", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_assign_incident(inc_id):
+    from app.services import soc_service
+    data = request.get_json(force=True) or {}
+    admin_id = data.get("assigned_admin_id", current_user.id)
+
+    incident = soc_service.assign_incident(inc_id, admin_id, current_user.id)
+    return jsonify(incident.to_dict())
+
+
+@api_bp.route("/v1/admin/soc/user-timeline/<int:user_id>", methods=["GET"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_get_user_timeline(user_id):
+    from app.services import soc_service
+    return jsonify(soc_service.get_user_timeline(user_id))
+
+
+@api_bp.route("/v1/admin/soc/accounts/<int:account_id>/freeze", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_freeze_account(account_id):
+    from app.services import mfa_service, soc_service
+
+    step_up_token = request.headers.get("X-Step-Up-Token") or (request.get_json(silent=True) or {}).get("step_up_token")
+    session_token = request.cookies.get("session_token")
+    if not step_up_token or not mfa_service.validate_and_consume_step_up_token(current_user.id, step_up_token, session_token):
+        return jsonify({
+            "error": "Step-Up Authentication Required",
+            "message": "Freezing an account requires Step-Up MFA verification.",
+            "step_up_required": True
+        }), 403
+
+    data = request.get_json(force=True) or {}
+    freeze_type = data.get("freeze_type", "TOTAL_FREEZE")
+    reason = data.get("reason", "Administrative Security Freeze")
+
+    freeze = soc_service.freeze_account(account_id, freeze_type, reason, current_user.id)
+    return jsonify(freeze.to_dict()), 200
+
+
+@api_bp.route("/v1/admin/soc/accounts/<int:account_id>/unfreeze", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_unfreeze_account(account_id):
+    from app.services import mfa_service, soc_service
+
+    step_up_token = request.headers.get("X-Step-Up-Token") or (request.get_json(silent=True) or {}).get("step_up_token")
+    session_token = request.cookies.get("session_token")
+    if not step_up_token or not mfa_service.validate_and_consume_step_up_token(current_user.id, step_up_token, session_token):
+        return jsonify({
+            "error": "Step-Up Authentication Required",
+            "message": "Unfreezing an account requires Step-Up MFA verification.",
+            "step_up_required": True
+        }), 403
+
+    data = request.get_json(force=True) or {}
+    reason = data.get("reason", "Administrative Security Unfreeze")
+
+    acc = soc_service.unfreeze_account(account_id, reason, current_user.id)
+    return jsonify(acc.to_dict()), 200
+
+
+@api_bp.route("/v1/admin/soc/transactions/<int:txn_id>/release", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_release_held_transaction(txn_id):
+    from app.services import mfa_service, soc_service
+
+    step_up_token = request.headers.get("X-Step-Up-Token") or (request.get_json(silent=True) or {}).get("step_up_token")
+    session_token = request.cookies.get("session_token")
+    if not step_up_token or not mfa_service.validate_and_consume_step_up_token(current_user.id, step_up_token, session_token):
+        return jsonify({
+            "error": "Step-Up Authentication Required",
+            "message": "Releasing a held high-risk transaction requires Step-Up MFA verification.",
+            "step_up_required": True
+        }), 403
+
+    data = request.get_json(force=True) or {}
+    notes = data.get("notes", "Released by Security Operations")
+
+    debit, credit = soc_service.release_held_transaction(txn_id, current_user.id, notes)
+    return jsonify(debit=debit.to_dict(), credit=credit.to_dict() if credit else None), 200
+
+
+@api_bp.route("/v1/admin/soc/transactions/<int:txn_id>/reject", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_reject_held_transaction(txn_id):
+    from app.services import soc_service
+
+    data = request.get_json(force=True) or {}
+    reason = data.get("reason", "Transaction rejected by Security Operations")
+
+    txn = soc_service.reject_held_transaction(txn_id, current_user.id, reason)
+    return jsonify(txn.to_dict()), 200
+
+
+@api_bp.route("/v1/admin/soc/alerts/<int:alert_id>/mark-false-positive", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_mark_false_positive(alert_id):
+    from app.services import soc_service
+
+    data = request.get_json(force=True) or {}
+    notes = data.get("notes", "Dismissed as false positive after review")
+
+    alert = soc_service.mark_false_positive(alert_id, current_user.id, notes)
+    return jsonify(alert.to_dict()), 200
+
+
+@api_bp.route("/v1/admin/soc/evidence/<int:inc_id>/export", methods=["GET"])
+@login_required
+@roles_required(Role.ADMIN)
+@json_errors
+def api_export_evidence(inc_id):
+    from app.services import soc_service
+    return jsonify(soc_service.export_evidence_bundle(inc_id))
+
+
+

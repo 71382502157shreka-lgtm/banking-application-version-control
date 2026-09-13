@@ -41,8 +41,26 @@ class Account(BaseModel):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     transactions = db.relationship("Transaction", foreign_keys="Transaction.account_id", backref="account", lazy=True)
+    freezes = db.relationship("AccountFreeze", backref="account", lazy="dynamic", cascade="all, delete-orphan")
+
+    def get_active_freeze(self):
+        from app.models.security_incident import AccountFreeze
+        return self.freezes.filter_by(is_active=True).first()
+
+    def is_debit_frozen(self):
+        af = self.get_active_freeze()
+        if self.status == AccountStatus.FROZEN:
+            return True
+        return af is not None and af.freeze_type in ("DEBIT_FREEZE", "TOTAL_FREEZE")
+
+    def is_credit_frozen(self):
+        af = self.get_active_freeze()
+        if self.status == AccountStatus.FROZEN:
+            return True
+        return af is not None and af.freeze_type in ("CREDIT_FREEZE", "TOTAL_FREEZE")
 
     def to_dict(self):
+        af = self.get_active_freeze()
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -51,6 +69,7 @@ class Account(BaseModel):
             "balance": str(self.balance),
             "available_balance": str(self.available_balance),
             "status": self.status,
+            "freeze_type": af.freeze_type if af else None,
             "version_number": self.version_number,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
