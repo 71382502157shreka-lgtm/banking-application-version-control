@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bankvcs_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-prod-super-secret-key-change-me-12345}
+      - DATABASE_URL=postgresql://bankvcs_user:bankvcs_password@db:5432/bankvcs_db
+      - RATELIMIT_ENABLED=true
+      - TRUSTED_PROXIES_COUNT=1
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: bankvcs_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=bankvcs_user
+      - POSTGRES_PASSWORD=bankvcs_password
+      - POSTGRES_DB=bankvcs_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bankvcs_user -d bankvcs_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

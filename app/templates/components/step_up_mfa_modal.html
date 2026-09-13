@@ -1,0 +1,124 @@
+<!-- Step-Up MFA OTP Modal -->
+<div class="modal fade" id="stepUpMfaModal" tabindex="-1" aria-labelledby="stepUpMfaModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title font-display fw-bold" id="stepUpMfaModalLabel">
+          <i class="bi bi-shield-lock-fill me-2"></i>Security Step-Up Verification Required
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small mb-3">
+          This operation is protected by <strong>Step-Up Multi-Factor Authentication (MFA)</strong> due to elevated security policy or high financial/admin value.
+        </p>
+
+        <div id="stepUpAlert" class="alert alert-info text-xs d-none"></div>
+
+        <form id="stepUpMfaForm" onsubmit="handleStepUpMfaVerify(event)">
+          <div class="mb-3">
+            <label class="form-label font-semibold text-xs text-uppercase">Enter 6-Digit OTP Code</label>
+            <input type="text" id="stepUpOtpInput" class="form-control text-center fs-3 font-monospace letter-spacing-2" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autocomplete="off">
+            <div class="form-text text-muted text-xs">A 6-digit verification code has been dispatched to your active MFA device/email.</div>
+          </div>
+          <button type="submit" id="stepUpVerifyBtn" class="btn btn-danger w-100 fw-bold py-2">
+            <i class="bi bi-check-circle me-1"></i> Verify OTP &amp; Authorize Action
+          </button>
+        </form>
+      </div>
+      <div class="modal-footer bg-light px-4 py-2 justify-content-between">
+        <span class="text-xs text-muted"><i class="bi bi-clock me-1"></i> Temporary Token TTL: 5 Minutes</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentStepUpActionCallback = null;
+let currentStepUpActionType = "GENERAL";
+
+function triggerStepUpAction(actionType, onVerifiedCallback) {
+  currentStepUpActionCallback = onVerifiedCallback;
+  currentStepUpActionType = actionType || "GENERAL";
+
+  const alertBox = document.getElementById("stepUpAlert");
+  const otpInput = document.getElementById("stepUpOtpInput");
+  otpInput.value = "";
+
+  // Request OTP generation via API
+  fetch("/api/v1/auth/request-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action_type: currentStepUpActionType })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      alertBox.textContent = `OTP code requested successfully! Demo Code: ${res.demo_otp || 'Sent'}`;
+      alertBox.classList.remove("d-none", "alert-danger");
+      alertBox.classList.add("alert-info");
+    } else {
+      alertBox.textContent = res.message || "Failed to issue OTP.";
+      alertBox.classList.remove("d-none", "alert-info");
+      alertBox.classList.add("alert-danger");
+    }
+  })
+  .catch(err => {
+    alertBox.textContent = "Error generating OTP.";
+    alertBox.classList.remove("d-none");
+    alertBox.classList.add("alert-danger");
+  });
+
+  const modalEl = document.getElementById("stepUpMfaModal");
+  if (modalEl) {
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+}
+
+function handleStepUpMfaVerify(e) {
+  e.preventDefault();
+  const otp = document.getElementById("stepUpOtpInput").value.trim();
+  const alertBox = document.getElementById("stepUpAlert");
+  const verifyBtn = document.getElementById("stepUpVerifyBtn");
+
+  verifyBtn.disabled = true;
+  verifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying...';
+
+  fetch("/api/v1/auth/verify-step-up-otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      otp: otp,
+      action_type: currentStepUpActionType
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    verifyBtn.disabled = false;
+    verifyBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Verify OTP & Authorize Action';
+
+    if (res.success && res.step_up_token) {
+      const modalEl = document.getElementById("stepUpMfaModal");
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+
+      if (typeof currentStepUpActionCallback === "function") {
+        currentStepUpActionCallback(res.step_up_token);
+      }
+    } else {
+      alertBox.textContent = res.message || res.error || "Invalid OTP verification code.";
+      alertBox.classList.remove("d-none", "alert-info");
+      alertBox.classList.add("alert-danger");
+    }
+  })
+  .catch(err => {
+    verifyBtn.disabled = false;
+    verifyBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Verify OTP & Authorize Action';
+    alertBox.textContent = "Network error verifying OTP.";
+    alertBox.classList.remove("d-none");
+    alertBox.classList.add("alert-danger");
+  });
+}
+</script>

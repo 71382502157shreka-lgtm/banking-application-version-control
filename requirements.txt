@@ -8,3 +8,6 @@ pytest==8.2.2
 Flask-Migrate==4.0.7
 reportlab
 openpyxl
+
+gunicorn==22.0.0
+waitress==3.0.0

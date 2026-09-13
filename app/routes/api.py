@@ -30,6 +30,28 @@ api_bp = Blueprint("api", __name__)
 
 
 # ---------------------------------------------------------------------------
+# Health Check Endpoint
+# ---------------------------------------------------------------------------
+@api_bp.route("/health", methods=["GET"])
+@api_bp.route("/v1/health", methods=["GET"])
+def health_check():
+    """Unauthenticated health check endpoint for load balancers and deployment probes."""
+    try:
+        db.session.execute(db.select(1))
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+
+    return jsonify({
+        "status": "healthy" if db_status == "connected" else "degraded",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "database": db_status,
+        "version": "2.0.0",
+        "application": "BankVCS"
+    }), 200 if db_status == "connected" else 503
+
+
+# ---------------------------------------------------------------------------
 # Accounts
 # ---------------------------------------------------------------------------
 @api_bp.route("/accounts", methods=["GET"])

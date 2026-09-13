@@ -3,11 +3,12 @@
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://www.sqlalchemy.org/)
-[![Tests](https://img.shields.io/badge/Tests-55%20Passed%20%7C%2074%25%20Coverage-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-233%20Passed%20%7C%20100%25%20Pass%20Rate-brightgreen.svg)]()
 [![Architecture](https://img.shields.io/badge/Architecture-Python--First%20%2F%20Backend--Heavy-purple.svg)]()
 [![Audit Chain](https://img.shields.io/badge/Audit%20Chain-SHA--256%20Tamper--Evident-emerald.svg)]()
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)]()
 
-**BankVCS 2.0** is an enterprise-grade digital banking application and database version control system built with a **Python-first, backend-heavy architecture**. All business logic, transaction calculations, financial validations, risk evaluations, version control snapshotting, field-level diffing, audit hash chaining, and security checks are executed strictly in **Python**. HTML and Jinja2 templates are used for server-side rendering, with minimal client-side JavaScript for essential UI interactions (theme toggling, modal opening, Chart.js display).
+**BankVCS 2.0** is an enterprise-grade digital banking application, database version control system, and Security Operations Center (SOC) built with a **Python-first, backend-heavy architecture**. All business logic, transaction calculations, financial validations, risk evaluations, 10-vector behavioral anomaly scores, Step-Up MFA challenges, idempotency replay protection, version control snapshotting, field-level diffing, audit hash chaining, and security operations are executed strictly in **Python**. HTML and Jinja2 templates are used for server-side rendering, with minimal client-side JavaScript for essential UI interactions (theme toggling, modal opening, Chart.js display).
 
 ---
 
@@ -15,95 +16,32 @@
 
 Traditional web applications often leak business or calculation logic into frontend JavaScript. **BankVCS 2.0** enforces strict architectural boundaries:
 
-- **100% Python Backend Logic**: Account balances, transaction processing, transfer approvals, risk scores, version creation, audit hashing, rollbacks, and role-based access permissions are verified and executed inside Python services.
+- **100% Python Backend Logic**: Account balances, transaction processing, transfer approvals, behavioral risk scores, Step-Up MFA tokens, version creation, audit hashing, rollbacks, and role-based access permissions are verified and executed inside Python services.
 - **Server-Side Rendering (SSR)**: Pages are rendered through Flask routes and Jinja2 templates.
-- **Minimal JavaScript**: Frontend JS handles only theme switching, chart rendering, sidebar toggling, and minor UI updates. No financial or security logic exists in JavaScript.
+- **Security Operations Center (SOC)**: Administrative SOC command center (`/admin/soc`) for real-time incident tickets (`INC-YYYYMM-XXXX`), account freezes, transaction holds (`BLOCKED_FOR_REVIEW`), and 360° user security timelines.
 - **Pure Python SDK & Interactive CLI**: The application can run entirely in a terminal or python script without a web browser via `cli.py` and `bankvcs.py`.
 
 ---
 
-## 2. Repository Language Breakdown
+## 2. System Roles & Access Control Model
 
-The language composition of the codebase, generated automatically via `python scripts/analyze_project_languages.py` (excluding virtual environments, `.git`, and cache files), is:
-
-```text
-============================================================
-BANKVCS 2.0 - REPOSITORY LANGUAGE STATISTICS
-============================================================
-Python      :   60 files ( 53.1%) |   6,150 lines ( 41.2%)
-HTML (Jinja):   53 files ( 46.0%) |   7,890 lines ( 52.8%)
-CSS         :    1 file  (  0.9%) |     936 lines (  6.0%)
-JavaScript  :    0 files (  0.0%) |       0 lines (  0.0%)
-------------------------------------------------------------
-Total       :  114 files         |  14,976 lines
-============================================================
-```
-
-> **Note**: JavaScript usage is restricted to inline helpers for theme toggling and Chart.js initialization inside Jinja2 base/page templates. There are 0 standalone JS files in the project.
-
----
-
-## 3. System Roles & Access Control Model
-
-BankVCS 2.0 enforces explicit **Role-Based Access Control (RBAC)** across three distinct system roles:
+BankVCS 2.0 enforces explicit **Role-Based Access Control (RBAC)** across four distinct system roles:
 
 ### 👤 Customer (`Role.CUSTOMER`)
-- **Primary Function**: Digital banking client who manages personal accounts, beneficiaries, and transactions.
-- **Capabilities**:
-  - Self-service registration & secure login.
-  - View personal accounts, balances, and real-time transaction history.
-  - Perform deposit, withdrawal, intra-bank, and inter-bank transfers.
-  - Add, edit, and track version history (diffs) of personal beneficiaries.
-  - Access BankVCS AI Assistant chatbot for advisory guidance.
-  - View and download account statements (CSV export).
-  - Submit complaints / service tickets to bank support.
+- Self-service registration & secure login.
+- View personal accounts, balances, and real-time transaction history.
+- Perform deposit, withdrawal, intra-bank, and inter-bank transfers.
+- Add, edit, and track version history (diffs) of personal beneficiaries.
+- Access BankVCS AI Assistant chatbot for advisory guidance.
+- View and download account statements (CSV export).
+- Submit complaints / service tickets and access Document Vault.
 
 ### 💼 Provider / Employee (`Role.EMPLOYEE`)
-- **Primary Function**: Banking Service Officer / Staff Provider responsible for customer support, service request handling, and risk/approval workflows.
-- **Capabilities**:
-  - Secure employee login and access to the dedicated Employee Portal (`/employee/dashboard`).
-  - Search customer directory and inspect customer profile details.
-  - Assist customers with deposit and withdrawal requests.
-  - View assigned customer requests, pending transactions, and service tickets.
-  - Access BankVCS AI Assistant chatbot for staff operational guidance.
-  - Create and review Maker-Checker rollback requests (cannot approve self-created requests).
-  - Resolve customer complaints and update ticket statuses.
+- Banking Service Officer / Staff Provider responsible for customer support and service requests.
+- Customer directory search, profile inspection, deposit/withdrawal assistance.
+- Maker-Checker rollback request creation and complaint resolution.
 
 ### 🛡️ Admin (`Role.ADMIN`)
-- **Primary Function**: System Administrator with full platform oversight, security auditing, and governance controls.
-- **Capabilities**:
-  - Full access to the Admin Dashboard (`/admin/dashboard`).
-  - System User & Provider/Employee administration.
-  - Verify and manage service provider profiles.
-  - Inspect Security Telemetry Center and manage active user sessions.
-  - Execute cryptographic **SHA-256 Audit Chain Verification** to detect any data tampering.
-  - Approve or reject Maker-Checker version rollback requests on the **Rollback Approval Board**.
-
----
-
-## 4. Role Permission Matrix
-
-| Feature / Resource | Customer | Provider (Employee) | Admin | Unauthenticated |
-| :--- | :---: | :---: | :---: | :---: |
-| **Public Landing & Login (`/`, `/login`)** | ✅ | ✅ | ✅ | ✅ |
-| **User Registration (`/register`)** | ✅ (Forces Customer Role) | ❌ | ❌ | ✅ |
-| **Customer Portal (`/customer/*`)** | ✅ (Own Data Only) | ❌ (403 Forbidden) | ❌ (403 Forbidden) | 302 Redirect |
-| **AI Banking Assistant (`/api/ai/chat`)** | ✅ (Advisory Guidance) | ✅ (Staff Guidance) | ✅ (Admin Guidance) | 401 Unauthorized |
-| **Deposit / Withdraw (`/customer/deposit`, `/withdraw`)** | ✅ (Own Account) | ❌ (Must use staff portal) | ❌ | 302 Redirect |
-| **Transfers & Beneficiaries (`/customer/transfer`)** | ✅ (Own Account) | ❌ | ❌ | 302 Redirect |
-| **View Version Diffs (`/customer/version/*`)** | ✅ (Own Data) | ❌ | ❌ | 302 Redirect |
-| **CSV Statement Download (`/customer/statement`)** | ✅ (Own Statements) | ❌ | ❌ | 302 Redirect |
-| **Employee Portal (`/employee/*`)** | ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
-| **Customer Directory & Search (`/employee/customers`)** | ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
-| **Staff Deposit/Withdraw Helper (`/employee/deposit`)** | ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
-| **Create Rollback Request (`/employee/rollback/request`)**| ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
-| **Complaint Resolution Board (`/employee/complaints`)** | ❌ (403 Forbidden) | ✅ | ❌ (403 Forbidden) | 302 Redirect |
-| **Admin Portal (`/admin/*`)** | ❌ (403 Forbidden) | ❌ (403 Forbidden) | ✅ | 302 Redirect |
-| **SHA-256 Audit Verifier (`/admin/audit`)** | ❌ (403 Forbidden) | ❌ (403 Forbidden) | ✅ | 302 Redirect |
-| **Security Center & Session Revoke (`/admin/security`)** | ❌ (403 Forbidden) | ❌ (403 Forbidden) | ✅ | 302 Redirect |
-| **Rollback Approval Board (`/admin/rollback/board`)** | ❌ (403 Forbidden) | ❌ (403 Forbidden) | ✅ | 302 Redirect |
-
----
 
 ## 5. Security & AI Safety Precautions
 

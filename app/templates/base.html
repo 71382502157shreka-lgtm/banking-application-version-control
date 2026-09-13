@@ -252,6 +252,11 @@
           <i class="bi bi-speedometer2"></i>
           <span>System Dashboard</span>
         </a>
+        <a href="{{ url_for('admin.soc_dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.soc_dashboard' else '' }}">
+          <i class="bi bi-shield-lock-fill text-danger"></i>
+          <span>SOC &amp; Incident Center</span>
+          <span class="badge bg-danger text-white ms-auto" style="font-size: 0.65rem;">SOC</span>
+        </a>
         <a href="{{ url_for('auditor.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'auditor.dashboard' else '' }}">
           <i class="bi bi-shield-check"></i>
           <span>Auditor View</span>
@@ -708,6 +713,7 @@
       document.addEventListener('DOMContentLoaded', () => switchLanguage('TA'));
     }
   </script>
+  {% include "components/step_up_mfa_modal.html" %}
   {% block scripts %}{% endblock %}
 </body>
 </html>

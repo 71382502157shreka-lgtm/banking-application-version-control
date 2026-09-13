@@ -1,0 +1,436 @@
+{% extends "base.html" %}
+{% block title %}Security Operations Center (SOC) — BankVCS 2.0{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="font-display fw-bold mb-1"><i class="bi bi-shield-lock-fill text-danger me-2"></i>Security Operations & Incident Response Center</h2>
+      <p class="text-muted small mb-0">Real-time threat monitoring, account freezes, transaction interception, and incident triage.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge bg-success-subtle text-success border border-success-subtle align-self-center px-3 py-2 fs-6">
+        <i class="bi bi-heart-pulse-fill me-1"></i> SOC Health: {{ metrics.system_health }}
+      </span>
+      <button class="btn btn-outline-custom btn-sm d-flex align-items-center gap-1" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Key Metrics Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3 h-100 border-start border-4 border-danger">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Open Incidents</span>
+          <div class="p-2 rounded-2 bg-danger-subtle text-danger">
+            <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+          </div>
+        </div>
+        <div class="financial-num fs-3 text-danger mb-1">{{ metrics.open_incidents }}</div>
+        <div class="text-xs text-muted">{{ metrics.critical_incidents }} Critical Severity</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3 h-100 border-start border-4 border-warning">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">New Fraud Alerts</span>
+          <div class="p-2 rounded-2 bg-warning-subtle text-warning">
+            <i class="bi bi-shield-slash-fill fs-5"></i>
+          </div>
+        </div>
+        <div class="financial-num fs-3 text-warning mb-1">{{ metrics.new_fraud_alerts }}</div>
+        <div class="text-xs text-muted">{{ metrics.high_risk_alerts }} High Risk & Critical</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3 h-100 border-start border-4 border-primary">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Active Account Freezes</span>
+          <div class="p-2 rounded-2 bg-primary-subtle text-primary">
+            <i class="bi bi-snow fs-5"></i>
+          </div>
+        </div>
+        <div class="financial-num fs-3 text-primary mb-1">{{ metrics.active_account_freezes }}</div>
+        <div class="text-xs text-muted">Sessions revoked automatically</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card-custom p-3 h-100 border-start border-4 border-info">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="text-muted text-xs text-uppercase font-semibold">Held Transactions</span>
+          <div class="p-2 rounded-2 bg-info-subtle text-info">
+            <i class="bi bi-pause-circle-fill fs-5"></i>
+          </div>
+        </div>
+        <div class="financial-num fs-3 text-info mb-1">{{ metrics.held_transactions }}</div>
+        <div class="text-xs text-muted">Pending Step-Up / Review</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operational Tabs -->
+  <ul class="nav nav-tabs custom-tabs mb-4" id="socTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="incidents-tab" data-bs-toggle="tab" data-bs-target="#incidents" type="button" role="tab">
+        <i class="bi bi-ticket-detailed me-1"></i> Security Incidents ({{ metrics.recent_incidents|length }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="freeze-tab" data-bs-toggle="tab" data-bs-target="#freeze" type="button" role="tab">
+        <i class="bi bi-snow me-1"></i> Account Freeze Controls
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="held-tab" data-bs-toggle="tab" data-bs-target="#held" type="button" role="tab">
+        <i class="bi bi-hourglass-split me-1"></i> Held Transactions ({{ metrics.held_transactions }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="alerts-tab" data-bs-toggle="tab" data-bs-target="#alerts" type="button" role="tab">
+        <i class="bi bi-bell me-1"></i> Fraud Alerts Review
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button" role="tab">
+        <i class="bi bi-clock-history me-1"></i> 360° User Timeline
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="socTabsContent">
+
+    <!-- TAB 1: Security Incidents -->
+    <div class="tab-pane fade show active" id="incidents" role="tabpanel">
+      <div class="card-custom p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="font-display fw-bold mb-0">Active Security Tickets</h5>
+          <button class="btn btn-emerald btn-sm" onclick="showCreateIncidentModal()">
+            <i class="bi bi-plus-circle me-1"></i> New Incident Ticket
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Ticket #</th>
+                <th>Title</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Assigned Admin</th>
+                <th>Created At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for inc in metrics.recent_incidents %}
+              <tr>
+                <td><span class="font-monospace fw-bold">{{ inc.incident_number }}</span></td>
+                <td>{{ inc.title }}</td>
+                <td>
+                  {% if inc.severity == 'CRITICAL' %}
+                    <span class="badge bg-danger text-white">CRITICAL</span>
+                  {% elif inc.severity == 'HIGH' %}
+                    <span class="badge bg-warning text-dark">HIGH</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ inc.severity }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge bg-info-subtle text-info border border-info-subtle">{{ inc.status }}</span>
+                </td>
+                <td>{{ inc.assigned_admin_username or 'Unassigned' }}</td>
+                <td><span class="text-muted small">{{ inc.created_at }}</span></td>
+                <td>
+                  <button class="btn btn-outline-primary btn-sm" onclick="exportEvidence({{ inc.id }})">
+                    <i class="bi bi-download"></i> Evidence
+                  </button>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">No security incidents logged. System operational.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Account Freeze Controls -->
+    <div class="tab-pane fade" id="freeze" role="tabpanel">
+      <div class="row g-4">
+        <div class="col-md-5">
+          <div class="card-custom p-4">
+            <h5 class="font-display fw-bold text-danger mb-3"><i class="bi bi-snow me-1"></i> Initiate Account Freeze</h5>
+            <p class="text-muted small">Freezing an account revokes active user login sessions and blocks specified movement types. <strong>Step-Up MFA is required.</strong></p>
+            <form id="freezeForm" onsubmit="handleFreezeSubmit(event)">
+              <div class="mb-3">
+                <label class="form-label font-semibold">Account ID</label>
+                <input type="number" id="freezeAccountId" class="form-control" placeholder="e.g. 1" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label font-semibold">Freeze Type</label>
+                <select id="freezeType" class="form-select">
+                  <option value="TOTAL_FREEZE">TOTAL FREEZE (All Debits & Credits)</option>
+                  <option value="DEBIT_FREEZE">DEBIT FREEZE (No Outgoing Transfers/Withdrawals)</option>
+                  <option value="CREDIT_FREEZE">CREDIT FREEZE (No Incoming Deposits/Transfers)</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label font-semibold">Reason (min 5 chars)</label>
+                <textarea id="freezeReason" class="form-control" rows="3" placeholder="Suspicious activity / Account Takeover warning" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-danger w-100 fw-bold">
+                <i class="bi bi-shield-lock me-1"></i> Execute Account Freeze
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-md-7">
+          <div class="card-custom p-4">
+            <h5 class="font-display fw-bold text-success mb-3"><i class="bi bi-unlock-fill me-1"></i> Restore / Unfreeze Account</h5>
+            <p class="text-muted small">Restoring an account returns its status to ACTIVE. <strong>Step-Up MFA is required.</strong></p>
+            <form id="unfreezeForm" onsubmit="handleUnfreezeSubmit(event)">
+              <div class="mb-3">
+                <label class="form-label font-semibold">Account ID</label>
+                <input type="number" id="unfreezeAccountId" class="form-control" placeholder="e.g. 1" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label font-semibold">Unfreeze Reason (min 5 chars)</label>
+                <textarea id="unfreezeReason" class="form-control" rows="3" placeholder="Identity verified via video KYC / Incident resolved" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-success w-100 fw-bold">
+                <i class="bi bi-check-circle me-1"></i> Restore Account to Active
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Held Transactions -->
+    <div class="tab-pane fade" id="held" role="tabpanel">
+      <div class="card-custom p-4">
+        <h5 class="font-display fw-bold mb-3"><i class="bi bi-pause-circle me-1"></i> Held Transactions Review</h5>
+        <p class="text-muted small mb-4">Transactions blocked for review by the Fraud Engine (Score &ge; 60). Releasing requires Step-Up MFA.</p>
+        <div id="heldTxnsContainer">
+          <div class="text-center py-4 text-muted">Loading held transactions...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Fraud Alerts Review -->
+    <div class="tab-pane fade" id="alerts" role="tabpanel">
+      <div class="card-custom p-4">
+        <h5 class="font-display fw-bold mb-3"><i class="bi bi-shield-slash me-1"></i> Fraud Alerts & False Positive Triage</h5>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Alert #</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for alt in metrics.recent_alerts %}
+              <tr>
+                <td>#{{ alt.id }}</td>
+                <td><span class="font-monospace small">{{ alt.alert_type }}</span></td>
+                <td><span class="badge bg-danger">{{ alt.severity }}</span></td>
+                <td><small>{{ alt.description }}</small></td>
+                <td><span class="badge bg-secondary">{{ alt.status }}</span></td>
+                <td><small class="text-muted">{{ alt.created_at }}</small></td>
+                <td>
+                  {% if alt.status != 'DISMISSED' %}
+                  <button class="btn btn-outline-warning btn-sm" onclick="markFalsePositive({{ alt.id }})">
+                    False Positive
+                  </button>
+                  {% else %}
+                  <span class="text-muted small">Resolved</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">No recent fraud alerts.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: 360 User Timeline -->
+    <div class="tab-pane fade" id="timeline" role="tabpanel">
+      <div class="card-custom p-4">
+        <h5 class="font-display fw-bold mb-3"><i class="bi bi-search me-1"></i> 360° User Security Timeline Search</h5>
+        <div class="row g-2 mb-4">
+          <div class="col-md-4">
+            <input type="number" id="timelineUserId" class="form-control" placeholder="Enter User ID (e.g. 1)">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100" onclick="fetchUserTimeline()">Search Timeline</button>
+          </div>
+        </div>
+        <div id="timelineContainer">
+          <p class="text-muted">Enter a User ID to inspect login sessions, security events, fraud alerts, and incident history.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  loadHeldTransactions();
+});
+
+function loadHeldTransactions() {
+  fetch("/api/v1/admin/soc/dashboard-metrics")
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById("heldTxnsContainer");
+      if (!data.success || !data.metrics) {
+        container.innerHTML = '<div class="alert alert-danger">Failed to load metrics.</div>';
+        return;
+      }
+      container.innerHTML = `<p class="text-success fw-bold">Held Transactions Total: ${data.metrics.held_transactions}</p>`;
+    })
+    .catch(err => {
+      console.error(err);
+    });
+}
+
+function handleFreezeSubmit(e) {
+  e.preventDefault();
+  const accId = document.getElementById("freezeAccountId").value;
+  const freezeType = document.getElementById("freezeType").value;
+  const reason = document.getElementById("freezeReason").value;
+
+  if (typeof triggerStepUpAction === "function") {
+    triggerStepUpAction("ACCOUNT_FREEZE", function(stepUpToken) {
+      fetch("/api/v1/admin/soc/freeze-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          account_id: parseInt(accId),
+          freeze_type: freezeType,
+          reason: reason,
+          step_up_token: stepUpToken
+        })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          alert("Account #" + accId + " frozen successfully!");
+          location.reload();
+        } else {
+          alert("Freeze failed: " + (res.message || res.error));
+        }
+      });
+    });
+  } else {
+    alert("Step-Up MFA engine ready.");
+  }
+}
+
+function handleUnfreezeSubmit(e) {
+  e.preventDefault();
+  const accId = document.getElementById("unfreezeAccountId").value;
+  const reason = document.getElementById("unfreezeReason").value;
+
+  if (typeof triggerStepUpAction === "function") {
+    triggerStepUpAction("ACCOUNT_UNFREEZE", function(stepUpToken) {
+      fetch("/api/v1/admin/soc/unfreeze-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          account_id: parseInt(accId),
+          reason: reason,
+          step_up_token: stepUpToken
+        })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          alert("Account #" + accId + " unfrozen successfully!");
+          location.reload();
+        } else {
+          alert("Unfreeze failed: " + (res.message || res.error));
+        }
+      });
+    });
+  } else {
+    alert("Step-Up MFA engine ready.");
+  }
+}
+
+function markFalsePositive(alertId) {
+  const notes = prompt("Enter false positive verification notes (min 5 characters):");
+  if (!notes || notes.trim().length < 5) {
+    alert("Valid notes required.");
+    return;
+  }
+
+  fetch(`/api/v1/admin/soc/fraud-alerts/${alertId}/false-positive`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes: notes })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      alert("Alert marked as false positive.");
+      location.reload();
+    } else {
+      alert("Error: " + (res.message || res.error));
+    }
+  });
+}
+
+function fetchUserTimeline() {
+  const userId = document.getElementById("timelineUserId").value;
+  if (!userId) return;
+
+  fetch(`/api/v1/admin/soc/users/${userId}/timeline`)
+    .then(r => r.json())
+    .then(res => {
+      const container = document.getElementById("timelineContainer");
+      if (!res.success) {
+        container.innerHTML = `<div class="alert alert-danger">${res.error}</div>`;
+        return;
+      }
+      let html = `<h6 class="fw-bold mb-3">Timeline for User #${userId} (${res.total_events} events)</h6><ul class="list-group">`;
+      res.timeline.forEach(item => {
+        html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>${item.title}</strong> (${item.type})<br>
+            <small class="text-muted">${item.timestamp || 'N/A'}</small>
+          </div>
+          <span class="badge bg-secondary">${item.severity}</span>
+        </li>`;
+      });
+      html += `</ul>`;
+      container.innerHTML = html;
+    });
+}
+
+function exportEvidence(incidentId) {
+  window.open(`/api/v1/admin/soc/incidents/${incidentId}/export-evidence`, '_blank');
+}
+</script>
+{% endblock %}
