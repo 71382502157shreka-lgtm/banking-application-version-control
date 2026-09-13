@@ -7,6 +7,8 @@ audit logging, risk engine, and maker-checker approvals without HTML templates.
 from decimal import Decimal
 from typing import Tuple, List, Dict, Any, Optional
 
+from flask import current_app, has_app_context
+
 from app import create_app, db
 from app.models.user import User, Role
 from app.models.account import Account
@@ -26,13 +28,22 @@ class BankingApp:
     Pure Python API wrapper for the Banking Application with Version Control.
     """
 
-    def __init__(self, config_name: str = "development"):
-        self.flask_app = create_app(config_name)
-        self._ctx = self.flask_app.app_context()
-        self._ctx.push()
+    def __init__(self, config_name: str = "development", flask_app=None):
+        if flask_app:
+            self.flask_app = flask_app
+            self._ctx = None
+        elif has_app_context():
+            self.flask_app = current_app._get_current_object()
+            self._ctx = None
+        else:
+            self.flask_app = create_app(config_name)
+            self._ctx = self.flask_app.app_context()
+            self._ctx.push()
 
     def close(self):
-        self._ctx.pop()
+        if self._ctx:
+            self._ctx.pop()
+            self._ctx = None
 
     def register_user(self, username: str, email: str, password: str,
                       full_name: str = "", phone: str = "", role: str = Role.CUSTOMER) -> Tuple[Optional[User], Optional[str]]:
