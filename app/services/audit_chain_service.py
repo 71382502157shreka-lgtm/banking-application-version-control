@@ -108,6 +108,7 @@ class AuditChainService:
         actions_list = [log.action for log in logs]
         return {
             "user_id": user.id,
+            "found": True,
             "username": user.username,
             "user_role": str(user.role),
             "total_audit_events": len(logs),

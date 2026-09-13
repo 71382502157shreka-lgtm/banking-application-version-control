@@ -158,16 +158,16 @@ class CryptographicAuditDiagnostic:
             }
 
         broken_links = []
-        expected_prev_hash = "0" * 64
+        expected_prev_hash = logs[0].previous_hash if logs else None
 
         for log in logs:
-            # Verify prev_hash matches expected
-            if log.prev_hash != expected_prev_hash:
+            # Verify previous_hash matches expected
+            if log.previous_hash != expected_prev_hash:
                 broken_links.append(
                     {
                         "log_id": log.id,
                         "expected_prev_hash": expected_prev_hash,
-                        "actual_prev_hash": log.prev_hash,
+                        "actual_prev_hash": log.previous_hash,
                         "timestamp": log.created_at.isoformat() if log.created_at else None,
                     }
                 )
