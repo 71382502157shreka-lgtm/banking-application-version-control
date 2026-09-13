@@ -151,9 +151,12 @@ def generate_customer_portfolio_summary(customer_id: int) -> dict:
     account_ids = [a.id for a in accounts]
     total_balance = sum((a.balance for a in accounts), Decimal("0.00"))
 
-    transactions = Transaction.query.filter(
-        (Transaction.account_id.in_(account_ids)) | (Transaction.counterparty_account_id.in_(account_ids))
-    ).order_by(Transaction.created_at.desc()).all()
+    if account_ids:
+        transactions = Transaction.query.filter(
+            (Transaction.account_id.in_(account_ids)) | (Transaction.counterparty_account_id.in_(account_ids))
+        ).order_by(Transaction.created_at.desc()).all()
+    else:
+        transactions = []
 
     beneficiaries = Beneficiary.query.filter_by(user_id=customer_id).all()
 
@@ -217,7 +220,7 @@ def export_audit_log_csv(limit: int = None) -> str:
             log.description or "",
             log.ip_address or "",
             log.current_hash or "",
-            log.prev_hash or ""
+            log.previous_hash or ""
         ])
 
     return output.getvalue()
