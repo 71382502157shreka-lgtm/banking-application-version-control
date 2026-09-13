@@ -241,3 +241,61 @@ def test_remote_session_revocation(mfa_app, mfa_client, test_customer):
     with mfa_app.app_context():
         updated = db.session.get(LoginSession, s_id)
         assert updated.is_active is False
+
+
+def test_exact_threshold_50k_requires_step_up(mfa_app, mfa_client, test_customer):
+    """Test transfer of exactly 50,000.00 requires Step-Up MFA."""
+    login_client(mfa_client)
+    with mfa_app.app_context():
+        user = db.session.get(User, test_customer)
+        acc1 = Account.query.filter_by(user_id=user.id).first()
+        dest_user = User.query.filter_by(username="mfa_dest").first()
+        acc2 = Account.query.filter_by(user_id=dest_user.id).first()
+        acc1_id, acc2_id = acc1.id, acc2.id
+
+    res = mfa_client.post("/api/v1/transactions/transfer", json={
+        "source_account_id": acc1_id,
+        "destination_account_id": acc2_id,
+        "amount": 50000.0,
+        "description": "Exact threshold transfer"
+    })
+    assert res.status_code == 403
+    assert res.get_json()["step_up_required"] is True
+
+
+def test_wrong_user_step_up_token_rejection(mfa_app, mfa_client, test_customer):
+    """Test using another user's step-up token is rejected with HTTP 403."""
+    with mfa_app.app_context():
+        dest_user = User.query.filter_by(username="mfa_dest").first()
+        dest_user_id = dest_user.id
+        dest_token = mfa_service.issue_step_up_token_for_user(dest_user_id)
+        acc1 = Account.query.filter_by(user_id=test_customer).first()
+        acc2 = Account.query.filter_by(user_id=dest_user_id).first()
+        acc1_id, acc2_id = acc1.id, acc2.id
+
+    login_client(mfa_client, username="mfa_user")  # Logged in as mfa_user
+    res = mfa_client.post(
+        "/api/v1/transactions/transfer",
+        json={"source_account_id": acc1_id, "destination_account_id": acc2_id, "amount": 60000.0},
+        headers={"X-Step-Up-Token": dest_token}  # Using mfa_dest's token
+    )
+    assert res.status_code == 403
+    assert res.get_json()["error"] == "Step-Up Authentication Required"
+
+
+def test_cross_user_session_revocation_blocked(mfa_app, mfa_client, test_customer):
+    """Test User A cannot revoke User B's session token."""
+    with mfa_app.app_context():
+        dest_user = User.query.filter_by(username="mfa_dest").first()
+        dest_sess = LoginSession.create_session(dest_user.id, "192.168.1.50", "Mozilla/5.0")
+        db.session.commit()
+        dest_token = dest_sess.session_token
+        dest_sess_id = dest_sess.id
+
+    login_client(mfa_client, username="mfa_user")  # Logged in as mfa_user
+    res = mfa_client.post("/api/v1/sessions/revoke", json={"session_token": dest_token})
+    assert res.status_code == 404
+
+    with mfa_app.app_context():
+        check_sess = db.session.get(LoginSession, dest_sess_id)
+        assert check_sess.is_active is True  # Remained active

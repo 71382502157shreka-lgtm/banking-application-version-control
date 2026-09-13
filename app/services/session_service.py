@@ -112,9 +112,9 @@ def get_user_active_sessions(user_id: int) -> list:
 
 
 def revoke_session_by_token(token: str, actor_id: int) -> bool:
-    """Revoke session matching token."""
+    """Revoke session matching token for the specified user."""
     sess = LoginSession.query.filter_by(session_token=token, is_active=True).first()
-    if not sess:
+    if not sess or sess.user_id != actor_id:
         return False
     sess.is_active = False
     log_action(
