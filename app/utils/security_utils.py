@@ -210,6 +210,19 @@ def check_global_rate_limit():
     g.rate_limit_info = (limit_val, remaining, reset_ts)
 
     if not allowed:
+        try:
+            from app.services.security_service import record_security_event
+            record_security_event(
+                event_type="RATE_LIMIT_EXCEEDED",
+                description=f"Rate limit exceeded on {request.path} ({max_reqs} req/{win_sec}s)",
+                severity="HIGH",
+                user_id=current_user.id if hasattr(current_user, "is_authenticated") and current_user.is_authenticated else None,
+                ip_address=ip,
+                user_agent=request.user_agent.string if request.user_agent else None
+            )
+        except Exception:
+            pass
+
         response_data = {
             "error": "Too Many Requests",
             "message": f"Rate limit exceeded. Try again in {retry_after} seconds.",
