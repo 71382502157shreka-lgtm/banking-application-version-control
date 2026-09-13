@@ -91,3 +91,42 @@ def verify_otp(user_id: int, action_type: str, code: str) -> bool:
     log_action(AuditAction.OTP_VERIFIED, user_id=user_id, description=f"OTP successfully verified for {action_type}")
     db.session.commit()
     return True
+
+
+def issue_step_up_token_for_user(user_id: int, session_token: str = None, ttl_minutes: int = 5) -> str:
+    """
+    Issue a single-use step-up authorization token valid for ttl_minutes (default 5 mins).
+    """
+    from app.models.security_session import LoginSession
+    query = LoginSession.query.filter_by(user_id=user_id, is_active=True)
+    if session_token:
+        query = query.filter_by(session_token=session_token)
+
+    sess = query.order_by(LoginSession.last_activity.desc()).first()
+    if not sess:
+        from app.utils.security import get_client_ip
+        sess = LoginSession.create_session(user_id, get_client_ip(), "")
+
+    token = sess.issue_step_up_token(ttl_minutes=ttl_minutes)
+    log_action(AuditAction.OTP_VERIFIED, user_id=user_id, description=f"Issued Step-Up Token valid for {ttl_minutes} mins")
+    db.session.commit()
+    return token
+
+
+def validate_and_consume_step_up_token(user_id: int, step_up_token: str, session_token: str = None) -> bool:
+    """
+    Validate that step_up_token is active, user-scoped, unexpired, and consume it immediately (single-use).
+    """
+    if not step_up_token:
+        return False
+
+    from app.models.security_session import LoginSession
+    sess = LoginSession.query.filter_by(user_id=user_id, is_active=True, step_up_token=step_up_token).first()
+    if not sess:
+        sess = LoginSession.query.filter_by(user_id=user_id, is_active=True).filter(LoginSession.step_up_token == step_up_token).first()
+
+    if not sess or not sess.is_step_up_valid(step_up_token):
+        return False
+
+    sess.consume_step_up_token()
+    return True

@@ -99,6 +99,35 @@ def toggle_user_lockout(user_id: int, actor_id: int) -> dict:
     return {"user_id": user_id, "status": action_name, "username": user.username}
 
 
+def get_user_active_sessions(user_id: int) -> list:
+    """Retrieve all active login sessions for user."""
+    sessions = LoginSession.query.filter_by(user_id=user_id, is_active=True).order_by(LoginSession.last_activity.desc()).all()
+    current_token = session.get("session_token") if has_request_context() else None
+    result = []
+    for s in sessions:
+        d = s.to_dict()
+        d["is_current"] = (s.session_token == current_token)
+        result.append(d)
+    return result
+
+
+def revoke_session_by_token(token: str, actor_id: int) -> bool:
+    """Revoke session matching token."""
+    sess = LoginSession.query.filter_by(session_token=token, is_active=True).first()
+    if not sess:
+        return False
+    sess.is_active = False
+    log_action(
+        action=AuditAction.SESSION_REVOKED,
+        user_id=actor_id,
+        entity_type="LOGIN_SESSION",
+        entity_id=sess.id,
+        description=f"Revoked device session token for User #{sess.user_id}"
+    )
+    db.session.commit()
+    return True
+
+
 def _safe_get_ip():
     try:
         return get_client_ip()

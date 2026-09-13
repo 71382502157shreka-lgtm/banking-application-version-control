@@ -110,6 +110,7 @@ class LoginSession(BaseModel):
             "login_time": self.login_time.isoformat() if self.login_time else None,
             "last_activity": self.last_activity.isoformat() if self.last_activity else None,
             "is_active": self.is_active,
+            "has_active_step_up": bool(self.step_up_token and self.step_up_expires_at and datetime.utcnow() < self.step_up_expires_at),
         }
 
 

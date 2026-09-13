@@ -402,6 +402,23 @@ def api_withdraw():
 @rate_limit(limit=10, window_seconds=60, key_prefix="api_transfer")
 def api_transfer():
     data = request.get_json(silent=True) or request.form.to_dict() or {}
+
+    amount_raw = data.get("amount")
+    try:
+        amount_num = float(amount_raw) if amount_raw is not None else 0.0
+    except (ValueError, TypeError):
+        amount_num = 0.0
+
+    if amount_num >= 50000.0:
+        step_up_token = request.headers.get("X-Step-Up-Token") or data.get("step_up_token")
+        current_token = request.cookies.get("session_token")
+        if not step_up_token or not mfa_service.validate_and_consume_step_up_token(current_user.id, step_up_token, current_token):
+            return jsonify({
+                "error": "Step-Up Authentication Required",
+                "message": "Transactions of ₹50,000 or greater require step-up MFA verification.",
+                "step_up_required": True
+            }), 403
+
     source = _get_owned_account_or_403(data.get("source_account_id"))
 
     dest_val = data.get("destination_account_id") or data.get("destination_account_number")
@@ -868,6 +885,72 @@ def verify_mfa_otp():
     except mfa_service.OTPError as e:
         return jsonify(error=str(e)), 400
     return jsonify(status="OTP verified successfully")
+
+
+@api_bp.route("/mfa/step-up-challenge", methods=["POST"])
+@api_bp.route("/v1/mfa/step-up-challenge", methods=["POST"])
+@login_required
+@json_errors
+def step_up_challenge():
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    action_type = data.get("action_type", "HIGH_VALUE_TRANSFER")
+    code = mfa_service.generate_otp(current_user.id, action_type)
+    return jsonify({
+        "message": f"Step-Up OTP generated for {action_type}",
+        "action_type": action_type,
+        "demo_otp": code
+    })
+
+
+@api_bp.route("/mfa/verify-step-up", methods=["POST"])
+@api_bp.route("/v1/mfa/verify-step-up", methods=["POST"])
+@login_required
+@json_errors
+def verify_step_up_otp():
+    data = request.get_json(force=True) or {}
+    action_type = data.get("action_type", "HIGH_VALUE_TRANSFER")
+    code = data.get("otp_code", "")
+    try:
+        mfa_service.verify_otp(current_user.id, action_type, code)
+    except mfa_service.OTPError as e:
+        return jsonify(error=str(e)), 400
+
+    current_sess_token = request.cookies.get("session_token")
+    step_up_token = mfa_service.issue_step_up_token_for_user(current_user.id, session_token=current_sess_token, ttl_minutes=5)
+    return jsonify({
+        "status": "Step-Up verification successful",
+        "step_up_token": step_up_token,
+        "expires_in_seconds": 300
+    })
+
+
+@api_bp.route("/sessions/active", methods=["GET"])
+@api_bp.route("/v1/sessions/active", methods=["GET"])
+@login_required
+def active_sessions_api():
+    sessions_list = session_service.get_user_active_sessions(current_user.id)
+    return jsonify({"success": True, "sessions": sessions_list})
+
+
+@api_bp.route("/sessions/revoke", methods=["POST"])
+@api_bp.route("/v1/sessions/revoke", methods=["POST"])
+@login_required
+@json_errors
+def revoke_session_by_token_or_id():
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    token = data.get("session_token")
+    sess_id = data.get("session_id")
+
+    if token:
+        success = session_service.revoke_session_by_token(token, current_user.id)
+    elif sess_id:
+        success = session_service.revoke_session_by_id(int(sess_id), current_user.id)
+    else:
+        return jsonify(error="session_token or session_id is required"), 400
+
+    if not success:
+        return jsonify(error="Session not found or already inactive"), 404
+    return jsonify(message="Session successfully revoked")
 
 
 # ---------------------------------------------------------------------------

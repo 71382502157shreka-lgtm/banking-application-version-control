@@ -121,7 +121,7 @@ def test_insufficient_balance_rejection(client, customer_sender, customer_receiv
         json={
             "source_account_id": sender_acc.id,
             "destination_account_id": receiver_acc.id,
-            "amount": 999999,
+            "amount": 40000,
             "description": "Overdraft Attempt",
             "otp": "123456"
         }
