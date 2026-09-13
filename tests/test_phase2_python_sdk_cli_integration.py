@@ -26,7 +26,7 @@ from app.models.user import User, Role
 from app.models.account import Account, AccountType
 from app.models.version import EntityType
 from app.models.workflow_risk import RiskAssessment, RiskDecision, RiskLevel, RollbackStatus
-from app.services import auth_service, banking_service, risk_engine, approval_service
+from app.services import auth_service, banking_service, beneficiary_service, risk_engine, approval_service
 
 
 def test_sdk_register_user_success_and_duplicate(app):
@@ -206,19 +206,22 @@ def test_sdk_maker_checker_rollback_workflow(app):
         maker, _ = sdk.register_user("maker1", "maker1@bank.com", "Pass1234!", "Maker User", role=Role.CUSTOMER)
         admin, _ = sdk.register_user("admin1", "admin1@bank.com", "Pass1234!", "Admin Reviewer", role=Role.ADMIN)
 
-        acc = banking_service.create_account(maker.id, AccountType.SAVINGS)
+        b, _ = sdk.create_beneficiary(maker.id, "Original Name", "123456789012", "State Bank", "SBIN0001234")
         db.session.commit()
 
-        sdk.deposit(acc.id, Decimal("1000.00"))  # v1 balance 1000
-        sdk.deposit(acc.id, Decimal("5000.00"))  # v2 balance 6000
+        # Update beneficiary details (creates version 2)
+        beneficiary_service.update_beneficiary(b, {"name": "Modified Name"}, maker.id)
+        db.session.commit()
+        db.session.refresh(b)
+        assert b.name == "Modified Name"
 
-        # Request rollback to v1
+        # Request rollback to v1 (Original Name)
         req, req_err = sdk.request_rollback(
             requested_by=maker.id,
-            entity_type=EntityType.ACCOUNT,
-            entity_id=acc.id,
+            entity_type=EntityType.BENEFICIARY,
+            entity_id=b.id,
             target_version=1,
-            reason="Accidental deposit input"
+            reason="Accidental name change"
         )
         assert req_err is None
         assert req is not None
@@ -230,8 +233,8 @@ def test_sdk_maker_checker_rollback_workflow(app):
         assert app_req is not None
         assert app_req.status in [RollbackStatus.APPROVED, RollbackStatus.EXECUTED]
 
-        db.session.refresh(acc)
-        assert acc.balance == Decimal("1000.00")
+        db.session.refresh(b)
+        assert b.name == "Original Name"
 
 
 def test_sdk_risk_engine_review_and_release(app):
