@@ -43,6 +43,7 @@ def create_app(config_name=None):
     _configure_logging(flask_app)
     _register_blueprints(flask_app)
     _register_error_handlers(flask_app)
+    _register_security_middleware(flask_app)
     _register_user_loader()
 
     with flask_app.app_context():
@@ -83,8 +84,18 @@ def _register_blueprints(app):
     app.register_blueprint(reports_bp)
 
 
+def _register_security_middleware(app):
+    from app.utils.security_utils import apply_security_headers
+    app.after_request(apply_security_headers)
+
+
 def _register_error_handlers(app):
-    pass
+    @app.errorhandler(429)
+    def too_many_requests(e):
+        return jsonify({
+            "error": "Too Many Requests",
+            "message": "Rate limit exceeded. Please try again later.",
+        }), 429
 
 
 def _register_user_loader():
