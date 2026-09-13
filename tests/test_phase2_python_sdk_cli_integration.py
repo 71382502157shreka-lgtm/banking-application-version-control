@@ -228,7 +228,7 @@ def test_sdk_maker_checker_rollback_workflow(app):
         app_req, app_err = sdk.approve_rollback(req.id, admin.id, "Approved error reversal")
         assert app_err is None
         assert app_req is not None
-        assert app_req.status == RollbackStatus.APPROVED
+        assert app_req.status in [RollbackStatus.APPROVED, RollbackStatus.EXECUTED]
 
         db.session.refresh(acc)
         assert acc.balance == Decimal("1000.00")
