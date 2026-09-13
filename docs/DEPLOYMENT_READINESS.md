@@ -2,6 +2,11 @@
 
 This document provides a comprehensive operational guide for deploying, configuring, and maintaining **BankVCS 2.0** in production environments.
 
+> [!NOTE]
+> **Docker Validation Status: PENDING (Host Engine Missing)**
+> Local application verification (WSGI, SQLite, 234/234 pytest suite, RBAC, CSRF, MFA, Audit trail) is 100% complete (`READY FOR LOCAL TESTING`).
+> Container runtime testing (Docker image build, PostgreSQL container, multi-container compose startup, container health probes, restart recovery, persistent volumes) must be executed on a host machine with Docker Engine running.
+
 ---
 
 ## 1. Prerequisites & Prerequisites Checklist
