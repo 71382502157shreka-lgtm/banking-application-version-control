@@ -22,6 +22,7 @@ from app.services import (
 )
 from app.utils.decorators import roles_required, json_errors
 from app.utils.validators import ValidationError
+from app.utils.security_utils import rate_limit
 from datetime import datetime
 
 api_bp = Blueprint("api", __name__)
@@ -371,6 +372,7 @@ def download_statement_excel():
 @api_bp.route("/v1/transactions/deposit", methods=["POST"])
 @login_required
 @json_errors
+@rate_limit(limit=10, window_seconds=60, key_prefix="api_deposit")
 def api_deposit():
     data = request.get_json(force=True) or {}
     account = _get_owned_account_or_403(data.get("account_id"))
@@ -382,6 +384,7 @@ def api_deposit():
 @api_bp.route("/v1/transactions/withdraw", methods=["POST"])
 @login_required
 @json_errors
+@rate_limit(limit=10, window_seconds=60, key_prefix="api_withdraw")
 def api_withdraw():
     data = request.get_json(force=True) or {}
     account = _get_owned_account_or_403(data.get("account_id"))
@@ -396,6 +399,7 @@ def api_withdraw():
 @api_bp.route("/v1/transactions/transfer", methods=["POST"])
 @login_required
 @json_errors
+@rate_limit(limit=10, window_seconds=60, key_prefix="api_transfer")
 def api_transfer():
     data = request.get_json(silent=True) or request.form.to_dict() or {}
     source = _get_owned_account_or_403(data.get("source_account_id"))
