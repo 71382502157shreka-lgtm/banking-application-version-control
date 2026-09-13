@@ -262,22 +262,21 @@ def test_duplicate_submission_prevention(client, customer_sender, customer_recei
     assert sender_acc.available_balance == Decimal("4000.00")
 
 
-def test_database_rollback_on_exception(app, customer_sender, customer_receiver):
+def test_database_rollback_on_exception(app, customer_sender, customer_receiver, monkeypatch):
     sender_user, sender_acc = customer_sender
     _, receiver_acc = customer_receiver
 
     initial_sender_balance = sender_acc.balance
 
-    # Force error during transfer by passing mock invalid state
-    with pytest.raises(Exception):
-        with app.app_context():
-            # Trigger exception inside transaction
-            db.session.get(Account, sender_acc.id)
-            banking_service.transfer(
-                sender_acc, receiver_acc, Decimal("100.00"), "Rollback Test", sender_user.id
-            )
-            # Simulate a failure before commit
-            raise RuntimeError("Database error forced")
+    def mock_commit():
+        raise RuntimeError("Database error forced")
+
+    monkeypatch.setattr(db.session, "commit", mock_commit)
+
+    with pytest.raises(RuntimeError, match="Database error forced"):
+        banking_service.transfer(
+            sender_acc, receiver_acc, Decimal("100.00"), "Rollback Test", sender_user.id
+        )
 
     db.session.refresh(sender_acc)
     assert sender_acc.balance == initial_sender_balance

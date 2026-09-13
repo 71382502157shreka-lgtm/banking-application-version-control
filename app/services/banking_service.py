@@ -137,7 +137,7 @@ def withdraw(account: Account, amount, description: str, actor_user_id: int, tra
     return txn
 
 
-def transfer(source: Account, destination: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None):
+def transfer(source: Account, destination: Account, amount, description: str, actor_user_id: int, transaction_mode: str = None, idempotency_key: str = None):
     amount = validate_amount(amount)
 
     if not source or source.status != AccountStatus.ACTIVE:
@@ -147,6 +147,14 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
 
     if source.id == destination.id or source.account_number == destination.account_number:
         raise ValidationError("Cannot transfer to the same account")
+
+    # Pessimistic row locking for concurrency safety
+    try:
+        locked_src = Account.query.filter_by(id=source.id).with_for_update().first()
+        if locked_src:
+            source = locked_src
+    except Exception:
+        pass
 
     if Decimal(source.available_balance) < amount:
         raise InsufficientBalanceError("Insufficient available balance for this transfer")
@@ -176,6 +184,7 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
                 description=f"[REVIEW REQUIRED] {description}",
                 status="BLOCKED_FOR_REVIEW",
                 counterparty_account_id=destination.id,
+                idempotency_key=idempotency_key,
                 balance_after=source.balance,
             )
             db.session.add(debit_txn)
@@ -215,6 +224,7 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
             description=description,
             status=TransactionStatus.COMPLETED,
             counterparty_account_id=destination.id,
+            idempotency_key=idempotency_key,
             balance_after=source.balance,
         )
         credit_txn = Transaction(

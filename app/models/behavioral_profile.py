@@ -91,17 +91,14 @@ class UserBehavioralProfile(BaseModel):
             self.max_transfer_amount = amt
 
         self.updated_at = datetime.utcnow()
-        db.session.commit()
 
     def record_profile_update(self):
         self.last_profile_updated_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
-        db.session.commit()
 
     def record_beneficiary_added(self):
         self.last_beneficiary_added_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
-        db.session.commit()
 
     def to_dict(self):
         return {

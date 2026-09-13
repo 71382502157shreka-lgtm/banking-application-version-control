@@ -19,7 +19,7 @@ from app.models.document_vault import CustomerDocument, DocumentStatus
 from app.services import (
     banking_service, beneficiary_service, version_service,
     audit_service, mfa_service, session_service, approval_service,
-    statement_service, risk_service
+    statement_service, risk_service, fraud_prevention_service
 )
 from app.utils.decorators import roles_required, json_errors
 from app.utils.validators import ValidationError
@@ -410,6 +410,13 @@ def api_transfer():
     except (ValueError, TypeError):
         amount_num = 0.0
 
+    # 1. Idempotency Check (24-Hour Cache Lookup)
+    idempotency_key = request.headers.get("X-Idempotency-Key") or data.get("idempotency_key")
+    if idempotency_key:
+        cached_txn = fraud_prevention_service.check_idempotency(current_user.id, idempotency_key)
+        if cached_txn:
+            return jsonify(cached_txn), 200
+
     source = _get_owned_account_or_403(data.get("source_account_id"))
 
     dest_val = data.get("destination_account_id") or data.get("destination_account_number")
@@ -437,7 +444,7 @@ def api_transfer():
     if destination.status != "ACTIVE":
         return jsonify(error="Destination account is inactive"), 400
 
-    # Behavioral Anomaly Risk Engine Evaluation
+    # 2. Behavioral Anomaly Risk Engine & Step-Up MFA Evaluation
     risk_res = risk_service.evaluate_transaction_risk(source, Decimal(str(amount_num)), destination.id if destination else None)
     step_up_token = request.headers.get("X-Step-Up-Token") or data.get("step_up_token")
     current_token = request.cookies.get("session_token")
@@ -454,9 +461,30 @@ def api_transfer():
                 "risk_factors": risk_res.get("risk_factors", [])
             }), 403
 
+    # 3. 120-Second Duplicate Transaction Suppression
+    if not idempotency_key and amount_num > 0:
+        if fraud_prevention_service.check_duplicate_transaction(source.id, destination.id, Decimal(str(amount_num)), data.get("description", "Funds Transfer")):
+            fraud_prevention_service.create_fraud_alert(
+                current_user.id, "DUPLICATE_ATTEMPT", "MEDIUM",
+                {"source_account_id": source.id, "destination_account_id": destination.id, "amount": amount_num}
+            )
+            return jsonify({
+                "error": "Duplicate Transaction Detected",
+                "message": "An identical transfer was executed within the last 120 seconds. Provide an X-Idempotency-Key header to confirm intentional retries.",
+                "duplicate": True
+            }), 409
+
+    # 4. Mule Account Intelligence Check
+    if destination and fraud_prevention_service.check_mule_beneficiary(destination.id):
+        fraud_prevention_service.create_fraud_alert(
+            current_user.id, "MULE_ACCOUNT_SUSPECT", "HIGH",
+            {"destination_account_id": destination.id, "amount": amount_num}
+        )
+
     try:
         debit, credit = banking_service.transfer(
-            source, destination, data.get("amount"), data.get("description", "Funds Transfer"), current_user.id
+            source, destination, data.get("amount"), data.get("description", "Funds Transfer"), current_user.id,
+            idempotency_key=idempotency_key
         )
     except banking_service.InsufficientBalanceError as e:
         return jsonify(error=str(e)), 422
@@ -981,6 +1009,54 @@ def get_admin_behavioral_anomalies():
         RiskAssessment.risk_level.in_([RiskLevel.HIGH, RiskLevel.CRITICAL])
     ).order_by(RiskAssessment.created_at.desc()).limit(50).all()
     return jsonify({"success": True, "anomalies": [a.to_dict() for a in assessments]})
+
+
+@api_bp.route("/admin/fraud/alerts", methods=["GET"])
+@api_bp.route("/v1/admin/fraud/alerts", methods=["GET"])
+@login_required
+def get_admin_fraud_alerts():
+    if current_user.role != Role.ADMIN:
+        return jsonify(error="Forbidden: Admin access required"), 403
+
+    from app.models.fraud_alert import FraudAlert
+    status_filter = request.args.get("status")
+    severity_filter = request.args.get("severity")
+
+    query = FraudAlert.query
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    if severity_filter:
+        query = query.filter_by(severity=severity_filter)
+
+    alerts = query.order_by(FraudAlert.created_at.desc()).limit(100).all()
+    return jsonify({"success": True, "alerts": [a.to_dict() for a in alerts]})
+
+
+@api_bp.route("/admin/fraud/alerts/<int:alert_id>/resolve", methods=["POST"])
+@api_bp.route("/v1/admin/fraud/alerts/<int:alert_id>/resolve", methods=["POST"])
+@login_required
+@json_errors
+def resolve_admin_fraud_alert(alert_id):
+    if current_user.role != Role.ADMIN:
+        return jsonify(error="Forbidden: Admin access required"), 403
+
+    data = request.get_json(force=True) or {}
+    decision = data.get("decision", "DISMISSED")  # CONFIRMED_FRAUD or DISMISSED
+    resolution_notes = data.get("resolution_notes", "")
+    lock_account = bool(data.get("lock_account", False))
+
+    try:
+        alert = fraud_prevention_service.resolve_fraud_alert(
+            alert_id=alert_id,
+            decision=decision,
+            actor_id=current_user.id,
+            resolution_notes=resolution_notes,
+            lock_account=lock_account
+        )
+    except ValueError as e:
+        return jsonify(error=str(e)), 404
+
+    return jsonify({"success": True, "message": f"Fraud alert #{alert_id} resolved as {alert.status}", "alert": alert.to_dict()})
 
 
 # ---------------------------------------------------------------------------

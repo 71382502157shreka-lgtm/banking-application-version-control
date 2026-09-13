@@ -55,6 +55,7 @@ class Transaction(BaseModel):
 
     counterparty_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=True)
     related_transaction_id = db.Column(db.Integer, db.ForeignKey("transactions.id"), nullable=True)
+    idempotency_key = db.Column(db.String(64), nullable=True, index=True)
 
     balance_after = db.Column(db.Numeric(14, 2), nullable=True)
 
@@ -101,6 +102,7 @@ class Transaction(BaseModel):
             "status": self.status,
             "counterparty_account_id": self.counterparty_account_id,
             "related_transaction_id": self.related_transaction_id,
+            "idempotency_key": self.idempotency_key,
             "balance_after": str(self.balance_after) if self.balance_after is not None else None,
             "balance_after_transaction": self.balance_after_transaction,
             "created_at": self.created_at.isoformat() if self.created_at else None,

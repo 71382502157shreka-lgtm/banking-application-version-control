@@ -16,6 +16,7 @@ from app.models.complaint import Complaint, ComplaintStatus, ComplaintPriority
 from app.models.service_request import ServiceRequest, ServiceRequestType, ServiceRequestStatus
 from app.models.document_vault import CustomerDocument, DocumentStatus
 from app.models.behavioral_profile import UserBehavioralProfile
+from app.models.fraud_alert import FraudAlert, FraudAlertSeverity, FraudAlertStatus
 
 __all__ = [
     "BaseModel",
@@ -34,4 +35,5 @@ __all__ = [
     "ServiceRequest", "ServiceRequestType", "ServiceRequestStatus",
     "CustomerDocument", "DocumentStatus",
     "UserBehavioralProfile",
+    "FraudAlert", "FraudAlertSeverity", "FraudAlertStatus",
 ]
