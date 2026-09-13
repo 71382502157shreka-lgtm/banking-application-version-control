@@ -28,6 +28,7 @@ def rate_limit_app():
     app.config["RATELIMIT_ENABLED"] = True
     app.config["RATELIMIT_DEFAULT_LIMIT"] = 5
     app.config["RATELIMIT_WINDOW_SECONDS"] = 60
+    app.config["TRUSTED_PROXIES_COUNT"] = 0
     app.config["WTF_CSRF_ENABLED"] = False
     limiter.storage.reset_all()
     yield app
@@ -56,6 +57,17 @@ def test_rate_limit_within_limit(rate_limit_client):
         assert res.status_code in (200, 302)
         assert "X-RateLimit-Limit" in res.headers
         assert "X-RateLimit-Remaining" in res.headers
+
+
+def test_same_ip_limit_exhaustion(rate_limit_client):
+    """Test requests from the same IP address consume the same quota and trigger 429 upon exhaustion."""
+    for _ in range(5):
+        res = rate_limit_client.get("/", environ_base={"REMOTE_ADDR": "192.168.1.50"})
+        assert res.status_code in (200, 302)
+
+    exceeded = rate_limit_client.get("/", environ_base={"REMOTE_ADDR": "192.168.1.50"})
+    assert exceeded.status_code == 429
+    assert exceeded.headers.get("X-RateLimit-Remaining") == "0"
 
 
 def test_rate_limit_exceeded_returns_429(rate_limit_client):
@@ -100,16 +112,16 @@ def test_rate_limit_window_reset():
 
 
 def test_rate_limit_ip_isolation(rate_limit_client):
-    """Test requests from different IP addresses are tracked in isolated buckets."""
+    """Test requests from different IP addresses are tracked in separate isolated buckets."""
     # Exhaust rate limit for IP 10.0.0.1
     for _ in range(5):
-        rate_limit_client.get("/", environ_base={"REMOTE_ADDR": "10.0.0.1"})
+        rate_limit_client.get("/", headers={"X-Forwarded-For": "10.0.0.1"}, environ_base={"REMOTE_ADDR": "10.0.0.1"})
 
-    ip1_res = rate_limit_client.get("/", environ_base={"REMOTE_ADDR": "10.0.0.1"})
+    ip1_res = rate_limit_client.get("/", headers={"X-Forwarded-For": "10.0.0.1"}, environ_base={"REMOTE_ADDR": "10.0.0.1"})
     assert ip1_res.status_code == 429
 
     # IP 10.0.0.2 should still be allowed
-    ip2_res = rate_limit_client.get("/", environ_base={"REMOTE_ADDR": "10.0.0.2"})
+    ip2_res = rate_limit_client.get("/", headers={"X-Forwarded-For": "10.0.0.2"}, environ_base={"REMOTE_ADDR": "10.0.0.2"})
     assert ip2_res.status_code in (200, 302)
 
 
@@ -122,10 +134,14 @@ def test_spoofed_x_forwarded_for_handling(rate_limit_app):
 
 def test_trusted_proxy_ip_extraction(rate_limit_app):
     """Test IP extraction correctly extracts client IP from X-Forwarded-For when TRUSTED_PROXIES_COUNT > 0."""
-    rate_limit_app.config["TRUSTED_PROXIES_COUNT"] = 1
-    with rate_limit_app.test_request_context("/", headers={"X-Forwarded-For": "203.0.113.195, 70.41.3.18"}, environ_base={"REMOTE_ADDR": "127.0.0.1"}):
-        ip = get_client_ip()
-        assert ip == "70.41.3.18"
+    original_trusted = rate_limit_app.config.get("TRUSTED_PROXIES_COUNT", 0)
+    try:
+        rate_limit_app.config["TRUSTED_PROXIES_COUNT"] = 1
+        with rate_limit_app.test_request_context("/", headers={"X-Forwarded-For": "203.0.113.195, 70.41.3.18"}, environ_base={"REMOTE_ADDR": "127.0.0.1"}):
+            ip = get_client_ip()
+            assert ip == "70.41.3.18"
+    finally:
+        rate_limit_app.config["TRUSTED_PROXIES_COUNT"] = original_trusted
 
 
 def test_auth_route_strict_rate_limiting(rate_limit_client):
