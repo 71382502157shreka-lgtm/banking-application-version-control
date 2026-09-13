@@ -35,6 +35,9 @@ class RiskAssessment(BaseModel):
     decision = db.Column(db.String(30), nullable=False, default=RiskDecision.APPROVED)
 
     risk_factors = db.Column(db.JSON, nullable=True)  # List of strings e.g. ["large_amount", "new_beneficiary"]
+    action_taken = db.Column(db.String(40), nullable=True)  # ALLOWED, ALERTED, STEP_UP_ENFORCED, TRANSACTION_HELD, SESSION_REVOKED
+    anomaly_details = db.Column(db.JSON, nullable=True)  # Detailed dictionary of matched rules & baselines
+
     reviewed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     reviewed_at = db.Column(db.DateTime, nullable=True)
     review_notes = db.Column(db.String(255), nullable=True)
@@ -48,6 +51,8 @@ class RiskAssessment(BaseModel):
             "risk_score": self.risk_score,
             "risk_level": self.risk_level,
             "decision": self.decision,
+            "action_taken": self.action_taken,
+            "anomaly_details": self.anomaly_details or {},
             "risk_factors": self.risk_factors or [],
             "reviewed_by": self.reviewed_by,
             "reviewed_at": self.reviewed_at.isoformat() if self.reviewed_at else None,

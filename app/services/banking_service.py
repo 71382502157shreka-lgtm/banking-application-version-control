@@ -233,6 +233,13 @@ def transfer(source: Account, destination: Account, amount, description: str, ac
         risk_assessment.transaction_id = debit_txn.id
         db.session.add(risk_assessment)
 
+        try:
+            from app.models.behavioral_profile import UserBehavioralProfile
+            profile = UserBehavioralProfile.get_or_create(actor_user_id)
+            profile.record_transfer(amount)
+        except Exception:
+            pass
+
         create_version(EntityType.ACCOUNT, source.id, ChangeType.UPDATE, src_old, source.to_dict(),
                         actor_user_id, f"Transfer out {amount} to account {destination.account_number}",
                         AuditAction.TRANSFER)

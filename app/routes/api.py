@@ -1,5 +1,6 @@
 import csv
 import io
+from decimal import Decimal
 from flask import Blueprint, request, jsonify, Response
 from flask_login import login_required, current_user
 
@@ -18,7 +19,7 @@ from app.models.document_vault import CustomerDocument, DocumentStatus
 from app.services import (
     banking_service, beneficiary_service, version_service,
     audit_service, mfa_service, session_service, approval_service,
-    statement_service
+    statement_service, risk_service
 )
 from app.utils.decorators import roles_required, json_errors
 from app.utils.validators import ValidationError
@@ -409,16 +410,6 @@ def api_transfer():
     except (ValueError, TypeError):
         amount_num = 0.0
 
-    if amount_num >= 50000.0:
-        step_up_token = request.headers.get("X-Step-Up-Token") or data.get("step_up_token")
-        current_token = request.cookies.get("session_token")
-        if not step_up_token or not mfa_service.validate_and_consume_step_up_token(current_user.id, step_up_token, current_token):
-            return jsonify({
-                "error": "Step-Up Authentication Required",
-                "message": "Transactions of ₹50,000 or greater require step-up MFA verification.",
-                "step_up_required": True
-            }), 403
-
     source = _get_owned_account_or_403(data.get("source_account_id"))
 
     dest_val = data.get("destination_account_id") or data.get("destination_account_number")
@@ -445,6 +436,23 @@ def api_transfer():
 
     if destination.status != "ACTIVE":
         return jsonify(error="Destination account is inactive"), 400
+
+    # Behavioral Anomaly Risk Engine Evaluation
+    risk_res = risk_service.evaluate_transaction_risk(source, Decimal(str(amount_num)), destination.id if destination else None)
+    step_up_token = request.headers.get("X-Step-Up-Token") or data.get("step_up_token")
+    current_token = request.cookies.get("session_token")
+
+    requires_step_up = (amount_num >= 50000.0) or (risk_res.get("action_taken") in ("STEP_UP_ENFORCED", "HOLD_AND_REVOKE")) or (risk_res.get("risk_score", 0) >= 60)
+
+    if requires_step_up:
+        if not step_up_token or not mfa_service.validate_and_consume_step_up_token(current_user.id, step_up_token, current_token):
+            return jsonify({
+                "error": "Step-Up Authentication Required",
+                "message": "Transactions of ₹50,000 or greater or elevated behavioral risk require step-up MFA verification.",
+                "step_up_required": True,
+                "risk_score": risk_res.get("risk_score", 0),
+                "risk_factors": risk_res.get("risk_factors", [])
+            }), 403
 
     try:
         debit, credit = banking_service.transfer(
@@ -951,6 +959,28 @@ def revoke_session_by_token_or_id():
     if not success:
         return jsonify(error="Session not found or already inactive"), 404
     return jsonify(message="Session successfully revoked")
+
+
+@api_bp.route("/security/risk-profile", methods=["GET"])
+@api_bp.route("/v1/security/risk-profile", methods=["GET"])
+@login_required
+def get_user_risk_profile():
+    from app.models.behavioral_profile import UserBehavioralProfile
+    profile = UserBehavioralProfile.get_or_create(current_user.id)
+    return jsonify({"success": True, "profile": profile.to_dict()})
+
+
+@api_bp.route("/admin/behavioral-anomalies", methods=["GET"])
+@api_bp.route("/v1/admin/behavioral-anomalies", methods=["GET"])
+@login_required
+def get_admin_behavioral_anomalies():
+    if current_user.role != Role.ADMIN:
+        return jsonify(error="Forbidden: Admin access required"), 403
+    from app.models.workflow_risk import RiskAssessment, RiskLevel
+    assessments = RiskAssessment.query.filter(
+        RiskAssessment.risk_level.in_([RiskLevel.HIGH, RiskLevel.CRITICAL])
+    ).order_by(RiskAssessment.created_at.desc()).limit(50).all()
+    return jsonify({"success": True, "anomalies": [a.to_dict() for a in assessments]})
 
 
 # ---------------------------------------------------------------------------

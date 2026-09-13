@@ -59,6 +59,13 @@ def add_beneficiary(user_id: int, data: dict, cool_off_minutes: int = 30) -> Ben
         change_summary=f"Beneficiary added ({cool_off_minutes}m cooling-off)",
         audit_action=AuditAction.BENEFICIARY_CREATED,
     )
+    try:
+        from app.models.behavioral_profile import UserBehavioralProfile
+        profile = UserBehavioralProfile.get_or_create(user_id)
+        profile.record_beneficiary_added()
+    except Exception:
+        pass
+
     db.session.commit()
     return beneficiary
 

@@ -75,8 +75,19 @@ def authenticate(username, password):
     user.register_successful_login()
     log_action(AuditAction.LOGIN, user_id=user.id, description="Successful login")
     
-    # Track LoginSession
+    # Track LoginSession & Behavioral Profile
     create_user_session(user.id)
+    try:
+        from app.models.behavioral_profile import UserBehavioralProfile
+        from app.utils.security import get_client_ip
+        from flask import request, has_request_context
+        profile = UserBehavioralProfile.get_or_create(user.id)
+        ip_addr = get_client_ip() if has_request_context() else "127.0.0.1"
+        ua = request.headers.get("User-Agent", "Unknown") if has_request_context() else "Unknown"
+        profile.record_login(ip_addr, ua)
+    except Exception:
+        pass
+
     db.session.commit()
     return user
 
@@ -92,6 +103,12 @@ def change_password(user: User, old_password: str, new_password: str):
     validate_password_strength(new_password)
     user.set_password(new_password)
     log_action(AuditAction.PASSWORD_CHANGED, user_id=user.id, description="Password changed")
+    try:
+        from app.models.behavioral_profile import UserBehavioralProfile
+        profile = UserBehavioralProfile.get_or_create(user.id)
+        profile.record_profile_update()
+    except Exception:
+        pass
     db.session.commit()
 
 
@@ -112,5 +129,11 @@ def update_profile(user: User, **changes):
         change_summary="Profile updated",
         audit_action=AuditAction.PROFILE_UPDATED,
     )
+    try:
+        from app.models.behavioral_profile import UserBehavioralProfile
+        profile = UserBehavioralProfile.get_or_create(user.id)
+        profile.record_profile_update()
+    except Exception:
+        pass
     db.session.commit()
     return user

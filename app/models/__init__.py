@@ -15,6 +15,7 @@ from app.models.workflow_risk import (
 from app.models.complaint import Complaint, ComplaintStatus, ComplaintPriority
 from app.models.service_request import ServiceRequest, ServiceRequestType, ServiceRequestStatus
 from app.models.document_vault import CustomerDocument, DocumentStatus
+from app.models.behavioral_profile import UserBehavioralProfile
 
 __all__ = [
     "BaseModel",
@@ -32,4 +33,5 @@ __all__ = [
     "Complaint", "ComplaintStatus", "ComplaintPriority",
     "ServiceRequest", "ServiceRequestType", "ServiceRequestStatus",
     "CustomerDocument", "DocumentStatus",
+    "UserBehavioralProfile",
 ]

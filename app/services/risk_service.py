@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, Union
 
 from app import db
 from app.models.account import Account
-from app.services import risk_engine
+from app.services import risk_engine, behavioral_risk_engine
 
 
 def evaluate_transaction_risk(
@@ -17,11 +17,11 @@ def evaluate_transaction_risk(
     amount: Optional[Union[Decimal, str, float]] = None
 ) -> Dict[str, Any]:
     """
-    Evaluate transaction risk using Python rule-based scoring engine.
+    Evaluate transaction risk using adaptive behavioral anomaly engine.
     Supports flexible arguments:
       - evaluate_transaction_risk(account, amount, counterparty_id)
       - evaluate_transaction_risk(user_id, account_id, counterparty_account_num, amount)
-    Returns: {risk_score, risk_level, decision, risk_factors}
+    Returns: {risk_score, risk_level, decision, action_taken, anomaly_details, risk_factors}
     """
     if isinstance(account_or_user, Account):
         source_acc = account_or_user
@@ -40,13 +40,41 @@ def evaluate_transaction_risk(
             "risk_score": 0,
             "risk_level": "LOW",
             "decision": "APPROVED",
+            "action_taken": "ALLOWED",
+            "anomaly_details": {},
             "risk_factors": ["Account not found"],
         }
 
-    assessment = risk_engine.evaluate_transaction_risk(source_acc, dest_acc, amt, actor_id)
+    # Combine static rule-based engine and behavioral anomaly engine
+    assessment_static = risk_engine.evaluate_transaction_risk(source_acc, dest_acc, amt, actor_id)
+    assessment_behavioral = behavioral_risk_engine.evaluate_behavioral_risk(actor_id, source_acc, dest_acc, amt)
+
+    # Composite risk score is max of static rule score and behavioral score
+    composite_score = min(max(assessment_static.risk_score, assessment_behavioral.risk_score), 100)
+    combined_factors = list(dict.fromkeys((assessment_static.risk_factors or []) + (assessment_behavioral.risk_factors or [])))
+
+    if composite_score >= 80:
+        level = "CRITICAL"
+        decision = "REVIEW_REQUIRED"
+        action = "HOLD_AND_REVOKE"
+    elif composite_score >= 60:
+        level = "HIGH"
+        decision = "REVIEW_REQUIRED"
+        action = "STEP_UP_ENFORCED"
+    elif composite_score >= 30:
+        level = "MEDIUM"
+        decision = "APPROVED"
+        action = "ALERTED"
+    else:
+        level = "LOW"
+        decision = "APPROVED"
+        action = "ALLOWED"
+
     return {
-        "risk_score": assessment.risk_score,
-        "risk_level": assessment.risk_level,
-        "decision": assessment.decision,
-        "risk_factors": assessment.risk_factors,
+        "risk_score": composite_score,
+        "risk_level": level,
+        "decision": decision,
+        "action_taken": action,
+        "anomaly_details": assessment_behavioral.anomaly_details or {},
+        "risk_factors": combined_factors,
     }
