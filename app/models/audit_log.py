@@ -22,6 +22,14 @@ class AuditAction:
     ADMIN_ACTION = "ADMIN_ACTION"
     VERSION_CREATED = "VERSION_CREATED"
     VERSION_RESTORED = "VERSION_RESTORED"
+    SECURITY_EVENT = "SECURITY_EVENT"
+    OTP_SENT = "OTP_SENT"
+    OTP_SUCCESS = "OTP_SUCCESS"
+    OTP_FAILED = "OTP_FAILED"
+    RISK_EVALUATED = "RISK_EVALUATED"
+    ROLLBACK_REQUESTED = "ROLLBACK_REQUESTED"
+    ROLLBACK_APPROVED = "ROLLBACK_APPROVED"
+    ROLLBACK_REJECTED = "ROLLBACK_REJECTED"
 
 
 class AuditLog(db.Model):
@@ -29,6 +37,7 @@ class AuditLog(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    role = db.Column(db.String(20), nullable=True)
 
     action = db.Column(db.String(40), nullable=False, index=True)
     entity_type = db.Column(db.String(30), nullable=True)
@@ -38,20 +47,28 @@ class AuditLog(db.Model):
     new_data = db.Column(db.JSON, nullable=True)
 
     ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(255), nullable=True)
     description = db.Column(db.String(255))
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    previous_hash = db.Column(db.String(64), nullable=True)
+    current_hash = db.Column(db.String(64), nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
 
     def to_dict(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "role": self.role,
             "action": self.action,
             "entity_type": self.entity_type,
             "entity_id": self.entity_id,
             "old_data": self.old_data,
             "new_data": self.new_data,
             "ip_address": self.ip_address,
+            "user_agent": self.user_agent,
             "description": self.description,
+            "previous_hash": self.previous_hash,
+            "current_hash": self.current_hash,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
