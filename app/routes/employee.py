@@ -312,7 +312,7 @@ def approvals():
         notes = request.form.get("notes", "Reviewed by Staff").strip()
 
         try:
-            req = RollbackRequest.query.get(request_id)
+            req = db.session.get(RollbackRequest, request_id)
             if not req:
                 flash("Rollback request not found.", "error")
                 return redirect(url_for("employee.approvals"))
@@ -352,7 +352,7 @@ def complaints():
         notes = request.form.get("internal_notes", "").strip()
         resolution = request.form.get("resolution", "").strip() or request.form.get("resolution_notes", "").strip()
 
-        comp = Complaint.query.get(complaint_id)
+        comp = db.session.get(Complaint, complaint_id)
         if comp:
             if status:
                 comp.status = status

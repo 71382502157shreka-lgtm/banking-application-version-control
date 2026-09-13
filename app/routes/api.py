@@ -193,7 +193,7 @@ def mini_statement():
 @login_required
 def get_transaction_detail(transaction_id):
     tx = Transaction.query.get_or_404(transaction_id)
-    account = Account.query.get(tx.account_id)
+    account = db.session.get(Account, tx.account_id)
 
     if current_user.role == Role.CUSTOMER:
         if not account or account.user_id != current_user.id:
@@ -213,7 +213,7 @@ def get_transaction_detail(transaction_id):
 @login_required
 def download_transaction_receipt(transaction_id):
     tx = Transaction.query.get_or_404(transaction_id)
-    account = Account.query.get(tx.account_id)
+    account = db.session.get(Account, tx.account_id)
 
     if current_user.role == Role.CUSTOMER:
         if not account or account.user_id != current_user.id:
@@ -549,8 +549,8 @@ def get_transaction_receipt(txn_id):
         if txn.account_id not in owned_ids and txn.counterparty_account_id not in owned_ids:
             from flask import abort
             abort(403)
-    account = Account.query.get(txn.account_id)
-    counterparty = Account.query.get(txn.counterparty_account_id) if txn.counterparty_account_id else None
+    account = db.session.get(Account, txn.account_id)
+    counterparty = db.session.get(Account, txn.counterparty_account_id) if txn.counterparty_account_id else None
 
     return jsonify({
         "reference_number": txn.reference_number,

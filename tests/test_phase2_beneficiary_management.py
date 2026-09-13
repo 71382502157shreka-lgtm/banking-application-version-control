@@ -1,5 +1,6 @@
 import re
 import pytest
+from app import db
 from app.models.user import Role
 from app.models.account import AccountType
 from app.models.beneficiary import Beneficiary, BeneficiaryStatus
@@ -217,7 +218,7 @@ def test_delete_beneficiary(client, customer_a):
     assert "deleted" in resp.get_json()["message"].lower()
 
     # Verify status in database
-    b_db = Beneficiary.query.get(b.id)
+    b_db = db.session.get(Beneficiary, b.id)
     assert b_db.status == BeneficiaryStatus.INACTIVE
 
 

@@ -65,7 +65,7 @@ class BankingApp:
 
     def deposit(self, account_id: int | Account, amount: Decimal | str | float, description: str = "Deposit", actor_user_id: Optional[int] = None) -> Tuple[Any, Optional[str]]:
         try:
-            acc = Account.query.get(account_id) if isinstance(account_id, int) else account_id
+            acc = db.session.get(Account, account_id) if isinstance(account_id, int) else account_id
             if not acc:
                 return None, "Account not found"
             actor_id = actor_user_id or acc.user_id
@@ -76,7 +76,7 @@ class BankingApp:
 
     def withdraw(self, account_id: int | Account, amount: Decimal | str | float, description: str = "Withdrawal", actor_user_id: Optional[int] = None) -> Tuple[Any, Optional[str]]:
         try:
-            acc = Account.query.get(account_id) if isinstance(account_id, int) else account_id
+            acc = db.session.get(Account, account_id) if isinstance(account_id, int) else account_id
             if not acc:
                 return None, "Account not found"
             actor_id = actor_user_id or acc.user_id
@@ -88,8 +88,8 @@ class BankingApp:
     def transfer(self, from_account_id: int | Account, to_account_id: int | Account,
                  amount: Decimal | str | float, description: str = "Transfer", actor_user_id: Optional[int] = None) -> Tuple[Any, Optional[str]]:
         try:
-            from_acc = Account.query.get(from_account_id) if isinstance(from_account_id, int) else from_account_id
-            to_acc = Account.query.get(to_account_id) if isinstance(to_account_id, int) else to_account_id
+            from_acc = db.session.get(Account, from_account_id) if isinstance(from_account_id, int) else from_account_id
+            to_acc = db.session.get(Account, to_account_id) if isinstance(to_account_id, int) else to_account_id
             if not from_acc or not to_acc:
                 return None, "One or both accounts not found"
             actor_id = actor_user_id or from_acc.user_id
