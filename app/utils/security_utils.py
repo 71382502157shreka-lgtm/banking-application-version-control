@@ -188,9 +188,45 @@ def rate_limit(limit: Optional[int] = None, window_seconds: Optional[int] = None
     return decorator
 
 
+def check_global_rate_limit():
+    """Global Flask before_request hook for global request rate limiting."""
+    if not current_app or not current_app.config.get("RATELIMIT_ENABLED", True):
+        return None
+
+    if request.path.startswith("/static"):
+        return None
+
+    max_reqs = current_app.config.get("RATELIMIT_DEFAULT_LIMIT", 100)
+    win_sec = current_app.config.get("RATELIMIT_WINDOW_SECONDS", 60)
+
+    ip = get_client_ip()
+    user_id = current_user.id if hasattr(current_user, "is_authenticated") and current_user.is_authenticated else "anon"
+    rate_key = f"global:{ip}:{user_id}"
+
+    allowed, limit_val, remaining, reset_ts = limiter.check_rate_limit(rate_key, max_reqs, win_sec)
+    retry_after = max(1, reset_ts - int(time.time()))
+
+    from flask import g
+    g.rate_limit_info = (limit_val, remaining, reset_ts)
+
+    if not allowed:
+        response_data = {
+            "error": "Too Many Requests",
+            "message": f"Rate limit exceeded. Try again in {retry_after} seconds.",
+            "retry_after": retry_after
+        }
+        resp = jsonify(response_data)
+        resp.status_code = 429
+        resp.headers["Retry-After"] = str(retry_after)
+        resp.headers["X-RateLimit-Limit"] = str(limit_val)
+        resp.headers["X-RateLimit-Remaining"] = "0"
+        resp.headers["X-RateLimit-Reset"] = str(reset_ts)
+        return resp
+
+
 def apply_security_headers(response):
     """
-    Global Flask after_request hook adding production security headers.
+    Global Flask after_request hook adding production security headers and rate limit info.
     """
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -198,4 +234,12 @@ def apply_security_headers(response):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+
+    from flask import g
+    if hasattr(g, "rate_limit_info") and g.rate_limit_info and "X-RateLimit-Limit" not in response.headers:
+        limit_val, remaining, reset_ts = g.rate_limit_info
+        response.headers["X-RateLimit-Limit"] = str(limit_val)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        response.headers["X-RateLimit-Reset"] = str(reset_ts)
+
     return response
