@@ -44,7 +44,10 @@ class EntityVersion(db.Model):
     new_data = db.Column(db.JSON, nullable=True)
 
     changed_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    restored_from_version = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), default="ACTIVE")
+    reason = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
 
     __table_args__ = (
         db.UniqueConstraint("entity_type", "entity_id", "version_number", name="uq_entity_version"),
@@ -61,5 +64,8 @@ class EntityVersion(db.Model):
             "old_data": self.old_data,
             "new_data": self.new_data,
             "changed_by": self.changed_by,
+            "restored_from_version": self.restored_from_version,
+            "status": self.status,
+            "reason": self.reason,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

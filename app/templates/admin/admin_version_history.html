@@ -96,7 +96,7 @@
 <script>
   async function adminDiffView(entity_type, entity_id, v1, v2) {
     try {
-      const res = await fetch(`/api/versions/compare?entity_type=${entity_type}&entity_id=${entity_id}&v1=${v1}&v2=${v2}`);
+      const res = await fetch(`/api/v1/versions/diff?entity_type=${entity_type}&entity_id=${entity_id}&v1=${v1}&v2=${v2}`);
       if (!res.ok) {
         showToast('Failed to load version comparison', 'danger');
         return;
@@ -144,10 +144,10 @@
     if (!reason) return;
 
     try {
-      const res = await fetch('/api/versions/restore', {
+      const res = await fetch(`/api/versions/${entity_type}/${entity_id}/restore/${version_number}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entity_type, entity_id, version_number, reason })
+        body: JSON.stringify({ reason })
       });
       const data = await res.json();
       if (res.ok) {

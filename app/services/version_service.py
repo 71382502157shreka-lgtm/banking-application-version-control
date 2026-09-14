@@ -36,7 +36,8 @@ def _next_version_number(entity_type: str, entity_id: int) -> int:
 def create_version(entity_type: str, entity_id: int, change_type: str,
                     old_data: dict | None, new_data: dict | None,
                     changed_by: int | None, change_summary: str = None,
-                    audit_action: str = None):
+                    audit_action: str = None, reason: str = None,
+                    restored_from_version: int = None):
     """
     Record one version row + one matching audit log row.
     Does NOT commit — caller commits alongside the actual data change so
@@ -53,6 +54,9 @@ def create_version(entity_type: str, entity_id: int, change_type: str,
         old_data=old_data,
         new_data=new_data,
         changed_by=changed_by,
+        reason=reason,
+        restored_from_version=restored_from_version,
+        status="ACTIVE",
     )
     db.session.add(version)
 
@@ -76,6 +80,21 @@ def get_history(entity_type: str, entity_id: int):
         .order_by(EntityVersion.version_number.asc())
         .all()
     )
+
+
+def search_versions(entity_type: str = None, entity_id: int = None, changed_by: int = None, change_type: str = None, query_str: str = None):
+    q = EntityVersion.query
+    if entity_type:
+        q = q.filter(EntityVersion.entity_type == entity_type)
+    if entity_id:
+        q = q.filter(EntityVersion.entity_id == entity_id)
+    if changed_by:
+        q = q.filter(EntityVersion.changed_by == changed_by)
+    if change_type:
+        q = q.filter(EntityVersion.change_type == change_type)
+    if query_str:
+        q = q.filter(EntityVersion.change_summary.ilike(f"%{query_str}%"))
+    return q.order_by(EntityVersion.created_at.desc()).all()
 
 
 def get_version(entity_type: str, entity_id: int, version_number: int):
@@ -125,7 +144,7 @@ def diff_versions(entity_type: str, entity_id: int, version_a: int, version_b: i
 
 
 def restore_version(entity_type: str, entity_id: int, version_number: int,
-                     changed_by: int, apply_fn):
+                     changed_by: int, apply_fn, reason: str = None):
     """
     Restore a non-financial entity to a prior version's snapshot.
 
@@ -154,7 +173,9 @@ def restore_version(entity_type: str, entity_id: int, version_number: int,
         old_data=target.new_data,
         new_data=current_state,
         changed_by=changed_by,
-        change_summary=f"Restored to version {version_number}",
+        change_summary=f"Restored to version {version_number}" + (f": {reason}" if reason else ""),
         audit_action=AuditAction.VERSION_RESTORED,
+        reason=reason,
+        restored_from_version=version_number,
     )
     return current_state
