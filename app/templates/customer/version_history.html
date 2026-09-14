@@ -292,7 +292,10 @@
     const v1 = document.getElementById('customCompareV1').value;
     const v2 = document.getElementById('customCompareV2').value;
 
-    bootstrap.Modal.getInstance(document.getElementById('customCompareModal')).hide();
+    const modalEl = document.getElementById('customCompareModal');
+    let modal = bootstrap.Modal.getInstance(modalEl);
+    if (!modal) modal = new bootstrap.Modal(modalEl);
+    modal.hide();
     await compareWithPrior(entity_type, entity_id, v1, v2);
   });
 </script>
