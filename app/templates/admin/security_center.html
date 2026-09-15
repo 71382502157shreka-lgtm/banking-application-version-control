@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Security Center — BankVCS 2.0{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-shield-check text-success me-2"></i> System Security Center</h2>
+      <p class="text-muted mb-0">Cryptographic SHA-256 Audit Integrity Verification, Active Session Control & Risk Analytics</p>
+    </div>
+    <div>
+      <button class="btn btn-primary shadow-sm" onclick="verifyChain(event)">
+        <i class="bi bi-cpu me-1"></i> Verify Cryptographic Audit Chain
+      </button>
+    </div>
+  </div>
+
+  <!-- Security Scorecards -->
+  <div class="row g-4 mb-4">
+    <!-- Security Score Gauge -->
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="fin-card text-center p-4">
+        <div class="stat-label mb-2">Overall Security Health</div>
+        <div class="display-5 fw-bold text-success my-2" style="font-family: var(--font-heading);">
+          96 <span class="fs-4 text-muted">/ 100</span>
+        </div>
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small">
+          <i class="bi bi-shield-fill-check me-1"></i> EXCELLENT
+        </span>
+      </div>
+    </div>
+
+    <!-- Audit Hash Chain Status -->
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="fin-card p-4">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div class="stat-label">SHA-256 Hash Pointer Chain</div>
+          <div class="stat-icon-wrapper stat-icon-success">
+            <i class="bi bi-link-45deg fs-4"></i>
+          </div>
+        </div>
+        <div class="stat-value text-success fs-5 text-truncate" id="chain-status">
+          {{ audit_verification.message }}
+        </div>
+        <div class="small text-muted mt-2">
+          Zero-Tamper Log Verification Active
+        </div>
+      </div>
+    </div>
+
+    <!-- Failed Logins -->
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="fin-card p-4">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div class="stat-label">Failed Login Events</div>
+          <div class="stat-icon-wrapper stat-icon-warning">
+            <i class="bi bi-exclamation-triangle fs-4"></i>
+          </div>
+        </div>
+        <div class="stat-value text-warning">{{ failed_logins }}</div>
+        <div class="small text-muted mt-2">
+          Monitored via Account Lockout Engine
+        </div>
+      </div>
+    </div>
+
+    <!-- Locked Accounts -->
+    <div class="col-12 col-md-6 col-xl-3">
+      <div class="fin-card p-4">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div class="stat-label">Currently Locked Users</div>
+          <div class="stat-icon-wrapper stat-icon-danger">
+            <i class="bi bi-lock-fill fs-4"></i>
+          </div>
+        </div>
+        <div class="stat-value text-danger">{{ locked_users }}</div>
+        <div class="small text-muted mt-2">
+          Max 5 attempts before 15m lockout
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Audit Logs Table -->
+  <div class="fin-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h5 class="fw-bold mb-0"><i class="bi bi-journal-code me-2 text-primary"></i> Cryptographic Audit Trail Events</h5>
+        <small class="text-muted">Linked via SHA-256 (`current_hash = SHA256(prev_hash + data)`)</small>
+      </div>
+      <span class="badge bg-secondary-subtle text-secondary">Immutable Ledger</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="fin-table align-middle">
+        <thead>
+          <tr>
+            <th>Audit ID</th>
+            <th>Action Event</th>
+            <th>User / Role</th>
+            <th>IP Address</th>
+            <th>Previous Hash (SHA-256)</th>
+            <th>Current Hash (SHA-256)</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in recent_events %}
+          <tr>
+            <td><span class="badge bg-secondary">#{{ event.id }}</span></td>
+            <td><span class="badge bg-primary-subtle text-primary fw-bold">{{ event.action }}</span></td>
+            <td><span class="fw-medium">User #{{ event.user_id or 'System' }}</span> <span class="badge bg-light text-dark">{{ event.role or 'N/A' }}</span></td>
+            <td><code class="small text-muted">{{ event.ip_address or '127.0.0.1' }}</code></td>
+            <td><code class="small text-muted" title="{{ event.previous_hash }}">{{ (event.previous_hash or 'GENESIS')[:14] }}...</code></td>
+            <td><code class="small text-primary fw-bold" title="{{ event.current_hash }}">{{ (event.current_hash or 'PENDING')[:14] }}...</code></td>
+            <td><span class="small text-muted">{{ event.created_at.strftime('%Y-%m-%d %H:%M:%S') if event.created_at else '' }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center py-4 text-muted">No security events logged yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function verifyChain(e) {
+  e.preventDefault();
+  fetch('/api/v1/audit/verify')
+    .then(res => res.json())
+    .then(data => {
+      const isOk = data.valid;
+      const statusText = isOk ? '✓ Cryptographically Valid Chain' : '⚠ Audit Integrity Violation Detected';
+      showToast(`${statusText}: ${data.message} (Scanned ${data.total_records || 0} records)`, isOk ? 'success' : 'danger');
+      document.getElementById('chain-status').innerText = statusText;
+    })
+    .catch(err => {
+      showToast('Error verifying audit chain', 'danger');
+    });
+}
+</script>
+{% endblock %}
