@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}System &amp; Risk Analytics — BankVCS 2.0{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-graph-up-arrow text-primary me-2"></i> System &amp; Risk Intelligence Telemetry</h2>
+      <p class="text-muted mb-0">Live analytics across user accounts, transaction volume, risk scores, and entity versions</p>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Total Platform Users</div>
+          <div class="stat-icon-wrapper stat-icon-primary"><i class="bi bi-people"></i></div>
+        </div>
+        <div class="stat-value text-primary">{{ total_users }}</div>
+        <div class="small text-muted">Across Customer, Staff &amp; Admin</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Total Transactions</div>
+          <div class="stat-icon-wrapper stat-icon-success"><i class="bi bi-currency-exchange"></i></div>
+        </div>
+        <div class="stat-value text-success">{{ total_txns }}</div>
+        <div class="small text-muted">Processed through Ledger</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">Risk Evaluations</div>
+          <div class="stat-icon-wrapper stat-icon-warning"><i class="bi bi-cpu"></i></div>
+        </div>
+        <div class="stat-value text-warning">{{ risk_evals }}</div>
+        <div class="small text-muted">Scored 0–100 by Risk Engine</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-label">High Risk Triggers</div>
+          <div class="stat-icon-wrapper stat-icon-danger"><i class="bi bi-exclamation-triangle"></i></div>
+        </div>
+        <div class="stat-value text-danger">{{ high_risk_count }}</div>
+        <div class="small text-muted">Score &ge; 60 (Flagged / Blocked)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telemetry Breakdown Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-lg-8">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i> System Activity &amp; Risk Distribution</h5>
+          <span class="badge bg-primary-subtle text-primary">Live Data</span>
+        </div>
+        <div style="height: 280px; position: relative;">
+          <canvas id="adminAnalyticsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <div class="fin-card">
+        <h5 class="fw-bold mb-3"><i class="bi bi-shield-check me-2 text-success"></i> Risk Intelligence Policy</h5>
+        <div class="p-3 bg-body-tertiary rounded-3 border mb-3">
+          <div class="fw-bold text-dark mb-1 small"><i class="bi bi-lightning-fill text-warning me-1"></i> Velocity Check</div>
+          <div class="small text-muted">Flags transfers &gt;3 within a 15-minute rolling window.</div>
+        </div>
+
+        <div class="p-3 bg-body-tertiary rounded-3 border mb-3">
+          <div class="fw-bold text-dark mb-1 small"><i class="bi bi-clock-history text-info me-1"></i> Beneficiary Cooldown</div>
+          <div class="small text-muted">Applies risk penalty for transfers to beneficiaries added within 24 hours.</div>
+        </div>
+
+        <div class="p-3 bg-body-tertiary rounded-3 border">
+          <div class="fw-bold text-dark mb-1 small"><i class="bi bi-graph-down text-danger me-1"></i> Depletion Anomaly</div>
+          <div class="small text-muted">Triggers high risk rating if a transfer consumes &gt;80% of account balance.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('adminAnalyticsChart');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Total Users', 'Transactions', 'Risk Evals', 'High Risk Triggers'],
+          datasets: [{
+            label: 'System Telemetry Metrics',
+            data: [{{ total_users }}, {{ total_txns }}, {{ risk_evals }}, {{ high_risk_count }}],
+            backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444'],
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}
