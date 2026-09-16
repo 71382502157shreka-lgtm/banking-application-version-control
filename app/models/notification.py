@@ -14,7 +14,7 @@ class Notification(db.Model):
     notification_type = db.Column(db.String(30), default="INFO")  # INFO/SECURITY/TRANSACTION
     is_read = db.Column(db.Boolean, default=False, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
     def to_dict(self):
         return {
@@ -26,3 +26,4 @@ class Notification(db.Model):
             "is_read": self.is_read,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+

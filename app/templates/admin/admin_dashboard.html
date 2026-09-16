@@ -3,12 +3,39 @@
 
 {% block content %}
 <div class="container-fluid px-0">
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
-    <div>
-      <h2 class="fw-bold mb-1">System Administration Console</h2>
-      <p class="text-muted mb-0">System health, version control metrics, security monitoring, and global governance.</p>
+  <!-- Executive Overview Welcome Header (StockPilot Style) -->
+  <div class="fin-card p-4 mb-4 border-0 shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #0d1117 0%, #1a1e2e 50%, #0d1117 100%); color: #fff; border-radius: 20px;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div>
+        <div class="small text-uppercase tracking-wider text-warning fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;">
+          <i class="bi bi-shield-lock-fill me-1"></i> EXECUTIVE GOVERNANCE OVERVIEW
+        </div>
+        <h2 class="fw-extrabold mb-1 text-white" id="adminGreetingHeading" data-name="{{ current_user.full_name or current_user.username or 'System Administrator' }}" style="font-family: var(--font-heading); font-size: 1.65rem;">
+          Good Evening, {{ current_user.full_name or current_user.username or 'System Administrator' }}
+        </h2>
+        <div class="text-white-50 small">
+          <span id="greetingDate">Wednesday, September 16, 2026</span> &bull; Real-time continuous telemetry monitoring active.
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-3 p-3 rounded-4 border border-warning-subtle" style="background: rgba(255,255,255,0.06); backdrop-filter: blur(8px);">
+        <div class="text-end">
+          <div class="small text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">OVERALL SYSTEM HEALTH</div>
+          <div class="h3 fw-extrabold text-success mb-0 font-monospace">98%</div>
+        </div>
+        <div class="avatar-circle bg-success text-dark p-2 d-flex align-items-center justify-content-center rounded-circle" style="width: 44px; height: 44px;">
+          <i class="bi bi-heart-pulse-fill fs-5"></i>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Quick Actions Row -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="fw-bold text-muted small"><i class="bi bi-sliders me-1"></i> Quick Administrative Controls</div>
     <div class="d-flex gap-2">
+      <a href="{{ url_for('admin.export_audit_logs_csv') }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 shadow-sm">
+        <i class="bi bi-file-earmark-excel"></i> Export Audit Logs (CSV)
+      </a>
       <a href="{{ url_for('admin.manage_users') }}" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm">
         <i class="bi bi-people-fill"></i> Manage Users
       </a>
@@ -18,57 +45,49 @@
     </div>
   </div>
 
-  <!-- Key Metrics Row (4x2 or 4x1) -->
+  <!-- Key Metrics Row (StockPilot Dashboard Cards) -->
   <div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-xl-3">
       <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start mb-2">
           <div class="stat-label">Total Users</div>
-          <div class="stat-icon-wrapper stat-icon-primary">
-            <i class="bi bi-people"></i>
-          </div>
+          <span class="badge bg-primary-subtle text-primary fw-bold" style="font-size: 0.7rem;"><i class="bi bi-arrow-up-right"></i> +12.4%</span>
         </div>
-        <div class="stat-value text-primary">{{ total_users }}</div>
-        <div class="small text-muted">{{ total_customers }} Customers &bull; {{ total_employees }} Staff</div>
+        <div class="stat-value text-primary font-monospace">{{ total_users }}</div>
+        <div class="small text-muted mt-1">{{ total_customers }} Customers &bull; {{ total_employees }} Staff</div>
       </div>
     </div>
 
     <div class="col-12 col-sm-6 col-xl-3">
       <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start mb-2">
           <div class="stat-label">Total Volume</div>
-          <div class="stat-icon-wrapper stat-icon-success">
-            <i class="bi bi-cash-coin"></i>
-          </div>
+          <span class="badge bg-success-subtle text-success fw-bold" style="font-size: 0.7rem;"><i class="bi bi-arrow-up-right"></i> +8.1%</span>
         </div>
-        <div class="stat-value text-success">₹{{ "{:,.2f}".format(total_volume) }}</div>
-        <div class="small text-muted">{{ total_txns }} Completed Transactions</div>
+        <div class="stat-value text-success font-monospace">₹{{ "{:,.2f}".format(total_volume) }}</div>
+        <div class="small text-muted mt-1">{{ total_txns }} Completed Transactions</div>
       </div>
     </div>
 
     <div class="col-12 col-sm-6 col-xl-3">
       <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start mb-2">
           <div class="stat-label">Entity Versions</div>
-          <div class="stat-icon-wrapper stat-icon-info">
-            <i class="bi bi-git"></i>
-          </div>
+          <span class="badge bg-info-subtle text-info fw-bold" style="font-size: 0.7rem;"><i class="bi bi-arrow-down-right"></i> -3.6%</span>
         </div>
-        <div class="stat-value text-info">{{ total_versions }}</div>
-        <div class="small text-muted">Immutable State Snapshots</div>
+        <div class="stat-value text-info font-monospace">{{ total_versions }}</div>
+        <div class="small text-muted mt-1">Immutable State Snapshots</div>
       </div>
     </div>
 
     <div class="col-12 col-sm-6 col-xl-3">
       <div class="fin-card">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start mb-2">
           <div class="stat-label">Audit Logs</div>
-          <div class="stat-icon-wrapper stat-icon-warning">
-            <i class="bi bi-shield-check"></i>
-          </div>
+          <span class="badge bg-warning-subtle text-warning fw-bold" style="font-size: 0.7rem;"><i class="bi bi-arrow-up-right"></i> +5.9%</span>
         </div>
-        <div class="stat-value text-warning">{{ total_audit_logs }}</div>
-        <div class="small text-muted">{{ failed_logins }} Failed Login Attempts Tracked</div>
+        <div class="stat-value text-warning font-monospace">{{ total_audit_logs }}</div>
+        <div class="small text-muted mt-1">{{ failed_logins }} Failed Login Attempts Tracked</div>
       </div>
     </div>
   </div>

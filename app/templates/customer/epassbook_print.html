@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Digital e-Passbook — BankVCS 2.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f0fa;
+            color: #1e1033;
+            padding: 30px;
+        }
+        .passbook-container {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(46, 16, 101, 0.12);
+            padding: 40px;
+            max-width: 960px;
+            margin: 0 auto;
+            border: 2px solid #e9dcfc;
+        }
+        .header-box {
+            border-bottom: 3px double #2e1065;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .stamp-box {
+            border: 2px dashed #16a34a;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f0fdf4;
+            display: inline-block;
+            text-align: center;
+        }
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .passbook-container {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="passbook-container">
+        <!-- Print / Close Action Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom no-print">
+            <div class="fw-bold text-primary">
+                <i class="bi bi-shield-check me-1"></i> Certified Bank Passbook Document
+            </div>
+            <div class="d-flex gap-2">
+                <button onclick="window.print()" class="btn btn-warning fw-bold px-4 py-2" style="border-radius: 10px;">
+                    <i class="bi bi-printer-fill me-1"></i> Print / Save PDF
+                </button>
+                <button onclick="window.close()" class="btn btn-outline-secondary px-3 py-2" style="border-radius: 10px;">
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <!-- Bank Header -->
+        <div class="header-box d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="fw-extrabold text-primary mb-0" style="letter-spacing: -0.5px;">BANKVCS 2.0 CORE DIGITAL BANKING</h2>
+                <div class="text-muted small">Official Passbook &amp; Financial Statement Certificate</div>
+                <div class="text-muted small">Headquarters Financial Center &bull; IFSC: BVCS0001092</div>
+            </div>
+            <div class="text-end">
+                <div class="stamp-box">
+                    <i class="bi bi-patch-check-fill text-success fs-4 d-block"></i>
+                    <strong class="text-success small">DIGITALLY STAMPED</strong>
+                    <div class="text-muted" style="font-size: 0.65rem;">SHA-256 Ledger Verified</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Holder & Account Particulars -->
+        <div class="row g-4 mb-4 p-3 bg-light rounded-3">
+            <div class="col-6">
+                <div class="text-muted small text-uppercase">Account Holder Name</div>
+                <h5 class="fw-bold mb-3">{{ current_user.full_name or current_user.username }}</h5>
+                <div class="small mb-1"><strong>Account No:</strong> <span class="font-monospace">{{ account.account_number }}</span></div>
+                <div class="small"><strong>Account Type:</strong> {{ account.account_type }}</div>
+            </div>
+            <div class="col-6 text-end">
+                <div class="text-muted small text-uppercase">Certified Balance</div>
+                <h3 class="fw-bold text-success font-monospace mb-3">₹{{ "%.2f"|format(account.balance) }}</h3>
+                <div class="small mb-1"><strong>Generated Date:</strong> {{ generated_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</div>
+                <div class="small"><strong>Status:</strong> <span class="badge bg-success text-white">ACTIVE &amp; VERIFIED</span></div>
+            </div>
+        </div>
+
+        <!-- Transaction Ledger -->
+        <h5 class="fw-bold mb-3"><i class="bi bi-journal-text me-1"></i> Passbook Ledger Statements</h5>
+        <table class="table table-bordered table-striped align-middle small">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date &amp; Time</th>
+                    <th>UTR Reference</th>
+                    <th>Description</th>
+                    <th>Entry</th>
+                    <th>Debit (₹)</th>
+                    <th>Credit (₹)</th>
+                    <th>Balance (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if stmt and stmt.records %}
+                    {% for rec in stmt.records %}
+                    <tr>
+                        <td class="font-monospace">{{ rec.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td class="font-monospace text-primary fw-bold">{{ rec.reference_number }}</td>
+                        <td>{{ rec.description }}</td>
+                        <td><span class="badge {% if rec.entry_type == 'CREDIT' %}bg-success{% else %}bg-danger{% endif %}">{{ rec.entry_type }}</span></td>
+                        <td class="font-monospace text-danger text-end">{% if rec.debit_amount > 0 %}₹{{ "%.2f"|format(rec.debit_amount) }}{% else %}-{% endif %}</td>
+                        <td class="font-monospace text-success text-end">{% if rec.credit_amount > 0 %}₹{{ "%.2f"|format(rec.credit_amount) }}{% else %}-{% endif %}</td>
+                        <td class="font-monospace fw-bold text-end">₹{{ "%.2f"|format(rec.balance_after) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No transaction entries found in ledger.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- Sign-off Block -->
+        <div class="row mt-5 pt-4 border-top align-items-center">
+            <div class="col-6">
+                <div class="small text-muted">This is an authenticated computer-generated e-Passbook statement.</div>
+                <div class="small text-muted">No manual physical signature is required under IT Act Section 65B.</div>
+            </div>
+            <div class="col-6 text-end">
+                <div class="fw-bold text-uppercase text-primary small">BankVCS Digital System Authority</div>
+                <div class="font-monospace text-muted small">Cryptographic Stamp ID: #BVCS-PASS-{{ account.id }}-2026</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

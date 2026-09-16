@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Digital e-Passbook{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-book-half text-primary me-2"></i> Digital e-Passbook</h2>
+      <p class="text-muted mb-0">Official electronic bank passbook with certified ledger transactions and digital seal.</p>
+    </div>
+    {% if selected_account %}
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('customer.download_epassbook_csv', account_id=selected_account.id) }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-file-earmark-excel"></i> Export Passbook (CSV)
+      </a>
+      <a href="{{ url_for('customer.print_epassbook', account_id=selected_account.id) }}" target="_blank" class="btn btn-primary btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-printer"></i> Print / PDF Passbook
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Account Selector Bar -->
+  <div class="fin-card mb-4 p-3">
+    <form method="GET" action="{{ url_for('customer.epassbook') }}" class="row g-2 align-items-center">
+      <div class="col-12 col-md-6">
+        <label class="form-label small text-muted mb-1 fw-bold">Select Account for Passbook Inspection:</label>
+        <select class="form-select" name="account_id" onchange="this.form.submit()">
+          {% for acc in accounts %}
+          <option value="{{ acc.id }}" {% if selected_account and selected_account.id == acc.id %}selected{% endif %}>
+            {{ acc.account_number }} ({{ acc.account_type }}) — ₹{{ "%.2f"|format(acc.balance) }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-6 text-md-end">
+        <span class="badge bg-success-subtle text-success px-3 py-2 border border-success-subtle rounded-pill">
+          <i class="bi bi-shield-check me-1"></i> Digital Signature &amp; Cryptographic Stamp Verified
+        </span>
+      </div>
+    </form>
+  </div>
+
+  {% if selected_account %}
+  <!-- Front Cover / Identification Header -->
+  <div class="fin-card mb-4 p-4 border-start border-4 border-primary">
+    <div class="row align-items-center g-3">
+      <div class="col-12 col-md-7">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="avatar-lg bg-primary-subtle text-primary rounded-circle p-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+            <i class="bi bi-bank fs-3"></i>
+          </div>
+          <div>
+            <h4 class="fw-bold mb-0">{{ current_user.full_name or current_user.username }}</h4>
+            <div class="text-muted small">Account Holder Name</div>
+          </div>
+        </div>
+        <div class="row g-2 font-monospace small">
+          <div class="col-6"><span class="text-muted">Account No:</span> <strong>{{ selected_account.account_number }}</strong></div>
+          <div class="col-6"><span class="text-muted">Account Type:</span> <strong>{{ selected_account.account_type }}</strong></div>
+          <div class="col-6"><span class="text-muted">IFSC Code:</span> <strong>BVCS0001092</strong></div>
+          <div class="col-6"><span class="text-muted">MICR Code:</span> <strong>600024019</strong></div>
+          <div class="col-6"><span class="text-muted">Branch:</span> <strong>Headquarters Core</strong></div>
+          <div class="col-6"><span class="text-muted">Status:</span> <span class="badge bg-success text-white">ACTIVE</span></div>
+        </div>
+      </div>
+      <div class="col-12 col-md-5 text-md-end border-start-md ps-md-4">
+        <div class="text-muted small text-uppercase fw-bold mb-1">Available Ledger Balance</div>
+        <h2 class="fw-extrabold text-success mb-2 font-monospace">₹{{ "%.2f"|format(selected_account.balance) }}</h2>
+        <div class="small text-muted mb-2">Opening: ₹{{ "%.2f"|format(statement_data.opening_balance) if statement_data else "0.00" }}</div>
+        <div class="d-flex gap-2 justify-content-md-end">
+          <span class="badge bg-info-subtle text-info"><i class="bi bi-arrow-down-left me-1"></i> Credit: ₹{{ "%.2f"|format(statement_data.total_credit) if statement_data else "0.00" }}</span>
+          <span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-right me-1"></i> Debit: ₹{{ "%.2f"|format(statement_data.total_debit) if statement_data else "0.00" }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passbook Ledger Entries Table -->
+  <div class="fin-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-bold mb-0"><i class="bi bi-list-check me-2 text-primary"></i> Passbook Transactions Ledger</h5>
+      <span class="text-muted small">Showing chronological entries</span>
+    </div>
+    <div class="table-responsive">
+      <table class="fin-table align-middle">
+        <thead>
+          <tr>
+            <th>Date &amp; Time</th>
+            <th>UTR Reference</th>
+            <th>Particulars / Description</th>
+            <th>Type</th>
+            <th>Debit (₹)</th>
+            <th>Credit (₹)</th>
+            <th>Running Balance (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if statement_data and statement_data.records %}
+            {% for rec in statement_data.records %}
+            <tr>
+              <td><span class="small font-monospace">{{ rec.created_at.strftime('%d %b %Y %H:%M') }}</span></td>
+              <td><span class="font-monospace small text-primary fw-bold">{{ rec.reference_number }}</span></td>
+              <td><span class="fw-medium">{{ rec.description }}</span></td>
+              <td>
+                {% if rec.entry_type == 'CREDIT' %}
+                <span class="badge bg-success-subtle text-success">CREDIT</span>
+                {% else %}
+                <span class="badge bg-danger-subtle text-danger">DEBIT</span>
+                {% endif %}
+              </td>
+              <td class="font-monospace text-danger fw-semibold">
+                {% if rec.debit_amount > 0 %}₹{{ "%.2f"|format(rec.debit_amount) }}{% else %}-{% endif %}
+              </td>
+              <td class="font-monospace text-success fw-semibold">
+                {% if rec.credit_amount > 0 %}₹{{ "%.2f"|format(rec.credit_amount) }}{% else %}-{% endif %}
+              </td>
+              <td class="font-monospace fw-bold text-dark">₹{{ "%.2f"|format(rec.balance_after) }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-5 text-muted">No transactions recorded in passbook.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="fin-card text-center py-5">
+    <i class="bi bi-exclamation-triangle text-warning fs-1 d-block mb-3"></i>
+    <h4>No Account Available</h4>
+    <p class="text-muted">Please open or activate an account to view your e-Passbook.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,15 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>{% block title %}Dashboard{% endblock %} | Banking Version Control</title>
+  <title>{% block title %}Dashboard{% endblock %} | BankVCS 2.0</title>
+
+  <!-- Anti-Flash Theme Script -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('bankvcs-theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
 
   <!-- Google Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   
@@ -27,11 +39,11 @@
     <aside class="app-sidebar" id="appSidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">
-          <i class="bi bi-bank2"></i>
+          <i class="bi bi-robot"></i>
         </div>
         <div class="brand-info">
-          <span class="brand-name">BankVCS</span>
-          <span class="brand-tag">Version Control IS</span>
+          <span class="brand-name">BankVCS 2.0</span>
+          <span class="brand-tag">Cyber Version Control</span>
         </div>
         <button class="btn btn-sm btn-icon d-lg-none text-white ms-auto" id="sidebarCloseBtn">
           <i class="bi bi-x-lg"></i>
@@ -43,7 +55,7 @@
           {{ (current_user.full_name or current_user.username)[0]|upper }}
         </div>
         <div class="user-details overflow-hidden">
-          <h6 class="user-fullname text-truncate mb-0">{{ current_user.full_name or current_user.username }}</h6>
+          <h6 class="user-fullname text-truncate mb-0 text-white">{{ current_user.full_name or current_user.username }}</h6>
           <span class="role-badge role-{{ current_user.role }}">{{ current_user.role|upper }}</span>
         </div>
       </div>
@@ -83,6 +95,10 @@
           <i class="bi bi-file-earmark-text-fill"></i>
           <span>Statements</span>
         </a>
+        <a href="{{ url_for('customer.epassbook') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.epassbook' else '' }}">
+          <i class="bi bi-book-half"></i>
+          <span>Digital e-Passbook</span>
+        </a>
 
         <div class="nav-section-title">VERSION CONTROL &amp; SECURITY</div>
         <a href="{{ url_for('customer.version_history') }}" class="nav-item {{ 'active' if request.endpoint == 'customer.version_history' else '' }}">
@@ -105,7 +121,7 @@
         </a>
 
         {% elif current_user.role == 'employee' %}
-        <div class="nav-section-title">STAFF PORTAL</div>
+        <div class="nav-section-title text-success"><i class="bi bi-person-workspace me-1"></i> STAFF OPERATIONS CONSOLE</div>
         <a href="{{ url_for('employee.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'employee.dashboard' else '' }}">
           <i class="bi bi-speedometer2"></i>
           <span>Overview</span>
@@ -124,7 +140,7 @@
         </a>
 
         {% elif current_user.role == 'admin' %}
-        <div class="nav-section-title">ADMINISTRATION</div>
+        <div class="nav-section-title text-warning"><i class="bi bi-shield-lock-fill me-1"></i> EXECUTIVE GOVERNANCE HUB</div>
         <a href="{{ url_for('admin.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.dashboard' else '' }}">
           <i class="bi bi-speedometer2"></i>
           <span>System Dashboard</span>
@@ -159,20 +175,32 @@
     <div class="app-main">
       <!-- Top Header Navigation -->
       <header class="app-header">
-        <div class="header-left">
+        <div class="header-left d-flex align-items-center">
           <button class="btn btn-icon d-lg-none me-2" id="sidebarToggleBtn" aria-label="Toggle Sidebar">
             <i class="bi bi-list fs-4"></i>
           </button>
           <div class="header-welcome-meta d-none d-sm-block">
-            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
-              <i class="bi bi-shield-check me-1"></i> System Secure · Immutable Audit Active
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill">
+              <i class="bi bi-shield-check me-1"></i> System Secure &bull; Immutable Audit Active
             </span>
           </div>
         </div>
 
-        <div class="header-right">
+        <div class="header-right d-flex align-items-center gap-2">
+          <!-- Live Date & Time Clock Badge -->
+          <div class="header-clock-badge d-none d-md-flex align-items-center gap-2 px-3 py-1.5 rounded-pill border" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(168, 85, 247, 0.25) !important;">
+            <i class="bi bi-clock-fill text-warning"></i>
+            <span class="small font-monospace fw-semibold text-main" id="liveHeaderClock">Loading date &amp; time...</span>
+          </div>
+
+          <!-- Theme Toggle Button -->
+          <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light/Dark Theme">
+            <i class="bi bi-sun-fill fs-5" id="themeIconSun"></i>
+            <i class="bi bi-moon-stars-fill fs-5 d-none" id="themeIconMoon"></i>
+          </button>
+
           <!-- Notification Center -->
-          <div class="dropdown me-2">
+          <div class="dropdown">
             <button class="btn btn-icon position-relative" id="notifDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-bell fs-5"></i>
               <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle notification-indicator d-none" id="topNotifDot"></span>
@@ -180,7 +208,7 @@
             <div class="dropdown-menu dropdown-menu-end shadow-lg notification-dropdown p-0" aria-labelledby="notifDropdownBtn">
               <div class="notif-header p-3 border-bottom d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 fw-bold">Notifications</h6>
-                <button class="btn btn-link btn-sm text-decoration-none p-0" onclick="markAllNotificationsRead()">Mark all as read</button>
+                <button class="btn btn-link btn-sm text-decoration-none p-0" onclick="markAllNotificationsRead()">Mark all read</button>
               </div>
               <div class="notif-body" id="headerNotifList">
                 <div class="text-center py-4 text-muted small">Loading notifications...</div>
@@ -194,9 +222,9 @@
           </div>
 
           <!-- User Profile Dropdown -->
-          <div class="dropdown">
+          <div class="dropdown ms-1">
             <button class="btn user-profile-btn d-flex align-items-center" id="userMenuBtn" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="avatar-circle-sm me-2">
+              <div class="avatar-circle me-2">
                 {{ (current_user.full_name or current_user.username)[0]|upper }}
               </div>
               <div class="d-none d-md-block text-start me-2">
@@ -242,41 +270,45 @@
         {% block content %}{% endblock %}
       </main>
 
-      <footer class="app-footer">
+      <footer class="app-footer border-top">
         <div class="container-fluid text-center text-muted small py-3">
-          <span>🏦 Banking Application with Database-Level Version Control &bull; Verified Academic Project</span>
+          <span>🏦 BankVCS 2.0 &bull; Secure Intelligent Digital Banking with Database Version Control</span>
         </div>
       </footer>
     </div>
   </div>
 
-  <!-- Toast Notification Container -->
-  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11000;" id="toastPlacement">
-    <div id="liveToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body d-flex align-items-center">
-          <i class="bi bi-info-circle fs-5 me-2" id="toastIcon"></i>
-          <span id="toastMessage">Notification message</span>
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  </div>
-
   {% else %}
-  <!-- Public Layout (Login / Register / Welcome) -->
+  <!-- Public Layout -->
   <div class="public-layout">
-    <nav class="public-navbar">
-      <div class="container d-flex justify-content-between align-items-center py-3">
+    <nav class="public-navbar border-bottom py-2 shadow-sm" style="background: rgba(13, 7, 24, 0.95); backdrop-filter: blur(12px);">
+      <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
         <a href="{{ url_for('auth.index') }}" class="text-decoration-none d-flex align-items-center">
-          <div class="brand-icon me-2">
-            <i class="bi bi-bank2"></i>
+          <div class="brand-icon me-2 text-dark d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; border-radius: 10px; background: var(--gold-gradient);">
+            <i class="bi bi-robot fs-6"></i>
           </div>
-          <span class="fs-5 fw-bold text-dark">Banking VCS</span>
+          <div class="d-flex flex-column">
+            <span class="fs-6 fw-extrabold text-white leading-tight" style="font-family: var(--font-heading); letter-spacing: -0.3px;">BankVCS 2.0</span>
+            <span class="text-warning text-uppercase tracking-wider font-monospace" style="font-size: 0.6rem; margin-top: -2px;">BANKING &amp; VERSION CONTROL</span>
+          </div>
         </a>
-        <div>
-          <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-sm me-2">Login</a>
-          <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Create Account</a>
+
+        <!-- Middle Portal Links -->
+        <div class="d-none d-lg-flex align-items-center gap-3 text-uppercase font-monospace" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+          <a href="{{ url_for('auth.customer_login') }}" class="nav-link text-white-80 hover-text-warning fw-bold">Customer Portal</a>
+          <a href="{{ url_for('auth.employee_login') }}" class="nav-link text-white-80 hover-text-warning fw-bold">Employee Portal</a>
+          <a href="{{ url_for('auth.admin_login') }}" class="nav-link text-white-80 hover-text-warning fw-bold">Admin Portal</a>
+          <a href="{{ url_for('auth.login') }}" class="nav-link text-white-80 hover-text-warning fw-bold">Sign In</a>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="theme-toggle-btn me-1" id="publicThemeToggleBtn" title="Toggle Light/Dark Theme">
+            <i class="bi bi-sun-fill fs-5" id="publicThemeIconSun"></i>
+            <i class="bi bi-moon-stars-fill fs-5 d-none" id="publicThemeIconMoon"></i>
+          </button>
+          <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-sm px-3 py-1.5 fw-extrabold text-dark shadow-sm" style="border-radius: 16px; background: var(--gold-gradient); border: none; font-size: 0.78rem;">
+            Access Banking Portal
+          </a>
         </div>
       </div>
     </nav>
@@ -301,63 +333,101 @@
   <!-- Core Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Global App Interceptors & Helpers -->
+  <!-- Theme Engine & Interceptors -->
   <script>
-    // 1. Fetch CSRF Interceptor
-    const originalFetch = window.fetch;
-    window.fetch = function(url, options = {}) {
-      options = options || {};
-      const method = (options.method || 'GET').toUpperCase();
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-        options.headers = options.headers || {};
-        const metaTag = document.querySelector('meta[name="csrf-token"]');
-        const token = metaTag ? metaTag.getAttribute('content') : null;
-        if (token) {
-          if (options.headers instanceof Headers) {
-            if (!options.headers.has('X-CSRFToken')) options.headers.set('X-CSRFToken', token);
-          } else if (Array.isArray(options.headers)) {
-            if (!options.headers.some(([k]) => k.toLowerCase() === 'x-csrftoken')) {
-              options.headers.push(['X-CSRFToken', token]);
-            }
-          } else {
-            if (!options.headers['X-CSRFToken'] && !options.headers['x-csrftoken']) {
-              options.headers['X-CSRFToken'] = token;
-            }
-          }
-        }
-      }
-      return originalFetch(url, options);
-    };
-
-    // 2. Global Toast Notification Helper
-    window.showToast = function(message, type = 'success') {
-      const toastEl = document.getElementById('liveToast');
-      if (!toastEl) return;
-      const toastMessage = document.getElementById('toastMessage');
-      const toastIcon = document.getElementById('toastIcon');
+    // 1. Theme Engine Script
+    function initThemeEngine() {
+      const toggleBtns = [document.getElementById('themeToggleBtn'), document.getElementById('publicThemeToggleBtn')];
       
-      toastEl.className = 'toast align-items-center text-white border-0 shadow-lg';
-      if (type === 'success') {
-        toastEl.classList.add('bg-success');
-        toastIcon.className = 'bi bi-check-circle-fill fs-5 me-2';
-      } else if (type === 'error' || type === 'danger') {
-        toastEl.classList.add('bg-danger');
-        toastIcon.className = 'bi bi-exclamation-triangle-fill fs-5 me-2';
-      } else if (type === 'warning') {
-        toastEl.classList.add('bg-warning', 'text-dark');
-        toastIcon.className = 'bi bi-exclamation-circle-fill fs-5 me-2';
-      } else {
-        toastEl.classList.add('bg-primary');
-        toastIcon.className = 'bi bi-info-circle-fill fs-5 me-2';
+      function updateIcons(theme) {
+        const isDark = theme === 'dark';
+        ['themeIconSun', 'publicThemeIconSun'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) isDark ? el.classList.add('d-none') : el.classList.remove('d-none');
+        });
+        ['themeIconMoon', 'publicThemeIconMoon'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) isDark ? el.classList.remove('d-none') : el.classList.add('d-none');
+        });
       }
 
-      toastMessage.innerText = message;
-      const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
-      toast.show();
-    };
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      updateIcons(currentTheme);
 
-    // 3. Sidebar toggle for mobile
+      toggleBtns.forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          const activeTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', activeTheme);
+          localStorage.setItem('bankvcs-theme', activeTheme);
+          updateIcons(activeTheme);
+        });
+      });
+    }
+
+    // 2. Dynamic Real-time Time of Day Greeting Engine
+    function updateGreetings() {
+      const now = new Date();
+      const hour = now.getHours();
+      let greeting = "Good Morning";
+      if (hour >= 22 || hour < 5) {
+        greeting = "Good Night";
+      } else if (hour >= 17) {
+        greeting = "Good Evening";
+      } else if (hour >= 12) {
+        greeting = "Good Afternoon";
+      }
+
+      const empHeading = document.getElementById('employeeGreetingHeading');
+      if (empHeading) {
+        const name = empHeading.getAttribute('data-name') || '';
+        empHeading.textContent = `${greeting}${name ? ', ' + name : ''}`;
+      }
+
+      const adminHeading = document.getElementById('adminGreetingHeading');
+      if (adminHeading) {
+        const name = adminHeading.getAttribute('data-name') || 'System Administrator';
+        adminHeading.textContent = `${greeting}, ${name}`;
+      }
+
+      const custHeading = document.getElementById('greetingHeading');
+      if (custHeading) {
+        const name = custHeading.getAttribute('data-name') || '';
+        custHeading.textContent = `${greeting}${name ? ', ' + name : ''} 👋`;
+      }
+
+      const execHeading = document.getElementById('executiveGreetingTitle');
+      if (execHeading) {
+        const name = execHeading.getAttribute('data-name') || 'Welcome to BankVCS';
+        execHeading.textContent = `${greeting}, ${name}`;
+      }
+
+      document.querySelectorAll('.dynamic-greeting').forEach(el => {
+        const name = el.getAttribute('data-name') || '';
+        const prefix = el.getAttribute('data-prefix') || '';
+        const suffix = el.getAttribute('data-suffix') || '';
+        el.textContent = `${prefix}${greeting}${name ? ', ' + name : ''}${suffix}`;
+      });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+      initThemeEngine();
+      updateGreetings();
+      setInterval(updateGreetings, 60000);
+
+      function updateLiveClock() {
+        const clockEl = document.getElementById('liveHeaderClock');
+        const indexClockEl = document.getElementById('liveIndexClock');
+        if (!clockEl && !indexClockEl) return;
+        const now = new Date();
+        const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        const str = now.toLocaleString('en-US', options);
+        if (clockEl) clockEl.textContent = str;
+        if (indexClockEl) indexClockEl.textContent = str;
+      }
+      updateLiveClock();
+      setInterval(updateLiveClock, 1000);
+
       const toggleBtn = document.getElementById('sidebarToggleBtn');
       const closeBtn = document.getElementById('sidebarCloseBtn');
       const sidebar = document.getElementById('appSidebar');
@@ -367,69 +437,7 @@
       if (closeBtn && sidebar) {
         closeBtn.addEventListener('click', () => sidebar.classList.remove('show'));
       }
-
-      // Load header notifications preview if logged in
-      if (document.getElementById('headerNotifList')) {
-        loadHeaderNotifications();
-      }
     });
-
-    async function loadHeaderNotifications() {
-      try {
-        const res = await fetch('/api/notifications');
-        if (!res.ok) return;
-        const data = await res.json();
-        const list = document.getElementById('headerNotifList');
-        const badge = document.getElementById('sidebarNotifBadge');
-        const topDot = document.getElementById('topNotifDot');
-
-        if (data.unread_count > 0) {
-          if (badge) { badge.innerText = data.unread_count; badge.classList.remove('d-none'); }
-          if (topDot) topDot.classList.remove('d-none');
-        } else {
-          if (badge) badge.classList.add('d-none');
-          if (topDot) topDot.classList.add('d-none');
-        }
-
-        if (!data.notifications || data.notifications.length === 0) {
-          list.innerHTML = '<div class="text-center py-4 text-muted small"><i class="bi bi-bell-slash d-block fs-4 mb-1"></i>No notifications yet</div>';
-          return;
-        }
-
-        list.innerHTML = data.notifications.slice(0, 5).map(n => `
-          <div class="notif-item p-3 border-bottom ${n.is_read ? 'read' : 'unread bg-light'}" onclick="markNotificationRead(${n.id}, this)">
-            <div class="d-flex align-items-start">
-              <div class="notif-icon me-2 text-${n.notification_type === 'SECURITY' ? 'danger' : (n.notification_type === 'TRANSACTION' ? 'success' : 'primary')}">
-                <i class="bi ${n.notification_type === 'SECURITY' ? 'bi-shield-exclamation' : (n.notification_type === 'TRANSACTION' ? 'bi-currency-exchange' : 'bi-info-circle')} fs-5"></i>
-              </div>
-              <div class="flex-grow-1 overflow-hidden">
-                <div class="fw-semibold small">${n.title}</div>
-                <div class="text-muted small text-truncate">${n.message}</div>
-                <div class="text-muted" style="font-size: 0.7rem;">${n.created_at ? new Date(n.created_at).toLocaleString() : ''}</div>
-              </div>
-            </div>
-          </div>
-        `).join('');
-      } catch (err) {
-        console.error('Failed to load notifications', err);
-      }
-    }
-
-    async function markNotificationRead(id, el) {
-      try {
-        await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
-        if (el) el.classList.remove('unread', 'bg-light');
-        loadHeaderNotifications();
-      } catch (err) { console.error(err); }
-    }
-
-    async function markAllNotificationsRead() {
-      try {
-        await fetch('/api/notifications/read-all', { method: 'POST' });
-        showToast('All notifications marked as read', 'info');
-        loadHeaderNotifications();
-      } catch (err) { console.error(err); }
-    }
   </script>
   {% block scripts %}{% endblock %}
 </body>

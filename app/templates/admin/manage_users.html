@@ -22,6 +22,7 @@
             <th>Status</th>
             <th>Failed Logins</th>
             <th>Created</th>
+            <th class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -47,8 +48,8 @@
               {% endif %}
             </td>
             <td>
-              {% if u.failed_login_attempts > 0 %}
-              <span class="badge bg-warning text-dark">{{ u.failed_login_attempts }} failed</span>
+              {% if u.failed_login_attempts > 0 or u.locked_until %}
+              <span class="badge bg-danger text-white"><i class="bi bi-lock-fill me-1"></i> Locked ({{ u.failed_login_attempts }})</span>
               {% else %}
               <span class="text-muted small">0</span>
               {% endif %}
@@ -56,9 +57,38 @@
             <td>
               <span class="text-muted small">{{ u.created_at.strftime('%d %b %Y') if u.created_at else 'Recent' }}</span>
             </td>
+            <td class="text-end">
+              <div class="d-flex justify-content-end gap-1">
+                {% if u.locked_until or u.failed_login_attempts > 0 %}
+                <form method="POST" action="{{ url_for('admin.unlock_user', user_id=u.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-xs btn-outline-warning fw-bold px-2 py-1" style="font-size: 0.75rem;" title="Unlock Account">
+                    <i class="bi bi-unlock-fill me-1"></i> Unlock
+                  </button>
+                </form>
+                {% endif %}
+
+                {% if u.id != current_user.id %}
+                <form method="POST" action="{{ url_for('admin.toggle_user_status', user_id=u.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {% if u.status == 'active' %}
+                  <button type="submit" class="btn btn-xs btn-outline-danger fw-bold px-2 py-1" style="font-size: 0.75rem;" title="Deactivate User Account">
+                    <i class="bi bi-person-x-fill me-1"></i> Deactivate
+                  </button>
+                  {% else %}
+                  <button type="submit" class="btn btn-xs btn-outline-success fw-bold px-2 py-1" style="font-size: 0.75rem;" title="Activate User Account">
+                    <i class="bi bi-person-check-fill me-1"></i> Activate
+                  </button>
+                  {% endif %}
+                </form>
+                {% else %}
+                <span class="badge bg-secondary-subtle text-secondary small">You</span>
+                {% endif %}
+              </div>
+            </td>
           </tr>
           {% else %}
-          <tr><td colspan="7" class="text-center py-4 text-muted">No users found.</td></tr>
+          <tr><td colspan="8" class="text-center py-4 text-muted">No users found.</td></tr>
           {% endfor %}
         </tbody>
       </table>

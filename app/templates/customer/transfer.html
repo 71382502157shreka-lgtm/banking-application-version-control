@@ -19,18 +19,24 @@
     <!-- Transfer Form Card -->
     <div class="col-12 col-lg-7">
       <div class="fin-card">
-        <form id="transferForm">
+        <form id="transferForm" onsubmit="event.preventDefault(); showTransferConfirmationModal();">
           <!-- Source Account -->
           <div class="mb-4">
-            <label class="form-label fw-bold small text-uppercase text-muted">1. Select Source Account</label>
-            <select class="form-select form-select-lg" id="sourceAccountId" required onchange="updateSourceBalance()">
-              <option value="" disabled selected>Choose debit account...</option>
-              {% for acc in accounts %}
-              <option value="{{ acc.id }}" data-balance="{{ acc.available_balance }}">
-                {{ acc.account_type }} &bull; {{ acc.account_number }} (Avail: ₹{{ "{:,.2f}".format(acc.available_balance) }})
-              </option>
-              {% endfor %}
-            </select>
+            <label class="form-label fw-bold small text-uppercase text-muted">1. Select or Enter Source Account</label>
+            <div class="row g-2">
+              <div class="col-12 col-md-7">
+                <select class="form-select form-select-lg" id="sourceAccountId" onchange="onSourceSelectChange()">
+                  {% for acc in accounts %}
+                  <option value="{{ acc.id }}" data-balance="{{ acc.available_balance }}" data-num="{{ acc.account_number }}" {% if loop.first %}selected{% endif %}>
+                    {{ acc.account_type }} &bull; {{ acc.account_number }} (Avail: ₹{{ "{:,.2f}".format(acc.available_balance) }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-12 col-md-5">
+                <input type="text" class="form-control form-control-lg font-monospace" id="customSourceInput" placeholder="Or type Account ID/No" oninput="onCustomSourceInput()">
+              </div>
+            </div>
             <div class="form-text text-success fw-medium mt-1" id="sourceBalanceText"></div>
           </div>
 
@@ -39,12 +45,12 @@
             <label class="form-label fw-bold small text-uppercase text-muted">2. Transfer Destination</label>
             <ul class="nav nav-pills mb-3" id="transferTypeTab" role="tablist">
               <li class="nav-item flex-fill text-center" role="presentation">
-                <button class="nav-link active w-100 py-2" id="own-account-tab" data-bs-toggle="pill" data-bs-target="#own-account" type="button" role="tab">
+                <button class="nav-link {% if accounts|length > 1 %}active{% endif %} w-100 py-2" id="own-account-tab" data-bs-toggle="pill" data-bs-target="#own-account" type="button" role="tab">
                   <i class="bi bi-wallet2 me-1"></i> Own Accounts
                 </button>
               </li>
               <li class="nav-item flex-fill text-center" role="presentation">
-                <button class="nav-link w-100 py-2" id="beneficiary-tab" data-bs-toggle="pill" data-bs-target="#beneficiary" type="button" role="tab">
+                <button class="nav-link {% if accounts|length <= 1 %}active{% endif %} w-100 py-2" id="beneficiary-tab" data-bs-toggle="pill" data-bs-target="#beneficiary" type="button" role="tab">
                   <i class="bi bi-person-check me-1"></i> Beneficiary / Other
                 </button>
               </li>
@@ -52,36 +58,59 @@
 
             <div class="tab-content" id="transferTabContent">
               <!-- Own Accounts Selector -->
-              <div class="tab-pane fade show active" id="own-account" role="tabpanel">
+              <div class="tab-pane fade {% if accounts|length > 1 %}show active{% endif %}" id="own-account" role="tabpanel">
                 <select class="form-select" id="ownDestinationId">
+                  {% if accounts|length <= 1 %}
                   <option value="" disabled selected>Select destination account...</option>
+                  {% endif %}
                   {% for acc in accounts %}
-                  <option value="{{ acc.id }}">
+                  <option value="{{ acc.id }}" {% if accounts|length > 1 and loop.index == 2 %}selected{% endif %}>
                     {{ acc.account_type }} &bull; {{ acc.account_number }} (Current: ₹{{ "{:,.2f}".format(acc.balance) }})
                   </option>
                   {% endfor %}
                 </select>
+                {% if accounts|length == 1 %}
+                <div class="form-text text-warning small mt-1">
+                  <i class="bi bi-info-circle me-1"></i> You have 1 account. Use <strong>Beneficiary / Other</strong> tab to send funds to another customer.
+                </div>
+                {% endif %}
               </div>
 
               <!-- Beneficiary / Other Account Input -->
-              <div class="tab-pane fade" id="beneficiary" role="tabpanel">
+              <div class="tab-pane fade {% if accounts|length <= 1 %}show active{% endif %}" id="beneficiary" role="tabpanel">
                 <div class="mb-3">
-                  <label class="form-label small">Select Saved Beneficiary</label>
-                  <select class="form-select" id="beneficiarySelect" onchange="applyBeneficiaryToDest()">
-                    <option value="">-- Choose Beneficiary --</option>
-                    {% if beneficiaries %}
-                      {% for b in beneficiaries %}
-                      <option value="{{ b.account_number }}" data-name="{{ b.name }}" data-bank="{{ b.bank_name }}" data-ifsc="{{ b.ifsc }}">
-                        {{ b.name }} &bull; {{ b.bank_name }} ({{ b.account_number }})
+                  <label class="form-label small font-weight-bold">Select System Customer Account</label>
+                  <select class="form-select mb-2" id="otherAccountsSelect" onchange="applyOtherAccountToDest()">
+                    <option value="">-- Choose System Target Account --</option>
+                    {% if all_accounts %}
+                      {% for acc in all_accounts %}
+                      <option value="{{ acc.account_number }}">
+                        Account {{ acc.account_number }} ({{ acc.account_type }})
                       </option>
                       {% endfor %}
                     {% endif %}
                   </select>
                 </div>
+                <div class="mb-3">
+                  <label class="form-label small font-weight-bold">Or Select Saved Beneficiary</label>
+                  {% if beneficiaries and beneficiaries|length > 0 %}
+                  <select class="form-select" id="beneficiarySelect" onchange="applyBeneficiaryToDest()">
+                    <option value="">-- Choose Beneficiary --</option>
+                    {% for b in beneficiaries %}
+                    <option value="{{ b.account_number }}" data-name="{{ b.name }}" data-bank="{{ b.bank_name }}" data-ifsc="{{ b.ifsc }}">
+                      {{ b.name }} &bull; {{ b.bank_name }} ({{ b.account_number }})
+                    </option>
+                    {% endfor %}
+                  </select>
+                  {% else %}
+                  <div class="p-2.5 bg-light border rounded text-muted small">
+                    <i class="bi bi-info-circle text-primary me-1"></i> No saved beneficiaries found. Type the target account number below or <a href="{{ url_for('customer.beneficiaries') }}" class="fw-bold">add a beneficiary</a>.
+                  </div>
+                  {% endif %}
+                </div>
                 <div>
-                  <label class="form-label small">Or Enter Destination Account ID / Number</label>
-                  <input type="number" class="form-control" id="customDestAccountId" placeholder="Enter target account ID">
-                  <div class="form-text">For testing transfer within system, specify destination account ID.</div>
+                  <label class="form-label small font-weight-bold">Or Enter Target Account Number / ID</label>
+                  <input type="text" class="form-control font-monospace" id="customDestAccountId" placeholder="e.g. ACC1000000002 or 2" oninput="onCustomDestInput()">
                 </div>
               </div>
             </div>
@@ -116,15 +145,15 @@
         <h5 class="fw-bold mb-3"><i class="bi bi-info-circle text-primary me-2"></i> Transfer Guidelines</h5>
         <ul class="list-unstyled d-flex flex-column gap-3 small text-muted mb-0">
           <li class="d-flex align-items-start gap-2">
-            <i class="bi bi-lightning-charge-fill text-warning fs-5"></i>
+            <i class="bi bi-check-circle-fill text-success fs-5"></i>
             <div><strong class="text-dark">Instant Settlement:</strong> Transfers between accounts are processed synchronously with atomic transactions.</div>
           </li>
           <li class="d-flex align-items-start gap-2">
-            <i class="bi bi-git text-primary fs-5"></i>
+            <i class="bi bi-check-circle-fill text-success fs-5"></i>
             <div><strong class="text-dark">Double-Entry VCS:</strong> Both source and destination accounts are version-incremented (`Account vN+1`) and signed into the audit log.</div>
           </li>
           <li class="d-flex align-items-start gap-2">
-            <i class="bi bi-shield-check text-success fs-5"></i>
+            <i class="bi bi-check-circle-fill text-success fs-5"></i>
             <div><strong class="text-dark">Zero-Trust Immutability:</strong> Financial transactions cannot be modified after completion. Corrections require explicit reversal transactions.</div>
           </li>
         </ul>
@@ -147,20 +176,20 @@
         <div class="text-center p-3 bg-light rounded-3 mb-3">
           <span class="text-muted small text-uppercase">Transfer Amount</span>
           <h2 class="fw-bold text-primary mb-0" id="confirmAmountDisplay">₹0.00</h2>
-          <span class="badge bg-success-subtle text-success mt-2">Zero Fee &bull; Instant</span>
+          <span class="badge bg-success-subtle text-success mt-2"><i class="bi bi-check-circle-fill me-1"></i> Zero Fee &bull; Atomic Settlement</span>
         </div>
 
         <table class="table table-sm table-borderless">
           <tr>
-            <td class="text-muted">Debit Account:</td>
+            <td class="text-muted"><i class="bi bi-check-circle text-success me-1"></i> Debit Account:</td>
             <td class="fw-semibold text-end" id="confirmSourceDisplay">-</td>
           </tr>
           <tr>
-            <td class="text-muted">Credit Destination:</td>
+            <td class="text-muted"><i class="bi bi-check-circle text-success me-1"></i> Credit Destination:</td>
             <td class="fw-semibold text-end" id="confirmDestDisplay">-</td>
           </tr>
           <tr>
-            <td class="text-muted">Remarks:</td>
+            <td class="text-muted"><i class="bi bi-check-circle text-success me-1"></i> Remarks:</td>
             <td class="fw-semibold text-end" id="confirmDescDisplay">-</td>
           </tr>
         </table>
@@ -178,25 +207,103 @@
 
 {% block scripts %}
 <script>
+  let selectedSourceAccountId = null;
   let selectedDestinationAccountId = null;
+
+  function onSourceSelectChange() {
+    const sel = document.getElementById('sourceAccountId');
+    if (!sel || !sel.options || sel.selectedIndex < 0) return;
+    const opt = sel.options[sel.selectedIndex];
+    if (opt) {
+      selectedSourceAccountId = opt.value;
+      const num = opt.getAttribute('data-num');
+      const customInp = document.getElementById('customSourceInput');
+      if (customInp && num) customInp.value = num;
+      updateSourceBalance();
+    }
+  }
+
+  function onCustomSourceInput() {
+    const val = document.getElementById('customSourceInput')?.value?.trim();
+    const sel = document.getElementById('sourceAccountId');
+    if (!sel) return;
+
+    if (!val) {
+      if (sel.options.length > 0) {
+        sel.selectedIndex = 0;
+        selectedSourceAccountId = sel.options[0].value;
+        const num = sel.options[0].getAttribute('data-num');
+        if (num) document.getElementById('customSourceInput').value = num;
+      }
+      updateSourceBalance();
+      return;
+    }
+
+    let matched = false;
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === val || sel.options[i].getAttribute('data-num') === val) {
+        sel.selectedIndex = i;
+        selectedSourceAccountId = sel.options[i].value;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      selectedSourceAccountId = val;
+    }
+    updateSourceBalance();
+  }
+
+  function onCustomDestInput() {
+    const val = document.getElementById('customDestAccountId')?.value?.trim();
+    if (!val) return;
+
+    const otherSel = document.getElementById('otherAccountsSelect');
+    if (otherSel) {
+      for (let i = 0; i < otherSel.options.length; i++) {
+        if (otherSel.options[i].value === val) {
+          otherSel.selectedIndex = i;
+          break;
+        }
+      }
+    }
+    const benSel = document.getElementById('beneficiarySelect');
+    if (benSel) {
+      for (let i = 0; i < benSel.options.length; i++) {
+        if (benSel.options[i].value === val) {
+          benSel.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  }
+
+  function getEffectiveSourceAccountId() {
+    const customVal = document.getElementById('customSourceInput')?.value?.trim();
+    if (customVal) return customVal;
+    const sel = document.getElementById('sourceAccountId');
+    return sel?.value || '';
+  }
 
   function updateSourceBalance() {
     const sel = document.getElementById('sourceAccountId');
+    if (!sel || !sel.options || sel.selectedIndex < 0) return;
     const opt = sel.options[sel.selectedIndex];
     const bal = opt ? opt.getAttribute('data-balance') : 0;
     const txt = document.getElementById('sourceBalanceText');
-    if (txt && bal) {
+    if (txt && bal !== null) {
       txt.innerText = `Available to transfer: ₹${parseFloat(bal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
     }
   }
 
   function validateTransferAmount() {
     const sel = document.getElementById('sourceAccountId');
+    if (!sel || !sel.options || sel.selectedIndex < 0) return true;
     const opt = sel.options[sel.selectedIndex];
     const avail = opt ? parseFloat(opt.getAttribute('data-balance') || 0) : 0;
     const amt = parseFloat(document.getElementById('transferAmount').value || 0);
     const err = document.getElementById('amountErrorText');
-    if (amt > avail) {
+    if (avail > 0 && amt > avail) {
       err.classList.remove('d-none');
       return false;
     } else {
@@ -205,8 +312,16 @@
     }
   }
 
+  function applyOtherAccountToDest() {
+    const sel = document.getElementById('otherAccountsSelect');
+    if (sel && sel.value) {
+      document.getElementById('customDestAccountId').value = sel.value;
+    }
+  }
+
   function applyBeneficiaryToDest() {
     const sel = document.getElementById('beneficiarySelect');
+    if (!sel || sel.selectedIndex < 0) return;
     const opt = sel.options[sel.selectedIndex];
     if (opt && opt.value) {
       document.getElementById('customDestAccountId').value = opt.value;
@@ -214,9 +329,9 @@
   }
 
   function showTransferConfirmationModal() {
-    const srcSel = document.getElementById('sourceAccountId');
-    if (!srcSel.value) {
-      showToast('Please select a source account', 'warning');
+    const srcVal = getEffectiveSourceAccountId();
+    if (!srcVal) {
+      showToast('Please select or type a source account', 'warning');
       return;
     }
     const amt = parseFloat(document.getElementById('transferAmount').value || 0);
@@ -224,28 +339,24 @@
       showToast('Please enter a valid transfer amount', 'warning');
       return;
     }
-    if (!validateTransferAmount()) {
-      showToast('Insufficient funds in source account', 'danger');
-      return;
-    }
 
     // Check destination
     let destId = null;
     let destLabel = '';
-    const activeTab = document.querySelector('#transferTypeTab .nav-link.active').id;
+    const activeTab = document.querySelector('#transferTypeTab .nav-link.active')?.id || 'own-account-tab';
     if (activeTab === 'own-account-tab') {
-      destId = document.getElementById('ownDestinationId').value;
+      destId = document.getElementById('ownDestinationId')?.value;
       if (!destId) {
         showToast('Please select a destination account', 'warning');
         return;
       }
-      if (destId === srcSel.value) {
+      if (destId === srcVal) {
         showToast('Source and destination accounts must be different', 'warning');
         return;
       }
       destLabel = 'Own Account #' + destId;
     } else {
-      destId = document.getElementById('customDestAccountId').value;
+      destId = document.getElementById('customDestAccountId')?.value;
       if (!destId) {
         showToast('Please specify a destination account or select a beneficiary', 'warning');
         return;
@@ -253,10 +364,11 @@
       destLabel = 'Beneficiary / Account #' + destId;
     }
 
+    selectedSourceAccountId = srcVal;
     selectedDestinationAccountId = destId;
 
     document.getElementById('confirmAmountDisplay').innerText = '₹' + amt.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    document.getElementById('confirmSourceDisplay').innerText = 'Account #' + srcSel.value;
+    document.getElementById('confirmSourceDisplay').innerText = 'Account #' + srcVal;
     document.getElementById('confirmDestDisplay').innerText = destLabel;
     document.getElementById('confirmDescDisplay').innerText = document.getElementById('transferDescription').value || 'Funds Transfer';
 
@@ -268,20 +380,26 @@
     btn.disabled = true;
     btn.innerText = 'Processing Transfer...';
 
-    const source_account_id = document.getElementById('sourceAccountId').value;
+    const source_account_id = selectedSourceAccountId || getEffectiveSourceAccountId();
     const destination_account_id = selectedDestinationAccountId;
     const amount = document.getElementById('transferAmount').value;
     const description = document.getElementById('transferDescription').value || 'Funds Transfer';
 
     try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
       const res = await fetch('/api/transactions/transfer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
         body: JSON.stringify({ source_account_id, destination_account_id, amount, description })
       });
       const data = await res.json();
       if (res.ok) {
-        bootstrap.Modal.getInstance(document.getElementById('transferConfirmModal')).hide();
+        const modalEl = document.getElementById('transferConfirmModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
         showToast(`Transfer of ₹${amount} successful! Ref: ${data.debit.reference_number}`, 'success');
         setTimeout(() => {
           window.location.href = "{{ url_for('customer.transactions') }}";
@@ -298,17 +416,25 @@
     }
   }
 
-  // Pre-select source if URL query param present
   document.addEventListener('DOMContentLoaded', () => {
+    onSourceSelectChange();
+
+    {% if accounts|length <= 1 %}
+    const otherSel = document.getElementById('otherAccountsSelect');
+    if (otherSel && otherSel.options.length > 1) {
+      otherSel.selectedIndex = 1;
+      applyOtherAccountToDest();
+    }
+    {% endif %}
+
     const urlParams = new URLSearchParams(window.location.search);
     const src = urlParams.get('src');
     if (src) {
-      const sel = document.getElementById('sourceAccountId');
-      if (sel) {
-        sel.value = src;
-        updateSourceBalance();
-      }
+      const customInp = document.getElementById('customSourceInput');
+      if (customInp) customInp.value = src;
+      onCustomSourceInput();
     }
   });
 </script>
 {% endblock %}
+

@@ -21,7 +21,10 @@ api_bp = Blueprint("api", __name__)
 @api_bp.route("/accounts", methods=["GET"])
 @login_required
 def list_accounts():
-    if current_user.role == Role.CUSTOMER:
+    user_id = request.args.get("user_id", type=int)
+    if user_id and current_user.role in [Role.EMPLOYEE, Role.ADMIN]:
+        accounts = Account.query.filter_by(user_id=user_id).all()
+    elif current_user.role == Role.CUSTOMER:
         accounts = Account.query.filter_by(user_id=current_user.id).all()
     else:
         accounts = Account.query.limit(200).all()
@@ -96,12 +99,21 @@ def api_withdraw():
 @json_errors
 def api_transfer():
     data = request.get_json(force=True) or {}
-    source = _get_owned_account_or_403(data.get("source_account_id"))
+    source_id = data.get("source_account_id")
+    source = _get_owned_account_or_403(source_id)
 
-    dest_id = data.get("destination_account_id")
-    destination = db.session.get(Account, dest_id)
+    dest_val = data.get("destination_account_id")
+    destination = None
+    if dest_val is not None:
+        if isinstance(dest_val, int) or (isinstance(dest_val, str) and dest_val.isdigit()):
+            destination = db.session.get(Account, int(dest_val))
+        if not destination:
+            destination = Account.query.filter_by(account_number=str(dest_val)).first()
+        if not destination and isinstance(dest_val, str):
+            destination = Account.query.filter(Account.account_number.ilike(f"%{dest_val}%")).first()
+
     if not destination:
-        return jsonify(error="Destination account not found"), 404
+        return jsonify(error=f"Destination account '{dest_val}' not found. Please select a valid destination account."), 404
 
     try:
         debit, credit = banking_service.transfer(
@@ -109,6 +121,9 @@ def api_transfer():
         )
     except banking_service.InsufficientBalanceError as e:
         return jsonify(error=str(e)), 422
+    except Exception as e:
+        return jsonify(error=str(e)), 400
+
     return jsonify(debit=debit.to_dict(), credit=credit.to_dict()), 201
 
 
@@ -450,7 +465,20 @@ def get_analytics():
 # Ownership helpers
 # ---------------------------------------------------------------------------
 def _get_owned_account_or_403(account_id):
-    account = Account.query.get_or_404(account_id)
+    if account_id is None:
+        from flask import abort
+        abort(404)
+
+    account = None
+    if isinstance(account_id, int) or (isinstance(account_id, str) and account_id.isdigit()):
+        account = db.session.get(Account, int(account_id))
+    if not account:
+        account = Account.query.filter_by(account_number=str(account_id)).first()
+
+    if not account:
+        from flask import abort
+        abort(404)
+
     if current_user.role == Role.CUSTOMER and account.user_id != current_user.id:
         from flask import abort
         abort(403)

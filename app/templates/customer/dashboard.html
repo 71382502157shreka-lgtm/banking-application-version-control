@@ -6,7 +6,7 @@
   <!-- 1. Welcome Section -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-      <h2 class="fw-bold mb-1" id="greetingHeading">
+      <h2 class="fw-bold mb-1" id="greetingHeading" data-name="{{ current_user.full_name or current_user.username }}">
         Welcome, {{ current_user.full_name or current_user.username }} 👋
       </h2>
       <p class="text-muted mb-0">
@@ -138,9 +138,9 @@
         </div>
 
         <div class="d-flex gap-2">
-          <a href="{{ url_for('customer.accounts') }}" class="btn btn-outline-secondary btn-sm flex-fill">
+          <button class="btn btn-outline-secondary btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#accountDetailsModal">
             <i class="bi bi-eye me-1"></i> Details
-          </a>
+          </button>
           <button class="btn btn-outline-primary btn-sm flex-fill" data-bs-toggle="modal" data-bs-target="#quickDepositModal">
             <i class="bi bi-plus-circle me-1"></i> Deposit
           </button>
@@ -408,7 +408,7 @@
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="quickDepositForm">
+      <form id="quickDepositForm" onsubmit="handleQuickDepositSubmit(event)">
         <div class="modal-body py-4">
           <div class="mb-3">
             <label class="form-label fw-semibold small">Select Account</label>
@@ -432,7 +432,7 @@
         </div>
         <div class="modal-footer border-top-0 pt-0">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-success px-4" id="submitDepositBtn">Confirm Deposit</button>
+          <button type="button" class="btn btn-success px-4" id="submitDepositBtn" onclick="handleQuickDepositSubmit(event)">Confirm Deposit</button>
         </div>
       </form>
     </div>
@@ -449,7 +449,7 @@
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="quickWithdrawForm">
+      <form id="quickWithdrawForm" onsubmit="handleQuickWithdrawSubmit(event)">
         <div class="modal-body py-4">
           <div class="mb-3">
             <label class="form-label fw-semibold small">From Account</label>
@@ -473,7 +473,7 @@
         </div>
         <div class="modal-footer border-top-0 pt-0">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-danger px-4" id="submitWithdrawBtn">Confirm Withdrawal</button>
+          <button type="button" class="btn btn-danger px-4" id="submitWithdrawBtn" onclick="handleQuickWithdrawSubmit(event)">Confirm Withdrawal</button>
         </div>
       </form>
     </div>
@@ -490,7 +490,7 @@
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form id="openAccountForm">
+      <form id="openAccountForm" onsubmit="handleOpenAccountSubmit(event)">
         <div class="modal-body py-4">
           <div class="mb-3">
             <label class="form-label fw-semibold small">Account Type</label>
@@ -503,7 +503,7 @@
         </div>
         <div class="modal-footer border-top-0 pt-0">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary px-4">Open Account</button>
+          <button type="button" class="btn btn-primary px-4" id="submitOpenAccountBtn" onclick="handleOpenAccountSubmit(event)">Open Account</button>
         </div>
       </form>
     </div>
@@ -559,180 +559,206 @@
       </div>
     </div>
   </div>
+<!-- Account Details Modal -->
+<div class="modal fade" id="accountDetailsModal" tabindex="-1" aria-labelledby="accountDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold" id="accountDetailsModalLabel">
+          <i class="bi bi-credit-card-2-front text-primary me-2"></i> Account Details
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body py-4">
+        {% if accounts and accounts|length > 0 %}
+        {% set prim = accounts[0] %}
+        <div class="p-3 bg-light rounded-3 mb-3 text-center">
+          <span class="badge bg-primary text-white mb-2">{{ prim.account_type }} ACCOUNT</span>
+          <h3 class="fw-bold font-monospace text-primary mb-1">{{ prim.account_number }}</h3>
+          <div class="small text-muted">IFSC / Routing Code: <strong class="text-dark">BVCS0001001</strong> &bull; Status: <span class="badge bg-success-subtle text-success">ACTIVE</span></div>
+        </div>
+
+        <table class="table table-sm table-borderless mb-0">
+          <tr>
+            <td class="text-muted"><i class="bi bi-wallet2 me-1"></i> Total Balance:</td>
+            <td class="fw-bold text-end text-primary fs-5">₹{{ "{:,.2f}".format(prim.balance) }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted"><i class="bi bi-cash-stack me-1"></i> Available Balance:</td>
+            <td class="fw-bold text-end text-success fs-5">₹{{ "{:,.2f}".format(prim.available_balance) }}</td>
+          </tr>
+          <tr>
+            <td class="text-muted"><i class="bi bi-git me-1"></i> Entity Version:</td>
+            <td class="fw-semibold text-end"><span class="badge bg-secondary-subtle text-dark">v{{ prim.version_number }}</span></td>
+          </tr>
+          <tr>
+            <td class="text-muted"><i class="bi bi-person me-1"></i> Account Holder:</td>
+            <td class="fw-semibold text-end">{{ current_user.full_name or current_user.username }}</td>
+          </tr>
+        </table>
+        {% endif %}
+      </div>
+      <div class="modal-footer border-top-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="{{ url_for('customer.accounts') }}" class="btn btn-primary"><i class="bi bi-journals me-1"></i> View All Accounts</a>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // 1. Dynamic Date Display
+  // 1. Dynamic Date Display & Handlers Setup
   document.addEventListener('DOMContentLoaded', () => {
     const d = new Date();
     const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const dateEl = document.getElementById('currentDateDisplay');
     if (dateEl) dateEl.innerText = d.toLocaleDateString('en-IN', opts);
 
-    // Initialize Analytics Charts
-    loadDashboardCharts();
-
-    // Attach form submit handlers
     setupFormHandlers();
+
+    try {
+      loadDashboardCharts();
+    } catch (e) {
+      console.error('Failed to load charts', e);
+    }
   });
 
-  // 2. Load Real Database Analytics Charts
-  async function loadDashboardCharts() {
+  function hideModalSafely(modalId) {
+    const el = document.getElementById(modalId);
+    if (!el) return;
+    const modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+    if (modal) modal.hide();
+  }
+
+  // Global Quick Deposit Handler
+  async function handleQuickDepositSubmit(e) {
+    if (e) e.preventDefault();
+    const btn = document.getElementById('submitDepositBtn');
+    const origText = btn ? btn.innerText : 'Confirm Deposit';
+    if (btn) { btn.disabled = true; btn.innerText = 'Processing Deposit...'; }
+
+    const account_id = document.getElementById('depositAccountId')?.value;
+    const amount = document.getElementById('depositAmount')?.value;
+    const description = document.getElementById('depositDescription')?.value || 'Deposit';
+
+    if (!amount || parseFloat(amount) <= 0) {
+      showToast('Please enter a valid deposit amount', 'warning');
+      if (btn) { btn.disabled = false; btn.innerText = origText; }
+      return;
+    }
+
     try {
-      const res = await fetch('/api/analytics');
-      if (!res.ok) return;
-      const data = await res.json();
-
-      // Cash flow line/bar chart
-      const ctx1 = document.getElementById('cashFlowChart');
-      if (ctx1) {
-        new Chart(ctx1, {
-          type: 'bar',
-          data: {
-            labels: data.monthly_labels && data.monthly_labels.length ? data.monthly_labels : ['This Month'],
-            datasets: [
-              {
-                label: 'Income (Deposits)',
-                data: data.monthly_income && data.monthly_income.length ? data.monthly_income : [parseFloat(data.total_income)],
-                backgroundColor: 'rgba(16, 185, 129, 0.85)',
-                borderRadius: 6,
-              },
-              {
-                label: 'Expenses / Transfers',
-                data: data.monthly_expenses && data.monthly_expenses.length ? data.monthly_expenses : [parseFloat(data.total_expenses)],
-                backgroundColor: 'rgba(239, 68, 68, 0.85)',
-                borderRadius: 6,
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'top' } },
-            scales: {
-              y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-              x: { grid: { display: false } }
-            }
-          }
-        });
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const res = await fetch('/api/transactions/deposit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ account_id, amount, description })
+      });
+      const result = await res.json();
+      if (res.ok) {
+        showToast(`Successfully deposited ₹${amount}!`, 'success');
+        hideModalSafely('quickDepositModal');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(result.error || 'Failed to deposit', 'danger');
+        if (btn) { btn.disabled = false; btn.innerText = origText; }
       }
-
-      // Doughnut Distribution
-      const ctx2 = document.getElementById('transactionTypeChart');
-      if (ctx2) {
-        const counts = data.breakdown || { DEPOSIT: 1, WITHDRAWAL: 0, TRANSFER: 0 };
-        new Chart(ctx2, {
-          type: 'doughnut',
-          data: {
-            labels: ['Deposits', 'Withdrawals', 'Transfers'],
-            datasets: [{
-              data: [counts.DEPOSIT || 0, counts.WITHDRAWAL || 0, counts.TRANSFER || 0],
-              backgroundColor: ['#10b981', '#ef4444', '#4f46e5'],
-              borderWidth: 0,
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 12 } }
-            },
-            cutout: '70%',
-          }
-        });
-      }
-    } catch (e) {
-      console.error('Failed to load chart analytics', e);
+    } catch (err) {
+      showToast('Network error during deposit', 'danger');
+      if (btn) { btn.disabled = false; btn.innerText = origText; }
     }
   }
 
-  // 3. Deposit & Withdraw AJAX Handlers
+  // Global Quick Withdraw Handler
+  async function handleQuickWithdrawSubmit(e) {
+    if (e) e.preventDefault();
+    const btn = document.getElementById('submitWithdrawBtn');
+    const origText = btn ? btn.innerText : 'Confirm Withdrawal';
+    if (btn) { btn.disabled = true; btn.innerText = 'Processing Withdrawal...'; }
+
+    const account_id = document.getElementById('withdrawAccountId')?.value;
+    const amount = document.getElementById('withdrawAmount')?.value;
+    const description = document.getElementById('withdrawDescription')?.value || 'Withdrawal';
+
+    if (!amount || parseFloat(amount) <= 0) {
+      showToast('Please enter a valid withdrawal amount', 'warning');
+      if (btn) { btn.disabled = false; btn.innerText = origText; }
+      return;
+    }
+
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const res = await fetch('/api/transactions/withdraw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ account_id, amount, description })
+      });
+      const result = await res.json();
+      if (res.ok) {
+        showToast(`Successfully withdrew ₹${amount}!`, 'success');
+        hideModalSafely('quickWithdrawModal');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showToast(result.error || 'Withdrawal failed', 'danger');
+        if (btn) { btn.disabled = false; btn.innerText = origText; }
+      }
+    } catch (err) {
+      showToast('Network error during withdrawal', 'danger');
+      if (btn) { btn.disabled = false; btn.innerText = origText; }
+    }
+  }
+
+  // Global Open Account Handler
+  async function handleOpenAccountSubmit(e) {
+    if (e) e.preventDefault();
+    const btn = document.getElementById('submitOpenAccountBtn');
+    const origText = btn ? btn.innerText : 'Open Account';
+    if (btn) { btn.disabled = true; btn.innerText = 'Opening Account...'; }
+
+    const account_type = document.getElementById('newAccountType')?.value || 'SAVINGS';
+
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const res = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ account_type })
+      });
+      if (res.ok) {
+        showToast('New bank account opened successfully!', 'success');
+        hideModalSafely('openAccountModal');
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to open account', 'danger');
+        if (btn) { btn.disabled = false; btn.innerText = origText; }
+      }
+    } catch (e) {
+      showToast('Network error opening account', 'danger');
+      if (btn) { btn.disabled = false; btn.innerText = origText; }
+    }
+  }
+
   function setupFormHandlers() {
-    // Deposit Form
     const depForm = document.getElementById('quickDepositForm');
-    if (depForm) {
-      depForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const account_id = document.getElementById('depositAccountId').value;
-        const amount = document.getElementById('depositAmount').value;
-        const description = document.getElementById('depositDescription').value;
+    if (depForm) depForm.addEventListener('submit', handleQuickDepositSubmit);
 
-        try {
-          const res = await fetch('/api/transactions/deposit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account_id, amount, description })
-          });
-          const result = await res.json();
-          if (res.ok) {
-            showToast(`Successfully deposited ₹${amount}!`, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('quickDepositModal')).hide();
-            setTimeout(() => window.location.reload(), 1000);
-          } else {
-            showToast(result.error || 'Failed to deposit', 'danger');
-          }
-        } catch (err) {
-          showToast('Network error during deposit', 'danger');
-        }
-      });
-    }
-
-    // Withdraw Form
     const wdForm = document.getElementById('quickWithdrawForm');
-    if (wdForm) {
-      wdForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const account_id = document.getElementById('withdrawAccountId').value;
-        const amount = document.getElementById('withdrawAmount').value;
-        const description = document.getElementById('withdrawDescription').value;
+    if (wdForm) wdForm.addEventListener('submit', handleQuickWithdrawSubmit);
 
-        try {
-          const res = await fetch('/api/transactions/withdraw', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account_id, amount, description })
-          });
-          const result = await res.json();
-          if (res.ok) {
-            showToast(`Successfully withdrew ₹${amount}!`, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('quickWithdrawModal')).hide();
-            setTimeout(() => window.location.reload(), 1000);
-          } else {
-            showToast(result.error || 'Withdrawal failed', 'danger');
-          }
-        } catch (err) {
-          showToast('Network error during withdrawal', 'danger');
-        }
-      });
-    }
-
-    // Open Account Form
     const openForm = document.getElementById('openAccountForm');
-    if (openForm) {
-      openForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const account_type = document.getElementById('newAccountType').value;
-        try {
-          const res = await fetch('/api/accounts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account_type })
-          });
-          if (res.ok) {
-            showToast('New bank account opened successfully!', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('openAccountModal')).hide();
-            setTimeout(() => window.location.reload(), 1000);
-          } else {
-            const err = await res.json();
-            showToast(err.error || 'Failed to open account', 'danger');
-          }
-        } catch (e) {
-          showToast('Network error opening account', 'danger');
-        }
-      });
-    }
+    if (openForm) openForm.addEventListener('submit', handleOpenAccountSubmit);
   }
 
   // 4. View Transaction Receipt Details
