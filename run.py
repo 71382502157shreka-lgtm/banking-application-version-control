@@ -4,6 +4,6 @@ from app import create_app
 app = create_app(os.environ.get("FLASK_ENV", "development"))
 
 if __name__ == "__main__":
-    app.run(debug=app.config.get("DEBUG", False), port=5000)
+    app.run(debug=app.config.get("DEBUG", False), port=5000, use_reloader=False)
 
 

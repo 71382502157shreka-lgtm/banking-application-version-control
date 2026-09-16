@@ -61,27 +61,55 @@ def _register_blueprints(app):
     from app.routes.employee import employee_bp
     from app.routes.admin import admin_bp
     from app.routes.api import api_bp
+    from app.routes.api_v1 import api_v1_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(customer_bp)
     app.register_blueprint(employee_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(api_v1_bp, url_prefix="/api/v1")
 
 
 def _register_error_handlers(app):
-    @app.errorhandler(404)
-    def not_found(e):
-        return jsonify(error="Resource not found"), 404
+    from flask import request, render_template
+    from flask_login import current_user
+    from app.services.audit_service import log_action
+    from app.models.audit_log import AuditAction
+
+    @app.errorhandler(401)
+    def unauthorized(e):
+        if request.path.startswith('/api') or not request.accept_mimetypes.accept_html:
+            return jsonify(error="Unauthorized access"), 401
+        return render_template("errors/403.html"), 401
 
     @app.errorhandler(403)
     def forbidden(e):
-        return jsonify(error="You do not have permission to perform this action"), 403
+        user_id = current_user.id if current_user and current_user.is_authenticated else None
+        role = current_user.role if current_user and current_user.is_authenticated else "anonymous"
+        log_action(
+            AuditAction.SECURITY_EVENT,
+            user_id=user_id,
+            description=f"Access denied [403 Forbidden] for role '{role}' on route '{request.path}' [{request.method}]"
+        )
+        db.session.commit()
+
+        if request.path.startswith('/api') or not request.accept_mimetypes.accept_html:
+            return jsonify(error="You do not have permission to perform this action"), 403
+        return render_template("errors/403.html"), 403
+
+    @app.errorhandler(404)
+    def not_found(e):
+        if request.path.startswith('/api') or not request.accept_mimetypes.accept_html:
+            return jsonify(error="Resource not found"), 404
+        return render_template("errors/403.html"), 404
 
     @app.errorhandler(500)
     def server_error(e):
         app.logger.exception("Unhandled server error")
-        return jsonify(error="An unexpected error occurred. Please try again."), 500
+        if request.path.startswith('/api') or not request.accept_mimetypes.accept_html:
+            return jsonify(error="An unexpected error occurred. Please try again."), 500
+        return render_template("errors/403.html"), 500
 
 
 def _register_user_loader():
