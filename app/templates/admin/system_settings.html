@@ -14,11 +14,12 @@
     <div class="col-12 col-lg-8">
       <div class="fin-card">
         <h5 class="fw-bold mb-3">Banking &amp; Security Policies</h5>
-        <form onsubmit="event.preventDefault(); showToast('System configuration saved & versioned!', 'success');">
+        <form method="POST" action="{{ url_for('admin.settings') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="row g-3 mb-3">
             <div class="col-12 col-md-6">
               <label class="form-label fw-semibold small">Institution Name</label>
-              <input type="text" class="form-control" value="BankVCS Digital Core" required>
+              <input type="text" name="institution_name" class="form-control" value="{{ config.get('INSTITUTION_NAME', 'BankVCS Digital Core') }}" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label fw-semibold small">Currency Code</label>
@@ -26,21 +27,21 @@
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label fw-semibold small">Daily Transfer Limit (₹)</label>
-              <input type="number" class="form-control" value="500000" required>
+              <input type="number" name="daily_transfer_limit" class="form-control" value="{{ config.get('DAILY_TRANSFER_LIMIT', 500000)|int }}" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label fw-semibold small">Max Failed Login Attempts</label>
-              <input type="number" class="form-control" value="5" required>
+              <input type="number" name="max_failed_logins" class="form-control" value="{{ config.get('MAX_FAILED_LOGIN_ATTEMPTS', 5) }}" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label fw-semibold small">Session Timeout (Minutes)</label>
-              <input type="number" class="form-control" value="30" required>
+              <input type="number" name="session_timeout" class="form-control" value="{{ config.get('SESSION_TIMEOUT_MINUTES', 30) }}" required>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label fw-semibold small">Version Control Diff Engine</label>
-              <select class="form-select">
-                <option selected>Deep JSON State Diff (Active)</option>
-                <option>Line-by-line Text Diff</option>
+              <select name="diff_engine" class="form-select">
+                <option value="Deep JSON State Diff (Active)" {% if config.get('VERSION_DIFF_ENGINE') == 'Deep JSON State Diff (Active)' or not config.get('VERSION_DIFF_ENGINE') %}selected{% endif %}>Deep JSON State Diff (Active)</option>
+                <option value="Line-by-line Text Diff" {% if config.get('VERSION_DIFF_ENGINE') == 'Line-by-line Text Diff' %}selected{% endif %}>Line-by-line Text Diff</option>
               </select>
             </div>
           </div>
@@ -49,7 +50,7 @@
             <i class="bi bi-shield-lock me-1"></i> Changes to critical system parameters automatically log an administrative audit trail.
           </div>
 
-          <button type="submit" class="btn btn-primary px-4 shadow-sm">
+          <button type="submit" class="btn btn-primary px-4 shadow-sm fw-bold">
             <i class="bi bi-save me-1"></i> Save Configuration
           </button>
         </form>

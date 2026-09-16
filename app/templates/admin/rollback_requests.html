@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Maker-Checker Rollback Queue — BankVCS 2.0{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-shield-check text-warning me-2"></i> Maker-Checker Rollback Queue</h2>
+      <p class="text-muted mb-0">Dual-control authorization queue for restoring database entity states with forward-version node creation.</p>
+    </div>
+  </div>
+
+  <div class="fin-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h5 class="fw-bold mb-0">Pending &amp; Processed Rollback Requests</h5>
+        <small class="text-muted">Requires Admin approval to execute database state restoration</small>
+      </div>
+      <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Dual-Control Enabled</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="fin-table align-middle">
+        <thead>
+          <tr>
+            <th>Req ID</th>
+            <th>Requested By</th>
+            <th>Entity Type &amp; Record</th>
+            <th>Target Version</th>
+            <th>Justification Reason</th>
+            <th>Status</th>
+            <th class="text-end">Approval Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in rollback_requests %}
+          <tr>
+            <td><span class="badge bg-secondary">#{{ req.id }}</span></td>
+            <td><span class="fw-medium">User #{{ req.requested_by_id }}</span></td>
+            <td><span class="badge bg-secondary-subtle text-secondary">{{ req.entity_type }}</span> <span class="font-monospace small">#{{ req.entity_id }}</span></td>
+            <td><span class="badge bg-primary text-white">Target v{{ req.target_version_number }}</span></td>
+            <td><div class="small fw-medium">{{ req.reason }}</div></td>
+            <td>
+              {% if req.status == 'PENDING' %}
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1.5"><i class="bi bi-clock me-1"></i> PENDING REVIEW</span>
+              {% elif req.status == 'EXECUTED' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5"><i class="bi bi-check-circle-fill me-1"></i> EXECUTED</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5">{{ req.status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if req.status == 'PENDING' %}
+              <form method="POST" action="{{ url_for('admin.approve_rollback', req_id=req.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-success fw-bold shadow-sm">
+                  <i class="bi bi-check2-circle me-1"></i> Approve &amp; Restore State
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted small">Completed &bull; User #{{ req.approved_by_id or 'Admin' }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              <i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>
+              No rollback authorization requests currently pending in queue.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

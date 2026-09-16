@@ -1,62 +1,642 @@
 {% extends "base.html" %}
-{% block title %}Next-Gen Banking with Version Control{% endblock %}
+{% block title %}BankVCS 2.0 — Enterprise Banking &amp; Version Control Portal Hub{% endblock %}
 
 {% block public_body %}
-<div class="py-5 text-center">
-  <div class="row justify-content-center">
-    <div class="col-12 col-lg-8">
-      <div class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-3">
-        <i class="bi bi-shield-check me-1"></i> Academic Information System &bull; Database-Level Version Control
-      </div>
-      <h1 class="display-4 fw-bold mb-3" style="letter-spacing: -1px;">
-        Next-Generation Digital Banking with <span class="text-primary">Immutable Version Control</span>
-      </h1>
-      <p class="lead text-muted mb-4">
-        A complete, secure banking application where every balance change, customer profile update, and beneficiary modification maintains an immutable state snapshot and signed audit trail.
-      </p>
-
-      <div class="d-flex justify-content-center gap-3 mb-5">
-        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4 shadow-sm">
-          <i class="bi bi-box-arrow-in-right me-2"></i> Access Portal
-        </a>
-        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-lg px-4">
-          <i class="bi bi-person-plus me-2"></i> Open Account
-        </a>
+<div class="py-2">
+  <!-- 1. EXECUTIVE WELCOME & REAL-TIME TELEMETRY BANNER (StockPilot Executive Style, Dark Theme) -->
+  <div class="fin-card p-4 mb-4 border-0 shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #0d1117 0%, #1a1e2e 50%, #0d1117 100%); color: #fff; border-radius: 20px; border: 1px solid rgba(245, 158, 11, 0.25);">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+      <div>
+        <div class="small text-uppercase tracking-wider text-warning fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;">
+          <i class="bi bi-shield-check me-1"></i> BANKVCS SENTINEL 2.0 &bull; LIVE TELEMETRY
+        </div>
+        <h2 class="fw-extrabold mb-1 text-white" id="executiveGreetingTitle" style="font-family: var(--font-heading); font-size: 1.65rem;">
+          Good Evening, Welcome to BankVCS
+        </h2>
+        <div class="text-white-50 small font-monospace d-flex align-items-center gap-2">
+          <i class="bi bi-clock-fill text-warning"></i>
+          <span id="executiveDateClock">Loading Date &amp; Time...</span>
+        </div>
       </div>
 
-      <!-- Feature Badges Row -->
-      <div class="row g-4 text-start pt-4 border-top">
-        <div class="col-12 col-md-4">
-          <div class="fin-card">
-            <div class="stat-icon-wrapper stat-icon-primary mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <span id="refreshStatusBadge" class="badge bg-success text-white px-2.5 py-1 rounded-pill small d-none animate__animated animate__fadeIn">
+          <i class="bi bi-check-circle-fill me-1"></i> Refreshed Live!
+        </span>
+        <button id="autoRefreshBtn" onclick="refreshDailyQuoteAndClock()" class="btn btn-warning btn-sm px-3 py-2 rounded-pill shadow-sm fw-bold d-flex align-items-center gap-1.5" style="background: var(--gold-gradient); color: #1e112a; border: none; cursor: pointer; font-size: 0.8rem;" title="Click to refresh daily security motto and system clock">
+          <i class="bi bi-arrow-clockwise" id="refreshBtnSpinner"></i> Auto Daily Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Daily Security Motto Embedded Card -->
+    <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1);">
+      <div class="d-flex align-items-center gap-2.5">
+        <div class="brand-icon text-dark flex-shrink-0 shadow-sm d-none d-sm-flex" style="width: 36px; height: 36px; font-size: 1rem; border-radius: 12px; background: var(--gold-gradient);">
+          <i class="bi bi-quote"></i>
+        </div>
+        <div class="flex-grow-1 overflow-hidden">
+          <div class="small text-uppercase tracking-wider fw-bold text-warning mb-0.5" style="font-size: 0.65rem;">
+            <i class="bi bi-shield-lock me-1"></i> Daily Security Motto &bull; <span class="text-warning-subtle" id="quoteCategory">Financial Integrity</span>
+          </div>
+          <p class="mb-0 small italic font-display fw-semibold text-white" id="sentinelQuoteText" style="font-size: 0.88rem;">
+            "Security is not a static state, but a continuous process. True financial trust is built on immutable auditability and transparent database version control."
+          </p>
+          <div class="small font-monospace text-white-50 mt-0.5" style="font-size: 0.7rem;" id="sentinelQuoteAuthor">— BankVCS Sentinel AI Security Protocol</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. HERO BANNER: Non-Rectangular Organic Cyber Hero Shape -->
+  <div class="fin-card cyber-shape-hero p-3 p-md-4 mb-4 border-0 shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #0d0718 0%, #2e1065 50%, #701a75 100%); color: #fff;">
+    <!-- Particle Background Grid -->
+    <div class="position-absolute top-0 start-0 w-100 h-100 opacity-20 pointer-events-none" style="background-image: radial-gradient(rgba(245, 158, 11, 0.25) 1px, transparent 1px); background-size: 24px 24px;"></div>
+    
+    <div class="row align-items-center position-relative z-1 g-3">
+      <div class="col-12 col-lg-7">
+        <!-- Animated Cyber AI Mascot Badge -->
+        <div class="anime-mascot-container mb-2">
+          <div class="anime-mascot-avatar" style="width: 32px; height: 32px;">
+            <i class="bi bi-robot text-dark fs-6"></i>
+          </div>
+          <span class="small fw-bold text-white tracking-wide" style="font-size: 0.78rem;">
+            <i class="bi bi-shield-check text-warning me-1"></i> BankVCS Cyber Sentinel 2.0 Active
+          </span>
+        </div>
+
+        <h1 class="h2 fw-extrabold mb-2" style="font-family: var(--font-heading); letter-spacing: -0.5px;">
+          Next-Gen Digital Banking &amp; <span class="text-warning">Version Control</span>
+        </h1>
+        <p class="text-white-50 small mb-3" style="font-size: 0.9rem;">
+          Enterprise banking platform featuring Git-like entity version tracking (`v1 → v2 → RESTORE`), tamper-evident SHA-256 audit chaining, and rule-based risk intelligence.
+        </p>
+
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-sm px-3 py-1.5 fw-bold shadow-sm" style="border-radius: 16px; background: var(--gold-gradient); border: none; color: #1e112a;">
+            <i class="bi bi-box-arrow-in-right me-1.5"></i> Access Sign In Portal
+          </a>
+          <a href="#portalHub" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-semibold" style="border-radius: 16px; border-color: rgba(255,255,255,0.25);">
+            <i class="bi bi-person-plus-fill me-1.5 text-warning"></i> Open New Account
+          </a>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5 text-center">
+        <!-- Visual Feature Capsule Card -->
+        <div class="p-3 text-start position-relative shadow-lg" style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(16px); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 20px 10px 20px 10px;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 rounded-pill" style="font-size: 0.7rem;">
+              <i class="bi bi-cpu-fill me-1"></i> Engine Status: Active
+            </span>
+            <span class="small text-white-50 font-monospace" style="font-size: 0.7rem;">FIPS 140-2 Verified</span>
+          </div>
+
+          <div class="d-flex flex-column gap-2 small">
+            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill" style="background: rgba(0,0,0,0.25); font-size: 0.78rem;">
+              <span class="text-white-80"><i class="bi bi-git me-1.5 text-warning"></i> Database Snapshots</span>
+              <span class="badge bg-purple-subtle text-purple fw-bold rounded-pill" style="font-size: 0.68rem;">v1..vN</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill" style="background: rgba(0,0,0,0.25); font-size: 0.78rem;">
+              <span class="text-white-80"><i class="bi bi-link-45deg me-1.5 text-warning"></i> SHA-256 Audit Chain</span>
+              <span class="badge bg-warning-subtle text-warning fw-bold rounded-pill" style="font-size: 0.68rem;">Cryptographic</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill" style="background: rgba(0,0,0,0.25); font-size: 0.78rem;">
+              <span class="text-white-80"><i class="bi bi-shield-lock-fill me-1.5 text-warning"></i> Access Control</span>
+              <span class="badge bg-rose-subtle text-rose fw-bold rounded-pill" style="font-size: 0.68rem;">3 Portals</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MULTI-ROLE PORTAL HUB: Sleek Compact Square Cyber Shape Profiles -->
+  <div id="portalHub" class="mb-4">
+    <div class="text-center mb-3">
+      <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-2.5 py-1 rounded-pill mb-1.5 fw-semibold" style="font-size: 0.72rem;">
+        <i class="bi bi-grid-fill me-1"></i> Multi-Role Portal Selector
+      </span>
+      <h3 class="h4 fw-bold mb-1" style="font-family: var(--font-heading);">Select Authorized Access or Registration</h3>
+      <p class="text-muted small mb-0" style="font-size: 0.82rem;">Choose your role below to register a new account or sign in to your dedicated portal</p>
+    </div>
+
+    <!-- 3 Role Portals Grid with Square Cyber Shapes -->
+    <div class="row g-3">
+      <!-- 1. Customer Role Card (Square Shape) -->
+      <div class="col-12 col-md-4">
+        <div class="fin-card cyber-square-card cyber-square-customer shadow-sm position-relative">
+          <div class="position-absolute top-0 end-0 m-2.5">
+            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">Public Access</span>
+          </div>
+
+          <div>
+            <div class="stat-icon-wrapper stat-icon-warning mb-2" style="width: 42px; height: 42px; font-size: 1.2rem; border-radius: 14px;">
+              <i class="bi bi-person-fill"></i>
+            </div>
+            <h4 class="h5 fw-bold mb-1" style="font-family: var(--font-heading);">Customer Portal</h4>
+            <p class="text-muted small mb-2 leading-tight" style="font-size: 0.8rem;">
+              Personal digital banking dashboard, account statements, e-Passbook download, fund transfers, and version history.
+            </p>
+          </div>
+
+          <div>
+            <div class="p-2 bg-body-tertiary border mb-2.5" style="border-radius: 12px;">
+              <ul class="list-unstyled mb-0 small text-muted d-flex flex-column gap-1" style="font-size: 0.75rem;">
+                <li><i class="bi bi-check2-circle text-warning me-1"></i> e-Passbook &amp; PDF Receipts</li>
+                <li><i class="bi bi-check2-circle text-warning me-1"></i> Version Control Diff View</li>
+              </ul>
+            </div>
+
+            <div class="d-flex flex-column gap-1.5">
+              <a href="{{ url_for('auth.customer_login') }}" class="btn btn-warning w-100 fw-bold shadow-sm py-1.5" style="background: var(--gold-gradient); border: none; color: #1e112a; border-radius: 12px; font-size: 0.85rem;">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Customer Login
+              </a>
+              <a href="{{ url_for('auth.register') }}" class="btn btn-outline-warning w-100 fw-semibold py-1.5" style="border-radius: 12px; font-size: 0.82rem;">
+                <i class="bi bi-person-plus-fill me-1"></i> Register Customer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Employee / Bank Officer Card (Square Shape) -->
+      <div class="col-12 col-md-4">
+        <div class="fin-card cyber-square-card cyber-square-employee shadow-sm position-relative">
+          <div class="position-absolute top-0 end-0 m-2.5">
+            <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">Key Required</span>
+          </div>
+
+          <div>
+            <div class="stat-icon-wrapper stat-icon-primary mb-2" style="width: 42px; height: 42px; font-size: 1.2rem; border-radius: 14px;">
+              <i class="bi bi-person-badge-fill"></i>
+            </div>
+            <h4 class="h5 fw-bold mb-1" style="font-family: var(--font-heading);">Employee Portal</h4>
+            <p class="text-muted small mb-2 leading-tight" style="font-size: 0.8rem;">
+              Bank officer dashboard, customer lookup directory, transaction ledger processing, version reviews, and audit logs.
+            </p>
+          </div>
+
+          <div>
+            <div class="p-2 bg-body-tertiary border mb-2.5" style="border-radius: 12px;">
+              <ul class="list-unstyled mb-0 small text-muted d-flex flex-column gap-1" style="font-size: 0.75rem;">
+                <li><i class="bi bi-check2-circle text-primary me-1"></i> Customer Directory &amp; Audit Log</li>
+                <li><i class="bi bi-check2-circle text-primary me-1"></i> Version History Review</li>
+              </ul>
+            </div>
+
+            <div class="d-flex flex-column gap-1.5">
+              <a href="{{ url_for('auth.employee_login') }}" class="btn btn-primary w-100 fw-bold shadow-sm py-1.5" style="background: var(--primary-gradient); border: none; border-radius: 12px; font-size: 0.85rem;">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Employee Login
+              </a>
+              <a href="{{ url_for('auth.employee_register') }}" class="btn btn-outline-primary w-100 fw-semibold py-1.5" style="border-radius: 12px; font-size: 0.82rem;">
+                <i class="bi bi-key-fill me-1"></i> Register Staff
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Administrator Card (Square Shape) -->
+      <div class="col-12 col-md-4">
+        <div class="fin-card cyber-square-card cyber-square-admin shadow-sm position-relative">
+          <div class="position-absolute top-0 end-0 m-2.5">
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.68rem;">Master Key</span>
+          </div>
+
+          <div>
+            <div class="stat-icon-wrapper stat-icon-danger mb-2" style="width: 42px; height: 42px; font-size: 1.2rem; border-radius: 14px;">
+              <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <h4 class="h5 fw-bold mb-1" style="font-family: var(--font-heading);">Admin Portal</h4>
+            <p class="text-muted small mb-2 leading-tight" style="font-size: 0.8rem;">
+              System governance, Maker-Checker rollback approvals, SHA-256 audit chain verifier, and security center.
+            </p>
+          </div>
+
+          <div>
+            <div class="p-2 bg-body-tertiary border mb-2.5" style="border-radius: 12px;">
+              <ul class="list-unstyled mb-0 small text-muted d-flex flex-column gap-1" style="font-size: 0.75rem;">
+                <li><i class="bi bi-check2-circle text-danger me-1"></i> Maker-Checker Rollback Queue</li>
+                <li><i class="bi bi-check2-circle text-danger me-1"></i> SHA-256 Cryptographic Chain</li>
+              </ul>
+            </div>
+
+            <div class="d-flex flex-column gap-1.5">
+              <a href="{{ url_for('auth.admin_login') }}" class="btn btn-danger w-100 fw-bold shadow-sm py-1.5" style="background: var(--rose-gradient); border: none; border-radius: 12px; font-size: 0.85rem;">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Admin Login
+              </a>
+              <a href="{{ url_for('auth.admin_register') }}" class="btn btn-outline-danger w-100 fw-semibold py-1.5" style="border-radius: 12px; font-size: 0.82rem;">
+                <i class="bi bi-shield-lock-fill me-1"></i> Register Admin
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROLE DISTINCTION & GOVERNANCE MATRIX -->
+  <div class="fin-card p-4 mb-4 shadow-sm border-0" style="border-radius: 20px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h4 class="h5 fw-bold mb-1" style="font-family: var(--font-heading);">
+          <i class="bi bi-layers-half text-primary me-2"></i> Employee vs Admin Access &amp; Governance Matrix
+        </h4>
+        <p class="text-muted small mb-0">Clear operational and security distinctions between Staff Branch Officers and Chief System Administrators</p>
+      </div>
+      <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-3 py-1 rounded-pill small fw-bold">
+        <i class="bi bi-shield-check me-1"></i> RBAC Enforced
+      </span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle mb-0" style="font-size: 0.85rem;">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 25%;">Platform Feature / Capability</th>
+            <th style="width: 25%;" class="text-center text-primary"><i class="bi bi-person-badge-fill me-1"></i> Staff Employee Portal</th>
+            <th style="width: 25%;" class="text-center text-danger"><i class="bi bi-shield-lock-fill me-1"></i> Chief Admin Portal</th>
+            <th style="width: 25%;" class="text-center text-warning"><i class="bi bi-person-fill me-1"></i> Customer Portal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="fw-semibold"><i class="bi bi-people me-1.5 text-primary"></i> User &amp; Account Access</td>
+            <td class="text-center text-muted"><span class="badge bg-primary-subtle text-primary">Customer Lookup &amp; KYC</span></td>
+            <td class="text-center fw-bold text-success"><span class="badge bg-danger-subtle text-danger">Full RBAC, Status &amp; Lockout Control</span></td>
+            <td class="text-center text-muted">Own Bank Account Only</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold"><i class="bi bi-sliders me-1.5 text-primary"></i> System Parameters &amp; Policy</td>
+            <td class="text-center text-muted"><span class="badge bg-secondary-subtle text-secondary">Branch Operational Scope</span></td>
+            <td class="text-center fw-bold text-success"><span class="badge bg-danger-subtle text-danger">Full System Config &amp; Limits</span></td>
+            <td class="text-center text-muted">No Access</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold"><i class="bi bi-git me-1.5 text-primary"></i> Version Control &amp; Rollbacks</td>
+            <td class="text-center text-muted"><span class="badge bg-primary-subtle text-primary">Review Snapshots</span></td>
+            <td class="text-center fw-bold text-success"><span class="badge bg-danger-subtle text-danger">Full Restore &amp; Maker-Checker Queue</span></td>
+            <td class="text-center text-muted">Personal Profile Diff</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold"><i class="bi bi-journal-code me-1.5 text-primary"></i> Audit Chain &amp; Telemetry</td>
+            <td class="text-center text-muted"><span class="badge bg-primary-subtle text-primary">Branch Audit Logs</span></td>
+            <td class="text-center fw-bold text-success"><span class="badge bg-danger-subtle text-danger">SHA-256 Cryptographic Chain Verify</span></td>
+            <td class="text-center text-muted">Activity History</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold"><i class="bi bi-file-earmark-excel me-1.5 text-primary"></i> Ledger &amp; e-Passbook Export</td>
+            <td class="text-center text-muted"><span class="badge bg-success-subtle text-success">Branch Ledger CSV Export</span></td>
+            <td class="text-center fw-bold text-success"><span class="badge bg-danger-subtle text-danger">Global System Audit CSV Export</span></td>
+            <td class="text-center text-muted"><span class="badge bg-warning-subtle text-dark">e-Passbook PDF &amp; Statement CSV</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. MODULAR SECTION: BankVCS Architectural Metrics KPI Bar -->
+  <div class="fin-card p-3 mb-4 shadow-sm border-0" style="border-radius: 20px; background: linear-gradient(135deg, rgba(13,7,24,0.95) 0%, rgba(46,16,101,0.95) 100%); color: #fff;">
+    <div class="row g-3 text-center align-items-center">
+      <div class="col-6 col-md-3">
+        <div class="fw-extrabold h3 mb-0 text-warning font-monospace">10,000+</div>
+        <div class="small text-white-50 uppercase tracking-wider" style="font-size: 0.68rem;">Immutable Ledger Logs</div>
+      </div>
+      <div class="col-6 col-md-3 border-start border-white-10">
+        <div class="fw-extrabold h3 mb-0 text-purple font-monospace" style="color: #c084fc !important;">99.999%</div>
+        <div class="small text-white-50 uppercase tracking-wider" style="font-size: 0.68rem;">Audit Integrity SLA</div>
+      </div>
+      <div class="col-6 col-md-3 border-start border-white-10">
+        <div class="fw-extrabold h3 mb-0 text-success font-monospace">0 Bytes</div>
+        <div class="small text-white-50 uppercase tracking-wider" style="font-size: 0.68rem;">Log Tampering Tolerated</div>
+      </div>
+      <div class="col-6 col-md-3 border-start border-white-10">
+        <div class="fw-extrabold h3 mb-0 text-warning font-monospace">&lt; 1.8s</div>
+        <div class="small text-white-50 uppercase tracking-wider" style="font-size: 0.68rem;">State Rollback Benchmark</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. MODULAR SECTION: Core Platform Architectural Pillars -->
+  <div class="mb-4">
+    <div class="text-center mb-3">
+      <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-2.5 py-1 rounded-pill mb-1.5 fw-semibold" style="font-size: 0.72rem;">
+        <i class="bi bi-cpu me-1"></i> Core Architecture Pillars
+      </span>
+      <h3 class="h4 fw-bold mb-1" style="font-family: var(--font-heading);">Engineered for Absolute Integrity</h3>
+      <p class="text-muted small mb-0" style="font-size: 0.82rem;">Three foundational principles ensuring zero data loss and verifiable state history</p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <div class="fin-card p-3 h-100 border-0 shadow-sm d-flex flex-column justify-content-between" style="border-radius: 20px;">
+          <div>
+            <div class="stat-icon-wrapper stat-icon-primary mb-2.5" style="width: 44px; height: 44px; font-size: 1.25rem; border-radius: 14px;">
               <i class="bi bi-git"></i>
             </div>
-            <h5 class="fw-bold">Entity Version Control</h5>
-            <p class="text-muted small mb-0">Automatic snapshotting with deep JSON diffing and safe non-financial rollback.</p>
+            <h5 class="fw-bold mb-1.5" style="font-family: var(--font-heading);">Git-Like Entity Versioning</h5>
+            <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+              Every database state change generates an automatic sequential entity version node (`v1 → v2 → RESTORE`), complete with field-level diffs.
+            </p>
+          </div>
+          <div class="mt-3 pt-2 border-top text-purple fw-semibold small" style="font-size: 0.75rem;">
+            <i class="bi bi-clock-history me-1"></i> Forward &amp; Backward Rollbacks
           </div>
         </div>
+      </div>
 
-        <div class="col-12 col-md-4">
-          <div class="fin-card">
-            <div class="stat-icon-wrapper stat-icon-success mb-2">
-              <i class="bi bi-shield-lock"></i>
+      <div class="col-12 col-md-4">
+        <div class="fin-card p-3 h-100 border-0 shadow-sm d-flex flex-column justify-content-between" style="border-radius: 20px;">
+          <div>
+            <div class="stat-icon-wrapper stat-icon-warning mb-2.5" style="width: 44px; height: 44px; font-size: 1.25rem; border-radius: 14px;">
+              <i class="bi bi-link-45deg"></i>
             </div>
-            <h5 class="fw-bold">Role-Based Access Control</h5>
-            <p class="text-muted small mb-0">Granular separation between Customer, Employee, and Administrator roles.</p>
+            <h5 class="fw-bold mb-1.5" style="font-family: var(--font-heading);">SHA-256 Audit Chaining</h5>
+            <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+              Each transaction is cryptographically linked to the previous transaction hash, producing an unalterable audit chain.
+            </p>
+          </div>
+          <div class="mt-3 pt-2 border-top text-warning fw-semibold small" style="font-size: 0.75rem;">
+            <i class="bi bi-shield-check me-1"></i> Zero Log Tampering Guaranteed
           </div>
         </div>
+      </div>
 
-        <div class="col-12 col-md-4">
-          <div class="fin-card">
-            <div class="stat-icon-wrapper stat-icon-warning mb-2">
-              <i class="bi bi-journal-code"></i>
+      <div class="col-12 col-md-4">
+        <div class="fin-card p-3 h-100 border-0 shadow-sm d-flex flex-column justify-content-between" style="border-radius: 20px;">
+          <div>
+            <div class="stat-icon-wrapper stat-icon-danger mb-2.5" style="width: 44px; height: 44px; font-size: 1.25rem; border-radius: 14px;">
+              <i class="bi bi-shield-lock-fill"></i>
             </div>
-            <h5 class="fw-bold">Immutable Audit Trail</h5>
-            <p class="text-muted small mb-0">Append-only compliance ledger recording every security and transactional event.</p>
+            <h5 class="fw-bold mb-1.5" style="font-family: var(--font-heading);">Maker-Checker Governance</h5>
+            <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+              Sensitive state rollbacks and high-value transactions require mandatory dual-authorization review by authorized administrators.
+            </p>
+          </div>
+          <div class="mt-3 pt-2 border-top text-rose fw-semibold small" style="font-size: 0.75rem;">
+            <i class="bi bi-person-check-fill me-1"></i> Dual-Control Approval Queue
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- 8. MODULAR SECTION: Interactive FAQ Accordion -->
+  <div class="fin-card p-3 p-md-4 mb-4 border-0 shadow-sm" style="border-radius: 20px;">
+    <div class="text-center mb-3">
+      <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-2.5 py-1 rounded-pill mb-1.5 fw-semibold" style="font-size: 0.72rem;">
+        <i class="bi bi-question-circle me-1"></i> Platform Knowledge Base
+      </span>
+      <h4 class="h5 fw-bold mb-1" style="font-family: var(--font-heading);">Frequently Asked Questions</h4>
+      <p class="text-muted small mb-0" style="font-size: 0.8rem;">Understand how BankVCS 2.0 maintains zero data loss and role isolation</p>
+    </div>
+
+    <div class="accordion accordion-custom" id="bankvcsFaqAccordion">
+      <div class="accordion-item border mb-2" style="border-radius: 12px; overflow: hidden;">
+        <h2 class="accordion-header" id="faqHeadingOne">
+          <button class="accordion-button collapsed fw-bold py-2.5 px-3" style="font-size: 0.88rem;" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapseOne" aria-expanded="false" aria-controls="faqCollapseOne">
+            <i class="bi bi-git me-2 text-warning"></i> How does Database Version Control protect banking data?
+          </button>
+        </h2>
+        <div id="faqCollapseOne" class="accordion-collapse collapse" aria-labelledby="faqHeadingOne" data-bs-parent="#bankvcsFaqAccordion">
+          <div class="accordion-body small text-muted" style="font-size: 0.82rem;">
+            BankVCS 2.0 records every database mutation as a discrete version snapshot (`v1 → v2 → v3`). If an accidental corruption or invalid transaction occurs, administrators can review field-level diffs and execute an immediate forward rollback without losing transaction history.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item border mb-2" style="border-radius: 12px; overflow: hidden;">
+        <h2 class="accordion-header" id="faqHeadingTwo">
+          <button class="accordion-button collapsed fw-bold py-2.5 px-3" style="font-size: 0.88rem;" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapseTwo" aria-expanded="false" aria-controls="faqCollapseTwo">
+            <i class="bi bi-file-earmark-pdf me-2 text-primary"></i> Can customers download official e-Passbooks and PDF transaction receipts?
+          </button>
+        </h2>
+        <div id="faqCollapseTwo" class="accordion-collapse collapse" aria-labelledby="faqHeadingTwo" data-bs-parent="#bankvcsFaqAccordion">
+          <div class="accordion-body small text-muted" style="font-size: 0.82rem;">
+            Yes! In the Customer Portal under Statements, users can filter transaction ledgers by date ranges (Last 7 days, 30 days, 3 months, Custom range) and export branded PDF e-Passbooks, CSV files, or print transaction receipts with cryptographic UTR reference numbers.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item border" style="border-radius: 12px; overflow: hidden;">
+        <h2 class="accordion-header" id="faqHeadingThree">
+          <button class="accordion-button collapsed fw-bold py-2.5 px-3" style="font-size: 0.88rem;" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapseThree" aria-expanded="false" aria-controls="faqCollapseThree">
+            <i class="bi bi-shield-lock me-2 text-danger"></i> How is role isolation enforced between Customer, Employee, and Admin portals?
+          </button>
+        </h2>
+        <div id="faqCollapseThree" class="accordion-collapse collapse" aria-labelledby="faqHeadingThree" data-bs-parent="#bankvcsFaqAccordion">
+          <div class="accordion-body small text-muted" style="font-size: 0.82rem;">
+            Role isolation is enforced at the controller level using Flask-Login and `@roles_required()` decorators. Customers cannot access staff directories or admin rollback queues; employees require staff registration keys; and administrators require master key enrollment.
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+</div>
 {% endblock %}
+
+{% block scripts %}
+<style>
+  @keyframes spinDeg {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .spin-animation {
+    animation: spinDeg 0.6s ease-in-out;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const sentinelQuotes = [
+      {
+        quote: "Security is not a static state, but a continuous process. True financial trust is built on immutable auditability and transparent database version control.",
+        author: "BankVCS Sentinel AI Core",
+        category: "Financial Integrity"
+      },
+      {
+        quote: "Every financial transaction is a contract of trust. We secure that trust with cryptographically chained SHA-256 state hashes.",
+        author: "Enterprise Banking Standard Protocol",
+        category: "Cryptographic Verification"
+      },
+      {
+        quote: "Integrity is doing the right thing when no one is watching — backed by zero-trust Maker-Checker state rollback governance.",
+        author: "FIPS 140-2 Audit Engine",
+        category: "Zero-Trust Architecture"
+      },
+      {
+        quote: "Data transparency and version history guarantee that no transaction can be erased, altered, or repudiated.",
+        author: "BankVCS 2.0 Vault Sentinel",
+        category: "Immutable Ledger"
+      },
+      {
+        quote: "A banking system is only as strong as its auditability. Every state snapshot is logged, verifiably signed, and instantly searchable.",
+        author: "Cyber Risk Intelligence Service",
+        category: "Audit Transparency"
+      },
+      {
+        quote: "Non-destructive version control allows instant state restoration without losing a single historical audit trail.",
+        author: "BankVCS Engine v2.0",
+        category: "Resilient Banking"
+      },
+      {
+        quote: "Uncompromising security paired with elegant user experience creates the pinnacle of modern digital banking.",
+        author: "BankVCS Architecture Principles",
+        category: "Next-Gen Fintech"
+      }
+    ];
+
+    function updateClockAndGreeting() {
+      const now = new Date();
+      const hours = now.getHours();
+      let greeting = "Good Night";
+      if (hours >= 5 && hours < 12) {
+        greeting = "Good Morning";
+      } else if (hours >= 12 && hours < 17) {
+        greeting = "Good Afternoon";
+      } else if (hours >= 17 && hours < 21) {
+        greeting = "Good Evening";
+      }
+
+      const greetingEl = document.getElementById("executiveGreetingTitle");
+      if (greetingEl) {
+        greetingEl.innerHTML = `${greeting}, <span class="text-warning">Welcome to BankVCS</span>`;
+      }
+
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+      const dateStr = now.toLocaleDateString('en-US', options);
+
+      const clockEl = document.getElementById("executiveDateClock");
+      if (clockEl) {
+        clockEl.textContent = `${dateStr} • Real-Time Telemetry Active`;
+      }
+    }
+
+    function initQuote() {
+      const textEl = document.getElementById('sentinelQuoteText');
+      const authorEl = document.getElementById('sentinelQuoteAuthor');
+      const catEl = document.getElementById('quoteCategory');
+      
+      const now = new Date();
+      const start = new Date(now.getFullYear(), 0, 0);
+      const diff = now - start;
+      const oneDay = 1000 * 60 * 60 * 24;
+      const dayOfYear = Math.floor(diff / oneDay);
+      const q = sentinelQuotes[dayOfYear % sentinelQuotes.length];
+
+      if (textEl && authorEl && catEl) {
+        textEl.textContent = `"${q.quote}"`;
+        authorEl.textContent = `— ${q.author}`;
+        catEl.textContent = q.category;
+      }
+    }
+
+    initQuote();
+    updateClockAndGreeting();
+    setInterval(updateClockAndGreeting, 1000);
+
+    window.refreshDailyQuoteAndClock = function() {
+      const spinner = document.getElementById('refreshBtnSpinner');
+      if (spinner) spinner.classList.add('spin-animation');
+
+      const textEl = document.getElementById('sentinelQuoteText');
+      const authorEl = document.getElementById('sentinelQuoteAuthor');
+      const catEl = document.getElementById('quoteCategory');
+      const badgeEl = document.getElementById('refreshStatusBadge');
+
+      const randomIdx = Math.floor(Math.random() * sentinelQuotes.length);
+      const q = sentinelQuotes[randomIdx];
+
+      if (textEl && authorEl && catEl) {
+        textEl.textContent = `"${q.quote}"`;
+        authorEl.textContent = `— ${q.author}`;
+        catEl.textContent = q.category;
+      }
+
+      updateClockAndGreeting();
+
+      if (badgeEl) {
+        badgeEl.classList.remove('d-none');
+        setTimeout(() => badgeEl.classList.add('d-none'), 2200);
+      }
+
+      setTimeout(() => {
+        if (spinner) spinner.classList.remove('spin-animation');
+      }, 600);
+    };
+
+      // Index Modal Interactive Tools
+      const btnOffline = document.getElementById('btnIdxSimulateOffline');
+      const btnSync = document.getElementById('btnIdxSimulateSync');
+      const bufferBox = document.getElementById('idxBufferStatusBox');
+      if (btnOffline && btnSync && bufferBox) {
+        btnOffline.addEventListener('click', () => {
+          bufferBox.className = 'p-2.5 bg-dark text-warning font-monospace small rounded';
+          bufferBox.textContent = '[Status: OFFLINE] Network drop detected. Autonomous Buffer activated. 3 payloads queued in IndexedDB.';
+          btnOffline.classList.add('d-none');
+          btnSync.classList.remove('d-none');
+        });
+        btnSync.addEventListener('click', () => {
+          bufferBox.className = 'p-2.5 bg-dark text-success font-monospace small rounded';
+          bufferBox.textContent = '[Status: ONLINE] Reconnected. 3 payloads flushed to Edge Digital Twin in 1.2s. Zero lost transactions.';
+          btnSync.classList.add('d-none');
+          btnOffline.classList.remove('d-none');
+        });
+      }
+
+      const btnRollback = document.getElementById('btnIdxTestRollback');
+      const rollbackOutput = document.getElementById('idxRollbackDiffOutput');
+      if (btnRollback && rollbackOutput) {
+        btnRollback.addEventListener('click', () => {
+          rollbackOutput.textContent = '[VCS Engine] Calculating diff (v2 → v1)... Rollback restored state to $10,000 in 1.18s. Audit entry logged.';
+        });
+      }
+
+      const btnMerkle = document.getElementById('btnIdxComputeMerkle');
+      const inputMerkle = document.getElementById('idxMerklePayloadInput');
+      const outputMerkle = document.getElementById('idxMerkleOutputBox');
+      if (btnMerkle && inputMerkle && outputMerkle) {
+        btnMerkle.addEventListener('click', async () => {
+          const text = inputMerkle.value || 'PAYLOAD';
+          const msgUint8 = new TextEncoder().encode(text);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          outputMerkle.textContent = `[SHA-256 Hash]: ${hashHex} (Linked to Merkle Root)`;
+        });
+      }
+
+      const btnFailover = document.getElementById('btnIdxTestFailover');
+      if (btnFailover) {
+        btnFailover.addEventListener('click', () => {
+          alert('Simulated Primary Node Alpha Failover -> Traffic seamlessly shifted to Standby Node Beta in 420ms.');
+        });
+      }
+
+      const btnRisk = document.getElementById('btnIdxCalculateRisk');
+      const inputAmount = document.getElementById('idxRiskAmountInput');
+      const outputRisk = document.getElementById('idxRiskScoreOutput');
+      if (btnRisk && inputAmount && outputRisk) {
+        btnRisk.addEventListener('click', () => {
+          const val = parseFloat(inputAmount.value) || 0;
+          if (val > 10000) {
+            outputRisk.className = 'p-2.5 bg-dark text-danger font-monospace small rounded';
+            outputRisk.textContent = `[Risk Rating]: 90/100 (HIGH RISK) — Amount $${val} triggers mandatory Employee Maker-Checker approval.`;
+          } else if (val > 2000) {
+            outputRisk.className = 'p-2.5 bg-dark text-warning font-monospace small rounded';
+            outputRisk.textContent = `[Risk Rating]: 45/100 (MEDIUM RISK) — Standard UTR verification applied.`;
+          } else {
+            outputRisk.className = 'p-2.5 bg-dark text-success font-monospace small rounded';
+            outputRisk.textContent = `[Risk Rating]: 10/100 (LOW RISK) — Instant execution authorized.`;
+          }
+        });
+      }
+    });
+  </script>
+{% endblock %}
+
+
