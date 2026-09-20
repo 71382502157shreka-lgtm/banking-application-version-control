@@ -796,16 +796,24 @@ h1, h2, h3, h4, h5, h6, .brand-name {
 }
 
 /* Light Mode Specific Overrides (Ultra-Clear High-Contrast Theme) */
-[data-theme="light"] h1, 
-[data-theme="light"] h2, 
-[data-theme="light"] h3, 
-[data-theme="light"] h4, 
-[data-theme="light"] h5, 
-[data-theme="light"] h6,
+[data-theme="light"] h1:not(.text-white), 
+[data-theme="light"] h2:not(.text-white), 
+[data-theme="light"] h3:not(.text-white), 
+[data-theme="light"] h4:not(.text-white), 
+[data-theme="light"] h5:not(.text-white), 
+[data-theme="light"] h6:not(.text-white),
 [data-theme="light"] .card-title,
 [data-theme="light"] .modal-title {
   color: #0f172a !important;
   font-weight: 700 !important;
+}
+
+.text-white {
+  color: #ffffff !important;
+}
+
+.text-white-50 {
+  color: rgba(255, 255, 255, 0.7) !important;
 }
 
 [data-theme="light"] .stat-value {
