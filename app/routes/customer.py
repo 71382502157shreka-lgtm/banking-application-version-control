@@ -111,7 +111,7 @@ def dashboard():
             .all()
         )
 
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        thirty_days_ago = datetime.now() - timedelta(days=30)
         recent_30d_txns = (
             Transaction.query
             .filter(
@@ -245,7 +245,7 @@ def statements():
     start_date_str = request.args.get("start_date")
     end_date_str = request.args.get("end_date")
 
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
 
     if preset == "7days":
         start_date = today - timedelta(days=7)
@@ -319,7 +319,7 @@ def download_statement_csv():
     txn_type = request.args.get("txn_type", "ALL")
     search_query = request.args.get("search", "")
 
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
     start_date = None
     end_date = None
 
@@ -353,7 +353,7 @@ def download_statement_csv():
     writer.writerow(["Customer Name", current_user.full_name])
     writer.writerow(["Account Number", account.account_number])
     writer.writerow(["Account Type", account.account_type])
-    writer.writerow(["Generated At", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")])
+    writer.writerow(["Generated At", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
     writer.writerow(["Opening Balance", f"INR {stmt['opening_balance']:.2f}"])
     writer.writerow(["Closing Balance", f"INR {stmt['closing_balance']:.2f}"])
     writer.writerow([])
@@ -402,7 +402,7 @@ def print_statement():
     txn_type = request.args.get("txn_type", "ALL")
     search_query = request.args.get("search", "")
 
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
     start_date = None
     end_date = None
 
@@ -433,7 +433,7 @@ def print_statement():
         "customer/statement_print.html",
         account=account,
         stmt=stmt,
-        generated_at=datetime.utcnow(),
+        generated_at=datetime.now(),
         preset=preset
     )
 
@@ -484,7 +484,7 @@ def download_transactions_csv():
 
     writer.writerow(["BankVCS 2.0 - Customer Transaction History Ledger"])
     writer.writerow(["Customer Name", current_user.full_name])
-    writer.writerow(["Generated At", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")])
+    writer.writerow(["Generated At", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
     writer.writerow([])
     writer.writerow(["Date & Time", "UTR Reference", "Type", "Amount (INR)", "Status", "Description", "Balance After (INR)"])
 
@@ -500,7 +500,7 @@ def download_transactions_csv():
         ])
 
     csv_data = output.getvalue()
-    filename = f"BankVCS_Transaction_History_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"BankVCS_Transaction_History_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(
         csv_data,
         mimetype="text/csv",
@@ -551,7 +551,7 @@ def download_epassbook_csv():
     writer.writerow(["Account Type", account.account_type])
     writer.writerow(["IFSC Code", "BVCS0001092"])
     writer.writerow(["Branch", "Headquarters Financial Center"])
-    writer.writerow(["Generated At", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")])
+    writer.writerow(["Generated At", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
     writer.writerow(["Current Balance", f"INR {account.balance:.2f}"])
     writer.writerow([])
     writer.writerow(["Date & Time", "UTR Reference", "Type", "Entry", "Description", "Debit (INR)", "Credit (INR)", "Running Balance (INR)", "Status"])
@@ -570,7 +570,7 @@ def download_epassbook_csv():
         ])
 
     csv_data = output.getvalue()
-    filename = f"BankVCS_ePassbook_{account.account_number}_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+    filename = f"BankVCS_ePassbook_{account.account_number}_{datetime.now().strftime('%Y%m%d')}.csv"
     return Response(
         csv_data,
         mimetype="text/csv",
@@ -596,7 +596,7 @@ def print_epassbook():
         "customer/epassbook_print.html",
         account=account,
         stmt=stmt,
-        generated_at=datetime.utcnow()
+        generated_at=datetime.now()
     )
 
 

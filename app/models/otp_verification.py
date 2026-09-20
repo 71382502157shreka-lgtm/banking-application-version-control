@@ -15,7 +15,7 @@ class OTPVerification(db.Model):
     failed_attempts = db.Column(db.Integer, default=0, nullable=False)
     is_used = db.Column(db.Boolean, default=False, nullable=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
     user = db.relationship("User", backref=db.backref("otp_verifications", lazy=True))
 
@@ -29,7 +29,7 @@ class OTPVerification(db.Model):
         return check_password_hash(self.otp_hash, str(raw_code))
 
     def is_expired(self) -> bool:
-        return datetime.utcnow() > self.expires_at
+        return datetime.now() > self.expires_at
 
     def to_dict(self):
         return {

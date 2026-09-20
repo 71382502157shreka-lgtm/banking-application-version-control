@@ -30,8 +30,8 @@ class User(db.Model, UserMixin):
     locked_until = db.Column(db.DateTime, nullable=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     accounts = db.relationship("Account", backref="owner", lazy=True)
     beneficiaries = db.relationship("Beneficiary", backref="owner", lazy=True)
@@ -52,17 +52,17 @@ class User(db.Model, UserMixin):
 
     # -- lockout logic --------------------------------------------------
     def is_locked(self) -> bool:
-        return bool(self.locked_until and self.locked_until > datetime.utcnow())
+        return bool(self.locked_until and self.locked_until > datetime.now())
 
     def register_failed_login(self, max_attempts: int, lockout_minutes: int) -> None:
         self.failed_login_attempts += 1
         if self.failed_login_attempts >= max_attempts:
-            self.locked_until = datetime.utcnow() + timedelta(minutes=lockout_minutes)
+            self.locked_until = datetime.now() + timedelta(minutes=lockout_minutes)
 
     def register_successful_login(self) -> None:
         self.failed_login_attempts = 0
         self.locked_until = None
-        self.last_login_at = datetime.utcnow()
+        self.last_login_at = datetime.now()
 
     def to_dict(self, include_email=True):
         data = {

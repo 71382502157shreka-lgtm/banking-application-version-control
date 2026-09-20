@@ -21,7 +21,7 @@ class RiskAssessment(db.Model):
     factors = db.Column(db.JSON, nullable=True)
     decision = db.Column(db.String(30), nullable=False, default="APPROVED")  # APPROVED, REVIEW_REQUIRED, BLOCKED
 
-    assessed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    assessed_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
     user = db.relationship("User", backref=db.backref("risk_assessments", lazy=True))
     transaction = db.relationship("Transaction", backref=db.backref("risk_assessment", uselist=False))

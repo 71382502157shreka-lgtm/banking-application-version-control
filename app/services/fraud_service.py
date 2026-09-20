@@ -54,7 +54,7 @@ def evaluate_transaction_risk(user_id: int, account, amount: float, beneficiary_
                 factors.append("First transfer to this beneficiary")
 
     # 4. Transfer Velocity Factor (last 15 minutes)
-    fifteen_mins_ago = datetime.utcnow() - timedelta(minutes=15)
+    fifteen_mins_ago = datetime.now() - timedelta(minutes=15)
     recent_txns = (
         Transaction.query
         .filter(Transaction.account_id == account.id)

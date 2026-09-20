@@ -34,8 +34,8 @@ class Account(db.Model):
 
     version_number = db.Column(db.Integer, nullable=False, default=1)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     transactions = db.relationship("Transaction", foreign_keys="Transaction.account_id", backref="account", lazy=True)
 
