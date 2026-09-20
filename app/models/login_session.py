@@ -15,8 +15,8 @@ class LoginSession(db.Model):
     os = db.Column(db.String(50))
     device_type = db.Column(db.String(30), default="Desktop")
 
-    login_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    last_activity_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    login_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    last_activity_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
     status = db.Column(db.String(20), default="ACTIVE")  # ACTIVE, EXPIRED, REVOKED
 
     user = db.relationship("User", backref=db.backref("login_sessions", lazy=True))

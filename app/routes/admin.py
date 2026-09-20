@@ -275,7 +275,7 @@ def approve_rollback(req_id):
 
     req.status = RollbackStatus.EXECUTED
     req.reviewed_by_id = current_user.id
-    req.reviewed_at = datetime.utcnow()
+    req.reviewed_at = datetime.now()
     log_action("ROLLBACK_APPROVED", description=f"Admin {current_user.username} approved rollback request #{req.id}")
     db.session.commit()
 
@@ -297,7 +297,7 @@ def export_audit_logs_csv():
 
     writer.writerow(["BankVCS 2.0 - System Cryptographic Audit Trail Export"])
     writer.writerow(["Exported By Admin", f"{current_user.full_name} ({current_user.username})"])
-    writer.writerow(["Generated At", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")])
+    writer.writerow(["Generated At", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
     writer.writerow([])
     writer.writerow(["Audit ID", "Timestamp", "Action", "User ID", "Entity Type", "Entity ID", "Description", "IP Address", "Prev Hash", "Current Hash"])
 
@@ -316,7 +316,7 @@ def export_audit_logs_csv():
         ])
 
     csv_data = output.getvalue()
-    filename = f"BankVCS_System_Audit_Trail_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"BankVCS_System_Audit_Trail_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(
         csv_data,
         mimetype="text/csv",

@@ -68,7 +68,7 @@ def export_transactions_csv():
 
     writer.writerow(["BankVCS 2.0 - Staff Operational Transaction Ledger"])
     writer.writerow(["Exported By", f"{current_user.full_name} ({current_user.role.upper()})"])
-    writer.writerow(["Generated At", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")])
+    writer.writerow(["Generated At", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
     writer.writerow([])
     writer.writerow(["Txn ID", "Date & Time", "Reference Number", "Account ID", "Type", "Amount (INR)", "Status", "Description"])
 
@@ -85,7 +85,7 @@ def export_transactions_csv():
         ])
 
     csv_data = output.getvalue()
-    filename = f"BankVCS_Branch_Ledger_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"BankVCS_Branch_Ledger_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(
         csv_data,
         mimetype="text/csv",

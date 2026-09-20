@@ -26,7 +26,7 @@ class RollbackRequest(db.Model):
     reviewed_at = db.Column(db.DateTime, nullable=True)
     review_notes = db.Column(db.String(255), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
 
     requested_by = db.relationship("User", foreign_keys=[requested_by_id], backref=db.backref("rollback_requests_made", lazy=True))
     reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id], backref=db.backref("rollback_requests_reviewed", lazy=True))

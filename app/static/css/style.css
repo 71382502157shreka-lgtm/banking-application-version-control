@@ -780,28 +780,50 @@ h1, h2, h3, h4, h5, h6, .brand-name {
 }
 
 /* Light Mode Specific Overrides (Ultra-Clear High-Contrast Theme) */
+[data-theme="light"] h1, 
+[data-theme="light"] h2, 
+[data-theme="light"] h3, 
+[data-theme="light"] h4, 
+[data-theme="light"] h5, 
+[data-theme="light"] h6,
+[data-theme="light"] .card-title,
+[data-theme="light"] .modal-title {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .stat-value {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .stat-label {
+  color: #1e293b !important;
+  font-weight: 700 !important;
+}
+
 [data-theme="light"] .bg-white, 
 [data-theme="light"] .bg-light, 
 [data-theme="light"] .bg-body,
 [data-theme="light"] .bg-body-tertiary {
   background-color: #ffffff !important;
-  color: #140b24 !important;
-  border-color: #d4cbdf !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
-[data-theme="light"] .text-dark { color: #140b24 !important; font-weight: 700; }
-[data-theme="light"] .text-muted { color: #3d2c54 !important; font-weight: 500; }
-[data-theme="light"] .text-secondary { color: #475569 !important; font-weight: 500; }
+[data-theme="light"] .text-dark { color: #0f172a !important; font-weight: 700; }
+[data-theme="light"] .text-muted { color: #27272a !important; font-weight: 600 !important; }
+[data-theme="light"] .text-secondary { color: #334155 !important; font-weight: 600 !important; }
 
 [data-theme="light"] .form-label, 
 [data-theme="light"] label {
-  color: #140b24 !important;
-  font-weight: 600;
+  color: #0f172a !important;
+  font-weight: 700;
 }
 
 [data-theme="light"] .form-text {
-  color: #3d2c54 !important;
-  font-weight: 500;
+  color: #27272a !important;
+  font-weight: 600;
 }
 
 [data-theme="light"] th {
