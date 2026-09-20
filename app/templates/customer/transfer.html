@@ -419,13 +419,14 @@
   document.addEventListener('DOMContentLoaded', () => {
     onSourceSelectChange();
 
-    {% if accounts|length <= 1 %}
-    const otherSel = document.getElementById('otherAccountsSelect');
-    if (otherSel && otherSel.options.length > 1) {
-      otherSel.selectedIndex = 1;
-      applyOtherAccountToDest();
+    const srcSelect = document.getElementById('sourceAccountId');
+    if (srcSelect && srcSelect.options.length <= 1) {
+      const otherSel = document.getElementById('otherAccountsSelect');
+      if (otherSel && otherSel.options.length > 1) {
+        otherSel.selectedIndex = 1;
+        applyOtherAccountToDest();
+      }
     }
-    {% endif %}
 
     const urlParams = new URLSearchParams(window.location.search);
     const src = urlParams.get('src');
