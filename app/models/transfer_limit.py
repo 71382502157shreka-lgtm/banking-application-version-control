@@ -16,6 +16,9 @@ class TransferLimit(db.Model):
 
     user = db.relationship("User", backref=db.backref("transfer_limit", uselist=False))
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def reset_if_new_day(self):
         if self.last_reset_date != date.today():
             self.current_daily_spent = 0.00

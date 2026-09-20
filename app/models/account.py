@@ -39,6 +39,9 @@ class Account(db.Model):
 
     transactions = db.relationship("Transaction", foreign_keys="Transaction.account_id", backref="account", lazy=True)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         return {
             "id": self.id,

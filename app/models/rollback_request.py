@@ -31,6 +31,9 @@ class RollbackRequest(db.Model):
     requested_by = db.relationship("User", foreign_keys=[requested_by_id], backref=db.backref("rollback_requests_made", lazy=True))
     reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id], backref=db.backref("rollback_requests_reviewed", lazy=True))
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         return {
             "id": self.id,
