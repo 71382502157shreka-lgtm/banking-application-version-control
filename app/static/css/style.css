@@ -1064,3 +1064,172 @@ h1, h2, h3, h4, h5, h6, .brand-name {
   color: #6d28d9;
   gap: 0.65rem;
 }
+
+/* ==========================================================================
+   Public Navbar & Landing Page Theme Engine
+   ========================================================================== */
+.public-navbar {
+  background: var(--header-bg) !important;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--card-border) !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.public-brand-title {
+  color: var(--text-main) !important;
+}
+
+.nav-portal-link {
+  color: var(--text-main) !important;
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 10px;
+  font-weight: 700;
+  transition: all 0.25s ease;
+}
+
+.nav-portal-link:hover {
+  color: var(--accent-gold) !important;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+/* Executive Welcome Card Theme Support */
+.executive-welcome-card {
+  background: var(--card-visual-gradient, linear-gradient(135deg, #0d1117 0%, #1a1e2e 50%, #0d1117 100%)) !important;
+  color: var(--text-main) !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+
+/* Cyber Hero Banner Theme Support */
+.cyber-hero-banner {
+  background: var(--card-visual-gradient, linear-gradient(135deg, #0d0718 0%, #2e1065 50%, #701a75 100%)) !important;
+  color: var(--text-main) !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow) !important;
+}
+
+/* Theme Text Helpers for High Contrast Light/Dark Switch */
+.theme-text-heading {
+  color: var(--text-main) !important;
+}
+
+.theme-text-body {
+  color: var(--text-main) !important;
+}
+
+.theme-text-subtle {
+  color: var(--text-muted) !important;
+}
+
+/* Mottos & Feature Capsules inside Hero */
+.motto-embed-card {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow) !important;
+  color: var(--text-main) !important;
+}
+
+.feature-capsule-card {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow) !important;
+  color: var(--text-main) !important;
+}
+
+.capsule-item-row {
+  background: var(--input-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  color: var(--text-main) !important;
+}
+
+.capsule-item-text {
+  color: var(--text-main) !important;
+}
+
+.btn-outline-light-theme {
+  border: 1px solid var(--card-border) !important;
+  color: var(--text-main) !important;
+}
+
+.btn-outline-light-theme:hover {
+  background: var(--primary-gradient) !important;
+  color: #ffffff !important;
+}
+
+/* Specific Light Theme Overrides for Maximum Readability */
+[data-theme="light"] .public-navbar {
+  background: #ffffff !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .public-brand-title {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .nav-portal-link {
+  color: #0f172a !important;
+  background: transparent;
+}
+
+[data-theme="light"] .nav-portal-link:hover {
+  color: #b45309 !important;
+  background: #fef3c7 !important;
+}
+
+[data-theme="light"] .executive-welcome-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%) !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .cyber-hero-banner {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%) !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .motto-embed-card,
+[data-theme="light"] .feature-capsule-card {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .capsule-item-row {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .capsule-item-text {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .theme-text-heading {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .theme-text-body {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .theme-text-subtle {
+  color: #334155 !important;
+}
+
+[data-theme="light"] .btn-outline-light-theme {
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .btn-outline-light-theme:hover {
+  background: #0f172a !important;
+  color: #ffffff !important;
+}
+

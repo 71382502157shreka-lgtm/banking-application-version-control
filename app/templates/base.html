@@ -281,24 +281,24 @@
   {% else %}
   <!-- Public Layout -->
   <div class="public-layout">
-    <nav class="public-navbar border-bottom py-2 shadow-sm" style="background: rgba(13, 7, 24, 0.95); backdrop-filter: blur(12px);">
+    <nav class="public-navbar border-bottom py-2 shadow-sm">
       <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
         <a href="{{ url_for('auth.index') }}" class="text-decoration-none d-flex align-items-center">
           <div class="brand-icon me-2 text-dark d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; border-radius: 10px; background: var(--gold-gradient);">
             <i class="bi bi-robot fs-6"></i>
           </div>
           <div class="d-flex flex-column">
-            <span class="fs-6 fw-extrabold text-white leading-tight" style="font-family: var(--font-heading); letter-spacing: -0.3px;">BankVCS 2.0</span>
+            <span class="fs-6 fw-extrabold public-brand-title leading-tight" style="font-family: var(--font-heading); letter-spacing: -0.3px;">BankVCS 2.0</span>
             <span class="text-warning text-uppercase tracking-wider font-monospace" style="font-size: 0.6rem; margin-top: -2px;">BANKING &amp; VERSION CONTROL</span>
           </div>
         </a>
 
         <!-- Middle Portal Links -->
         <div class="d-none d-lg-flex align-items-center gap-3 text-uppercase font-monospace" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-          <a href="{{ url_for('auth.customer_login') }}" class="nav-link text-white-80 hover-text-warning fw-bold">Customer Portal</a>
-          <a href="{{ url_for('auth.employee_login') }}" class="nav-link text-white-80 hover-text-warning fw-bold">Employee Portal</a>
-          <a href="{{ url_for('auth.admin_login') }}" class="nav-link text-white-80 hover-text-warning fw-bold">Admin Portal</a>
-          <a href="{{ url_for('auth.login') }}" class="nav-link text-white-80 hover-text-warning fw-bold">Sign In</a>
+          <a href="{{ url_for('auth.customer_login') }}" class="nav-portal-link fw-bold">Customer Portal</a>
+          <a href="{{ url_for('auth.employee_login') }}" class="nav-portal-link fw-bold">Employee Portal</a>
+          <a href="{{ url_for('auth.admin_login') }}" class="nav-portal-link fw-bold">Admin Portal</a>
+          <a href="{{ url_for('auth.login') }}" class="nav-portal-link fw-bold">Sign In</a>
         </div>
 
         <div class="d-flex align-items-center gap-2">

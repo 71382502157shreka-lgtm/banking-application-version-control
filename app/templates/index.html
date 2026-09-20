@@ -3,17 +3,17 @@
 
 {% block public_body %}
 <div class="py-2">
-  <!-- 1. EXECUTIVE WELCOME & REAL-TIME TELEMETRY BANNER (StockPilot Executive Style, Dark Theme) -->
-  <div class="fin-card p-4 mb-4 border-0 shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #0d1117 0%, #1a1e2e 50%, #0d1117 100%); color: #fff; border-radius: 20px; border: 1px solid rgba(245, 158, 11, 0.25);">
+  <!-- 1. EXECUTIVE WELCOME & REAL-TIME TELEMETRY BANNER -->
+  <div class="fin-card executive-welcome-card p-4 mb-4 border-0 shadow-lg position-relative overflow-hidden">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 border-bottom border-secondary border-opacity-25 pb-3">
       <div>
         <div class="small text-uppercase tracking-wider text-warning fw-bold mb-1" style="font-size: 0.72rem; letter-spacing: 1px;">
           <i class="bi bi-shield-check me-1"></i> BANKVCS SENTINEL 2.0 &bull; LIVE TELEMETRY
         </div>
-        <h2 class="fw-extrabold mb-1 text-white" id="executiveGreetingTitle" style="font-family: var(--font-heading); font-size: 1.65rem;">
+        <h2 class="fw-extrabold mb-1 theme-text-heading" id="executiveGreetingTitle" style="font-family: var(--font-heading); font-size: 1.65rem;">
           Good Evening, Welcome to BankVCS
         </h2>
-        <div class="text-white-50 small font-monospace d-flex align-items-center gap-2">
+        <div class="theme-text-subtle small font-monospace d-flex align-items-center gap-2">
           <i class="bi bi-clock-fill text-warning"></i>
           <span id="executiveDateClock">Loading Date &amp; Time...</span>
         </div>
@@ -30,7 +30,7 @@
     </div>
 
     <!-- Daily Security Motto Embedded Card -->
-    <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1);">
+    <div class="p-3 rounded-4 motto-embed-card">
       <div class="d-flex align-items-center gap-2.5">
         <div class="brand-icon text-dark flex-shrink-0 shadow-sm d-none d-sm-flex" style="width: 36px; height: 36px; font-size: 1rem; border-radius: 12px; background: var(--gold-gradient);">
           <i class="bi bi-quote"></i>
@@ -39,17 +39,17 @@
           <div class="small text-uppercase tracking-wider fw-bold text-warning mb-0.5" style="font-size: 0.65rem;">
             <i class="bi bi-shield-lock me-1"></i> Daily Security Motto &bull; <span class="text-warning-subtle" id="quoteCategory">Financial Integrity</span>
           </div>
-          <p class="mb-0 small italic font-display fw-semibold text-white" id="sentinelQuoteText" style="font-size: 0.88rem;">
+          <p class="mb-0 small italic font-display fw-semibold theme-text-body" id="sentinelQuoteText" style="font-size: 0.88rem;">
             "Security is not a static state, but a continuous process. True financial trust is built on immutable auditability and transparent database version control."
           </p>
-          <div class="small font-monospace text-white-50 mt-0.5" style="font-size: 0.7rem;" id="sentinelQuoteAuthor">— BankVCS Sentinel AI Security Protocol</div>
+          <div class="small font-monospace theme-text-subtle mt-0.5" style="font-size: 0.7rem;" id="sentinelQuoteAuthor">— BankVCS Sentinel AI Security Protocol</div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- 3. HERO BANNER: Non-Rectangular Organic Cyber Hero Shape -->
-  <div class="fin-card cyber-shape-hero p-3 p-md-4 mb-4 border-0 shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #0d0718 0%, #2e1065 50%, #701a75 100%); color: #fff;">
+  <div class="fin-card cyber-shape-hero cyber-hero-banner p-3 p-md-4 mb-4 border-0 shadow-lg position-relative overflow-hidden">
     <!-- Particle Background Grid -->
     <div class="position-absolute top-0 start-0 w-100 h-100 opacity-20 pointer-events-none" style="background-image: radial-gradient(rgba(245, 158, 11, 0.25) 1px, transparent 1px); background-size: 24px 24px;"></div>
     
@@ -60,15 +60,15 @@
           <div class="anime-mascot-avatar" style="width: 32px; height: 32px;">
             <i class="bi bi-robot text-dark fs-6"></i>
           </div>
-          <span class="small fw-bold text-white tracking-wide" style="font-size: 0.78rem;">
+          <span class="small fw-bold theme-text-body tracking-wide" style="font-size: 0.78rem;">
             <i class="bi bi-shield-check text-warning me-1"></i> BankVCS Cyber Sentinel 2.0 Active
           </span>
         </div>
 
-        <h1 class="h2 fw-extrabold mb-2" style="font-family: var(--font-heading); letter-spacing: -0.5px;">
+        <h1 class="h2 fw-extrabold mb-2 theme-text-heading" style="font-family: var(--font-heading); letter-spacing: -0.5px;">
           Next-Gen Digital Banking &amp; <span class="text-warning">Version Control</span>
         </h1>
-        <p class="text-white-50 small mb-3" style="font-size: 0.9rem;">
+        <p class="theme-text-subtle small mb-3" style="font-size: 0.9rem;">
           Enterprise banking platform featuring Git-like entity version tracking (`v1 → v2 → RESTORE`), tamper-evident SHA-256 audit chaining, and rule-based risk intelligence.
         </p>
 
@@ -76,7 +76,7 @@
           <a href="{{ url_for('auth.login') }}" class="btn btn-warning btn-sm px-3 py-1.5 fw-bold shadow-sm" style="border-radius: 16px; background: var(--gold-gradient); border: none; color: #1e112a;">
             <i class="bi bi-box-arrow-in-right me-1.5"></i> Access Sign In Portal
           </a>
-          <a href="#portalHub" class="btn btn-outline-light btn-sm px-3 py-1.5 fw-semibold" style="border-radius: 16px; border-color: rgba(255,255,255,0.25);">
+          <a href="#portalHub" class="btn btn-outline-light-theme btn-sm px-3 py-1.5 fw-semibold" style="border-radius: 16px;">
             <i class="bi bi-person-plus-fill me-1.5 text-warning"></i> Open New Account
           </a>
         </div>
@@ -84,25 +84,25 @@
 
       <div class="col-12 col-lg-5 text-center">
         <!-- Visual Feature Capsule Card -->
-        <div class="p-3 text-start position-relative shadow-lg" style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(16px); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 20px 10px 20px 10px;">
+        <div class="p-3 text-start position-relative shadow-lg feature-capsule-card" style="border-radius: 20px 10px 20px 10px;">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 rounded-pill" style="font-size: 0.7rem;">
               <i class="bi bi-cpu-fill me-1"></i> Engine Status: Active
             </span>
-            <span class="small text-white-50 font-monospace" style="font-size: 0.7rem;">FIPS 140-2 Verified</span>
+            <span class="small theme-text-subtle font-monospace" style="font-size: 0.7rem;">FIPS 140-2 Verified</span>
           </div>
 
           <div class="d-flex flex-column gap-2 small">
-            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill" style="background: rgba(0,0,0,0.25); font-size: 0.78rem;">
-              <span class="text-white-80"><i class="bi bi-git me-1.5 text-warning"></i> Database Snapshots</span>
+            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill capsule-item-row" style="font-size: 0.78rem;">
+              <span class="capsule-item-text"><i class="bi bi-git me-1.5 text-warning"></i> Database Snapshots</span>
               <span class="badge bg-purple-subtle text-purple fw-bold rounded-pill" style="font-size: 0.68rem;">v1..vN</span>
             </div>
-            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill" style="background: rgba(0,0,0,0.25); font-size: 0.78rem;">
-              <span class="text-white-80"><i class="bi bi-link-45deg me-1.5 text-warning"></i> SHA-256 Audit Chain</span>
+            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill capsule-item-row" style="font-size: 0.78rem;">
+              <span class="capsule-item-text"><i class="bi bi-link-45deg me-1.5 text-warning"></i> SHA-256 Audit Chain</span>
               <span class="badge bg-warning-subtle text-warning fw-bold rounded-pill" style="font-size: 0.68rem;">Cryptographic</span>
             </div>
-            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill" style="background: rgba(0,0,0,0.25); font-size: 0.78rem;">
-              <span class="text-white-80"><i class="bi bi-shield-lock-fill me-1.5 text-warning"></i> Access Control</span>
+            <div class="d-flex align-items-center justify-content-between p-2 rounded-pill capsule-item-row" style="font-size: 0.78rem;">
+              <span class="capsule-item-text"><i class="bi bi-shield-lock-fill me-1.5 text-warning"></i> Access Control</span>
               <span class="badge bg-rose-subtle text-rose fw-bold rounded-pill" style="font-size: 0.68rem;">3 Portals</span>
             </div>
           </div>
