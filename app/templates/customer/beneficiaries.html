@@ -56,11 +56,11 @@
             <a href="{{ url_for('customer.transfer') }}" class="btn btn-primary btn-sm flex-fill">
               <i class="bi bi-send me-1"></i> Send Money
             </a>
-            <button class="btn btn-outline-secondary btn-sm" onclick='openEditBeneficiaryModal({{ b.id }}, "{{ b.name }}", "{{ b.account_number }}", "{{ b.bank_name }}", "{{ b.ifsc }}")'>
+            <button class="btn btn-outline-secondary btn-sm" data-id="{{ b.id }}" data-name="{{ b.name }}" data-account="{{ b.account_number }}" data-bank="{{ b.bank_name }}" data-ifsc="{{ b.ifsc }}" onclick="openEditBeneficiaryModal(this.dataset.id, this.dataset.name, this.dataset.account, this.dataset.bank, this.dataset.ifsc)">
               <i class="bi bi-pencil"></i>
             </button>
             {% if b.status == 'ACTIVE' %}
-            <button class="btn btn-outline-danger btn-sm" onclick="deactivateBeneficiary({{ b.id }}, '{{ b.name }}')">
+            <button class="btn btn-outline-danger btn-sm" data-id="{{ b.id }}" data-name="{{ b.name }}" onclick="deactivateBeneficiary(this.dataset.id, this.dataset.name)">
               <i class="bi bi-trash"></i>
             </button>
             {% endif %}
