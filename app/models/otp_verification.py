@@ -19,6 +19,9 @@ class OTPVerification(db.Model):
 
     user = db.relationship("User", backref=db.backref("otp_verifications", lazy=True))
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def set_otp(self, raw_code: str) -> None:
         self.otp_hash = generate_password_hash(str(raw_code))
 

@@ -36,6 +36,9 @@ class User(db.Model, UserMixin):
     accounts = db.relationship("Account", backref="owner", lazy=True)
     beneficiaries = db.relationship("Beneficiary", backref="owner", lazy=True)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     # -- password handling --------------------------------------------------
     def set_password(self, raw_password: str) -> None:
         self.password_hash = generate_password_hash(raw_password)

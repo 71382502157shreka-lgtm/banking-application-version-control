@@ -26,6 +26,9 @@ class RiskAssessment(db.Model):
     user = db.relationship("User", backref=db.backref("risk_assessments", lazy=True))
     transaction = db.relationship("Transaction", backref=db.backref("risk_assessment", uselist=False))
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         return {
             "id": self.id,

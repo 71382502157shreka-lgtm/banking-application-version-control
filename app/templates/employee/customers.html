@@ -59,7 +59,7 @@
               <span class="small text-muted">{{ c.created_at.strftime('%d %b %Y') if c.created_at else 'Recent' }}</span>
             </td>
             <td class="text-end">
-              <button class="btn btn-sm btn-outline-primary" onclick="viewCustomerAccounts({{ c.id }}, '{{ c.full_name or c.username }}')">
+              <button class="btn btn-sm btn-outline-primary" data-user-id="{{ c.id }}" data-customer-name="{{ c.full_name or c.username }}" onclick="viewCustomerAccounts(this.dataset.userId, this.dataset.customerName)">
                 <i class="bi bi-wallet2 me-1"></i> View Accounts
               </button>
             </td>
