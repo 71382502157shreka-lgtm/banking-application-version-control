@@ -57,12 +57,12 @@
             </select>
         </div>
 
-        <div class="col-6 col-md-2 custom-date-field" style="{% if preset != 'custom' %}display: none;{% endif %}">
+        <div class="col-6 col-md-2 custom-date-field" {% if preset != 'custom' %}style="display: none;"{% endif %}>
             <label class="form-label fw-semibold small text-uppercase text-muted" style="font-size: 0.7rem;">Start Date</label>
             <input type="date" name="start_date" value="{{ start_date_str }}" class="form-control shadow-sm" style="border-radius: 12px; font-size: 0.85rem;">
         </div>
 
-        <div class="col-6 col-md-2 custom-date-field" style="{% if preset != 'custom' %}display: none;{% endif %}">
+        <div class="col-6 col-md-2 custom-date-field" {% if preset != 'custom' %}style="display: none;"{% endif %}>
             <label class="form-label fw-semibold small text-uppercase text-muted" style="font-size: 0.7rem;">End Date</label>
             <input type="date" name="end_date" value="{{ end_date_str }}" class="form-control shadow-sm" style="border-radius: 12px; font-size: 0.85rem;">
         </div>

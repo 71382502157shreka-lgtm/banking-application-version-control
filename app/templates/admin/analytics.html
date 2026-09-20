@@ -66,7 +66,7 @@
           <span class="badge bg-primary-subtle text-primary">Live Data</span>
         </div>
         <div style="height: 280px; position: relative;">
-          <canvas id="adminAnalyticsChart"></canvas>
+          <canvas id="adminAnalyticsChart" data-total-users="{{ total_users or 0 }}" data-total-txns="{{ total_txns or 0 }}" data-risk-evals="{{ risk_evals or 0 }}" data-high-risk-count="{{ high_risk_count or 0 }}"></canvas>
         </div>
       </div>
     </div>
@@ -99,13 +99,17 @@
   document.addEventListener('DOMContentLoaded', () => {
     const ctx = document.getElementById('adminAnalyticsChart');
     if (ctx) {
+      const totalUsers = parseInt(ctx.dataset.totalUsers || '0', 10);
+      const totalTxns = parseInt(ctx.dataset.totalTxns || '0', 10);
+      const riskEvals = parseInt(ctx.dataset.riskEvals || '0', 10);
+      const highRiskCount = parseInt(ctx.dataset.highRiskCount || '0', 10);
       new Chart(ctx, {
         type: 'bar',
         data: {
           labels: ['Total Users', 'Transactions', 'Risk Evals', 'High Risk Triggers'],
           datasets: [{
             label: 'System Telemetry Metrics',
-            data: [{{ total_users }}, {{ total_txns }}, {{ risk_evals }}, {{ high_risk_count }}],
+            data: [totalUsers, totalTxns, riskEvals, highRiskCount],
             backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444'],
             borderRadius: 8
           }]
