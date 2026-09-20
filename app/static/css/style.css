@@ -58,26 +58,26 @@
 }
 
 [data-theme="light"] {
-  /* Ultra-Clear High-Contrast Modern Light Theme (Crystal Amethyst & Obsidian Slate) */
-  --bg-surface: #f4f2f9;
-  --bg-gradient: radial-gradient(circle at 50% 0%, #e9e4f5 0%, #f4f2f9 75%),
-                 radial-gradient(circle at 90% 80%, rgba(124, 58, 237, 0.05) 0%, transparent 40%);
-  --sidebar-bg: #0f0a1c;
-  --sidebar-hover: #22143b;
-  --sidebar-text: #e9d5ff;
+  /* Crisp Platinum & Royal Obsidian Light Theme Palette */
+  --bg-surface: #f8fafc;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #e2e8f0 0%, #f8fafc 75%),
+                 radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 45%);
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+  --sidebar-text: #e2e8f0;
   
   --card-bg: #ffffff;
-  --card-border: #d4cbdf;
-  --card-shadow: 0 10px 30px -5px rgba(44, 16, 72, 0.08), 0 4px 10px -3px rgba(15, 23, 42, 0.04);
-  --card-shadow-hover: 0 20px 40px -10px rgba(124, 58, 237, 0.2), 0 8px 16px -4px rgba(15, 23, 42, 0.08);
+  --card-border: #cbd5e1;
+  --card-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08), 0 4px 10px -3px rgba(15, 23, 42, 0.03);
+  --card-shadow-hover: 0 20px 40px -10px rgba(99, 102, 241, 0.2), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
   
-  --text-main: #140b24;       /* Deep obsidian purple - ultra sharp high contrast */
-  --text-muted: #3d2c54;      /* High contrast dark violet slate - 10:1 ratio */
-  --text-light: #5b21b6;      /* Rich royal violet */
+  --text-main: #0f172a;       /* Deep slate obsidian - 16:1 contrast ratio */
+  --text-muted: #1e293b;      /* Sharp dark slate subtext - 12:1 ratio */
+  --text-light: #4338ca;      /* Vibrant indigo accent text */
   
-  --primary-color: #6d28d9;
-  --primary-hover: #5b21b6;
-  --primary-gradient: linear-gradient(135deg, #6d28d9 0%, #a855f7 100%);
+  --primary-color: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   
   --accent-gold: #b45309;
   --gold-gradient: linear-gradient(135deg, #d97706 0%, #b45309 100%);
@@ -85,8 +85,8 @@
   --accent-rose: #be123c;
   --rose-gradient: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
   
-  --accent-violet: #5b21b6;
-  --violet-gradient: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+  --accent-violet: #4338ca;
+  --violet-gradient: linear-gradient(135deg, #3730a3 0%, #6366f1 100%);
   
   --success: #15803d;
   --success-bg: #f0fdf4;
@@ -94,14 +94,14 @@
   --danger-bg: #fff1f2;
   --warning: #b45309;
   --warning-bg: #fffbeb;
-  --info: #6d28d9;
-  --info-bg: #f5f3ff;
+  --info: #4338ca;
+  --info-bg: #e0e7ff;
   
-  --header-bg: rgba(255, 255, 255, 0.95);
+  --header-bg: rgba(255, 255, 255, 0.96);
   --input-bg: #ffffff;
-  --input-border: #c4b5fd;
+  --input-border: #cbd5e1;
 
-  --card-visual-gradient: linear-gradient(135deg, #1e1033 0%, #581c87 50%, #831843 100%);
+  --card-visual-gradient: linear-gradient(135deg, #0f172a 0%, #312e81 50%, #701a75 100%);
 }
 
 /* High Contrast Mode Override */
