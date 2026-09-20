@@ -101,7 +101,7 @@
   --input-bg: #ffffff;
   --input-border: #ddd6fe;
 
-  --card-visual-gradient: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #ede9fe 100%);
+  --card-visual-gradient: linear-gradient(135deg, #1e1035 0%, #3b0764 50%, #581c87 100%);
 }
 
 /* High Contrast Mode Override */
@@ -453,7 +453,23 @@ h1, h2, h3, h4, h5, h6, .brand-name {
   font-family: 'Space Grotesk', monospace;
   font-size: 1.35rem;
   letter-spacing: 2px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  color: #ffffff !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.card-holder-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.card-balance-display {
+  font-family: 'Space Grotesk', monospace;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* Quick Action Cards */
