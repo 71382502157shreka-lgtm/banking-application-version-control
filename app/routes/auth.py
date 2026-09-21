@@ -129,19 +129,22 @@ def admin_login():
 # Dedicated Role Registration Routes
 @auth_bp.route("/auth/employee/register", methods=["GET", "POST"])
 def employee_register():
+    from app.models.system_setting import SystemSetting
     if current_user.is_authenticated:
         return redirect(get_role_dashboard(current_user.role))
 
+    default_key = current_app.config.get("EMPLOYEE_AUTH_KEY", "ChangeMe_Employee123!")
+    expected_key = SystemSetting.get("EMPLOYEE_AUTH_KEY", default_key)
+
     if request.method == "GET":
-        return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE)
+        return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE, auth_key_hint=expected_key)
 
     form = request.form
     auth_key = form.get("auth_key", "").strip()
-    expected_key = current_app.config.get("SEED_EMPLOYEE_PASSWORD", "ChangeMe_Employee123!")
-    
+
     if auth_key != expected_key:
         flash("Invalid Staff Authorization Key.", "error")
-        return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE), 403
+        return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE, auth_key_hint=expected_key), 403
 
     try:
         user = auth_service.register_user(
@@ -154,7 +157,7 @@ def employee_register():
         )
     except ValidationError as e:
         flash(e.message, "error")
-        return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE), 400
+        return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE, auth_key_hint=expected_key), 400
 
     login_user(user)
     flash("Employee account successfully registered and activated.", "success")
@@ -163,19 +166,22 @@ def employee_register():
 
 @auth_bp.route("/auth/admin/register", methods=["GET", "POST"])
 def admin_register():
+    from app.models.system_setting import SystemSetting
     if current_user.is_authenticated:
         return redirect(get_role_dashboard(current_user.role))
 
+    default_key = current_app.config.get("ADMIN_AUTH_KEY", "ChangeMe_Admin123!")
+    expected_key = SystemSetting.get("ADMIN_AUTH_KEY", default_key)
+
     if request.method == "GET":
-        return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN)
+        return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN, auth_key_hint=expected_key)
 
     form = request.form
     auth_key = form.get("auth_key", "").strip()
-    expected_key = current_app.config.get("SEED_ADMIN_PASSWORD", "ChangeMe_Admin123!")
 
     if auth_key != expected_key:
         flash("Invalid Admin Master Authorization Key.", "error")
-        return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN), 403
+        return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN, auth_key_hint=expected_key), 403
 
     try:
         user = auth_service.register_user(
@@ -188,7 +194,7 @@ def admin_register():
         )
     except ValidationError as e:
         flash(e.message, "error")
-        return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN), 400
+        return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN, auth_key_hint=expected_key), 400
 
     login_user(user)
     flash("Administrator account successfully registered and activated.", "success")

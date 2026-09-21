@@ -32,6 +32,10 @@ class Config:
     SEED_EMPLOYEE_PASSWORD = os.environ.get("SEED_EMPLOYEE_PASSWORD", "ChangeMe_Employee123!")
     SEED_CUSTOMER_PASSWORD = os.environ.get("SEED_CUSTOMER_PASSWORD", "ChangeMe_Customer123!")
 
+    # Changeable registration authorization keys
+    EMPLOYEE_AUTH_KEY = os.environ.get("EMPLOYEE_AUTH_KEY", os.environ.get("SEED_EMPLOYEE_PASSWORD", "ChangeMe_Employee123!"))
+    ADMIN_AUTH_KEY = os.environ.get("ADMIN_AUTH_KEY", os.environ.get("SEED_ADMIN_PASSWORD", "ChangeMe_Admin123!"))
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

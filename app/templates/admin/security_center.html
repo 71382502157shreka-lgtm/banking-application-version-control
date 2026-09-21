@@ -79,7 +79,44 @@
           Max 5 attempts before 15m lockout
         </div>
       </div>
+  </div>
+
+  <!-- Master Registration Authorization Keys Setting -->
+  <div class="fin-card mb-4 p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h5 class="fw-bold mb-0"><i class="bi bi-key-fill me-2 text-warning"></i> Master Registration Authorization Keys</h5>
+        <small class="text-muted">Manage secret keys required for onboarding new Bank Officers and System Administrators.</small>
+      </div>
+      <span class="badge bg-warning-subtle text-dark border">Security Policy</span>
     </div>
+
+    <form method="post" action="{{ url_for('admin.update_auth_keys') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-5">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Employee Registration Key</label>
+          <div class="input-group">
+            <span class="input-group-text bg-body-tertiary"><i class="bi bi-person-badge"></i></span>
+            <input type="text" class="form-control font-monospace" name="employee_auth_key" value="{{ employee_auth_key }}" required>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-5">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Admin Registration Key</label>
+          <div class="input-group">
+            <span class="input-group-text bg-body-tertiary"><i class="bi bi-shield-lock"></i></span>
+            <input type="text" class="form-control font-monospace" name="admin_auth_key" value="{{ admin_auth_key }}" required>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-2">
+          <button type="submit" class="btn btn-warning w-100 fw-bold shadow-sm">
+            <i class="bi bi-save me-1"></i> Update Keys
+          </button>
+        </div>
+      </div>
+    </form>
   </div>
 
   <!-- Security Audit Logs Table -->
