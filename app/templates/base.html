@@ -365,7 +365,7 @@
       });
     }
 
-    // 2. Dynamic Real-time Time of Day Greeting Engine
+    // 2. Dynamic Real-time Time of Day Greeting & Date Engine
     function updateGreetings() {
       const now = new Date();
       const hour = now.getHours();
@@ -377,6 +377,15 @@
       } else if (hour >= 12) {
         greeting = "Good Afternoon";
       }
+
+      // Format dynamic full date string (e.g., "Tuesday, September 22, 2026")
+      const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const dateStr = now.toLocaleDateString('en-US', dateOptions);
+
+      // Update date across all dashboards
+      document.querySelectorAll('#greetingDate, #currentDateDisplay, .greeting-date-display').forEach(el => {
+        if (el) el.textContent = dateStr;
+      });
 
       const empHeading = document.getElementById('employeeGreetingHeading');
       if (empHeading) {
