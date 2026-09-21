@@ -30,11 +30,17 @@
           </div>
 
           <div class="position-relative z-1 d-flex flex-column gap-2 mb-3">
-            <div class="d-flex align-items-center gap-2.5 p-2" style="background: rgba(255, 255, 255, 0.1); border-radius: 16px 8px 16px 8px;">
-              <div class="stat-icon-wrapper text-white flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.9rem; border-radius: 10px; background: rgba(255, 255, 255, 0.15);">
+            <div class="d-flex align-items-center gap-2.5 p-2 user-select-none"
+                 style="background: rgba(255, 255, 255, 0.15); border-radius: 16px 8px 16px 8px; cursor: pointer; transition: transform 0.2s;"
+                 onclick="fillAuthKey('{{ auth_key_hint }}')"
+                 title="Click to auto-fill Master Authorization Key">
+              <div class="stat-icon-wrapper text-white flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.9rem; border-radius: 10px; background: rgba(255, 255, 255, 0.25);">
                 <i class="bi bi-key-fill"></i>
               </div>
-              <span class="small text-white-80 fw-medium" style="font-size: 0.78rem;">Master Authorization Key Verified</span>
+              <div>
+                <span class="small text-white fw-medium d-block" style="font-size: 0.78rem;">Master Authorization Key Verified</span>
+                <span class="text-white-50 small" style="font-size: 0.68rem;"><i class="bi bi-cursor-fill me-1"></i>Click to auto-fill key</span>
+              </div>
             </div>
             <div class="d-flex align-items-center gap-2.5 p-2" style="background: rgba(255, 255, 255, 0.1); border-radius: 8px 16px 8px 16px;">
               <div class="stat-icon-wrapper text-white flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.9rem; border-radius: 10px; background: rgba(255, 255, 255, 0.15);">
@@ -68,7 +74,12 @@
               <div class="form-text text-muted small mt-1 d-flex justify-content-between align-items-center">
                 <span>Secret key required to grant {{ target_role|upper }} system permissions.</span>
                 {% if auth_key_hint %}
-                <span class="badge bg-light text-dark border ms-1 font-monospace">Key: {{ auth_key_hint }}</span>
+                <span class="badge bg-warning-subtle text-dark border ms-1 font-monospace"
+                      style="cursor: pointer;"
+                      onclick="fillAuthKey('{{ auth_key_hint }}')"
+                      title="Click to auto-fill Key">
+                  <i class="bi bi-key-fill me-1"></i>Key: {{ auth_key_hint }}
+                </span>
                 {% endif %}
               </div>
             </div>
@@ -129,4 +140,16 @@
     </div>
   </div>
 </div>
+
+<script>
+  function fillAuthKey(key) {
+    if (!key) return;
+    const input = document.querySelector('input[name="auth_key"]');
+    if (input) {
+      input.value = key;
+      input.type = "text";
+      input.focus();
+    }
+  }
+</script>
 {% endblock %}
