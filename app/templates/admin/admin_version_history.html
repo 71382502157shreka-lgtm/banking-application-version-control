@@ -38,12 +38,12 @@
             <td class="text-end">
               <div class="btn-group btn-group-sm">
                 {% if v.version_number > 1 %}
-                <button class="btn btn-outline-primary" onclick="adminDiffView('{{ v.entity_type }}', {{ v.entity_id }}, {{ v.version_number - 1 }}, {{ v.version_number }})">
+                <button class="btn btn-outline-primary" onclick="adminDiffView('{{ v.entity_type }}', '{{ v.entity_id }}', '{{ v.version_number - 1 }}', '{{ v.version_number }}')">
                   <i class="bi bi-file-diff"></i> Diff
                 </button>
                 {% endif %}
                 {% if v.entity_type in ['BENEFICIARY', 'USER_PROFILE'] and v.change_type != 'RESTORE' %}
-                <button class="btn btn-outline-warning" onclick="adminRestoreVersion('{{ v.entity_type }}', {{ v.entity_id }}, {{ v.version_number }})">
+                <button class="btn btn-outline-warning" onclick="adminRestoreVersion('{{ v.entity_type }}', '{{ v.entity_id }}', '{{ v.version_number }}')">
                   <i class="bi bi-arrow-counterclockwise"></i> Restore
                 </button>
                 {% endif %}
