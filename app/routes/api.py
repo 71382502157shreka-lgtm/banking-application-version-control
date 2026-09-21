@@ -342,6 +342,22 @@ def api_change_password():
     return jsonify(status="Password changed successfully")
 
 
+@api_bp.route("/account/delete", methods=["POST"])
+@login_required
+@json_errors
+def api_delete_account():
+    from app.services import auth_service
+    from flask_login import logout_user
+    user_id = current_user.id
+    username = current_user.username
+    logout_user()
+    try:
+        auth_service.delete_user_account(user_id)
+        return jsonify(message=f"Account '{username}' deleted successfully.")
+    except Exception as e:
+        return jsonify(error=str(e)), 400
+
+
 # ---------------------------------------------------------------------------
 # Notifications
 # ---------------------------------------------------------------------------
