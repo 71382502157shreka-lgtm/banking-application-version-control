@@ -61,20 +61,28 @@ def register():
 
     form = request.form
     try:
+        raw_pass = form.get("password", "")
+        uname = form.get("username", "").strip()
         user = auth_service.register_user(
-            username=form.get("username", "").strip(),
+            username=uname,
             email=form.get("email", "").strip(),
-            password=form.get("password", ""),
+            password=raw_pass,
             full_name=form.get("full_name", "").strip(),
             phone=form.get("phone", "").strip(),
             role=Role.CUSTOMER,
         )
+        session['recent_registered_user'] = {
+            'username': uname,
+            'password': raw_pass,
+            'role': 'customer',
+            'full_name': user.full_name
+        }
     except ValidationError as e:
         flash(e.message, "error")
         return render_template("auth/register.html", target_role="customer"), 400
 
     login_user(user)
-    flash("Welcome! Your Customer account has been created.", "success")
+    flash("Welcome! Your Customer account has been created successfully.", "success")
     return redirect(url_for("customer.dashboard"))
 
 
@@ -147,14 +155,22 @@ def employee_register():
         return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE, auth_key_hint=expected_key), 403
 
     try:
+        raw_pass = form.get("password", "")
+        uname = form.get("username", "").strip()
         user = auth_service.register_user(
-            username=form.get("username", "").strip(),
+            username=uname,
             email=form.get("email", "").strip(),
-            password=form.get("password", ""),
+            password=raw_pass,
             full_name=form.get("full_name", "").strip(),
             phone=form.get("phone", "").strip(),
             role=Role.EMPLOYEE,
         )
+        session['recent_registered_user'] = {
+            'username': uname,
+            'password': raw_pass,
+            'role': 'employee',
+            'full_name': user.full_name
+        }
     except ValidationError as e:
         flash(e.message, "error")
         return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE, auth_key_hint=expected_key), 400
@@ -184,14 +200,22 @@ def admin_register():
         return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN, auth_key_hint=expected_key), 403
 
     try:
+        raw_pass = form.get("password", "")
+        uname = form.get("username", "").strip()
         user = auth_service.register_user(
-            username=form.get("username", "").strip(),
+            username=uname,
             email=form.get("email", "").strip(),
-            password=form.get("password", ""),
+            password=raw_pass,
             full_name=form.get("full_name", "").strip(),
             phone=form.get("phone", "").strip(),
             role=Role.ADMIN,
         )
+        session['recent_registered_user'] = {
+            'username': uname,
+            'password': raw_pass,
+            'role': 'admin',
+            'full_name': user.full_name
+        }
     except ValidationError as e:
         flash(e.message, "error")
         return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN, auth_key_hint=expected_key), 400
