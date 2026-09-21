@@ -5,7 +5,7 @@ from app import db
 class SystemSetting(db.Model):
     """
     Key-value store for application settings (e.g., dynamic authorization keys).
-    Fault-tolerant: handles missing table gracefully if deployed on existing DB.
+    Fail-safe implementation: returns default on missing table or database error.
     """
     __tablename__ = "system_settings"
 
@@ -17,23 +17,18 @@ class SystemSetting(db.Model):
     @classmethod
     def get(cls, key: str, default: str = None) -> str:
         try:
-            setting = cls.query.filter_by(key=key).first()
-            return setting.value if setting and setting.value else default
+            setting = db.session.query(cls).filter_by(key=key).first()
+            if setting and setting.value:
+                return setting.value
         except Exception:
             db.session.rollback()
-            try:
-                db.create_all()
-                setting = cls.query.filter_by(key=key).first()
-                return setting.value if setting and setting.value else default
-            except Exception:
-                db.session.rollback()
-                return default
+        return default
 
     @classmethod
     def set(cls, key: str, value: str):
         try:
             db.create_all()
-            setting = cls.query.filter_by(key=key).first()
+            setting = db.session.query(cls).filter_by(key=key).first()
             if setting:
                 setting.value = value
             else:
