@@ -107,6 +107,25 @@ def delete_user_account(user_id):
 
     username = user.username
     log_action(AuditAction.SECURITY_EVENT, user_id=user.id, description=f"User account '{username}' (#{user.id}) deleted")
+
+    from app.models.account import Account
+    from app.models.beneficiary import Beneficiary
+    from app.models.notification import Notification
+    from app.models.transaction import Transaction
+    from app.models.audit_log import AuditLog
+    from app.models.version import EntityVersion
+
+    Beneficiary.query.filter_by(user_id=user_id).delete()
+    Notification.query.filter_by(user_id=user_id).delete()
+
+    AuditLog.query.filter_by(user_id=user_id).update({"user_id": None})
+    EntityVersion.query.filter_by(changed_by=user_id).update({"changed_by": None})
+
+    user_accounts = Account.query.filter_by(user_id=user_id).all()
+    for acc in user_accounts:
+        Transaction.query.filter((Transaction.account_id == acc.id) | (Transaction.counterparty_account_id == acc.id)).delete()
+        db.session.delete(acc)
+
     db.session.delete(user)
     db.session.commit()
     return True
