@@ -10,6 +10,7 @@ from app.models.otp_verification import OTPVerification
 from app.models.risk_assessment import RiskAssessment, RiskLevel
 from app.models.rollback_request import RollbackRequest, RollbackStatus
 from app.models.transfer_limit import TransferLimit
+from app.models.system_setting import SystemSetting
 
 __all__ = [
     "User", "Role",
@@ -24,4 +25,5 @@ __all__ = [
     "RiskAssessment", "RiskLevel",
     "RollbackRequest", "RollbackStatus",
     "TransferLimit",
+    "SystemSetting",
 ]

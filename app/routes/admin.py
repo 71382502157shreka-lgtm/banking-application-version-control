@@ -192,10 +192,16 @@ def unlock_user(user_id):
 @roles_required(Role.ADMIN)
 def security_center():
     from app.services.audit_service import verify_audit_integrity
+    from app.models.system_setting import SystemSetting
+    from flask import current_app
+
     audit_verification = verify_audit_integrity()
     failed_logins = AuditLog.query.filter_by(action="FAILED_LOGIN").count()
     locked_users = User.query.filter(User.locked_until.isnot(None)).count()
     recent_events = AuditLog.query.filter(AuditLog.action.in_(["SECURITY_EVENT", "FAILED_LOGIN", "LOGIN", "OTP_FAILED", "RISK_EVALUATED"])).order_by(AuditLog.created_at.desc()).limit(20).all()
+
+    employee_auth_key = SystemSetting.get("EMPLOYEE_AUTH_KEY", current_app.config.get("EMPLOYEE_AUTH_KEY", "ChangeMe_Employee123!"))
+    admin_auth_key = SystemSetting.get("ADMIN_AUTH_KEY", current_app.config.get("ADMIN_AUTH_KEY", "ChangeMe_Admin123!"))
 
     return render_template(
         "admin/security_center.html",
@@ -203,7 +209,32 @@ def security_center():
         failed_logins=failed_logins,
         locked_users=locked_users,
         recent_events=recent_events,
+        employee_auth_key=employee_auth_key,
+        admin_auth_key=admin_auth_key,
     )
+
+
+@admin_bp.route("/security/update-keys", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+def update_auth_keys():
+    from flask import request, flash, redirect, url_for
+    from app.models.system_setting import SystemSetting
+    from app.services.audit_service import log_action
+
+    new_emp_key = request.form.get("employee_auth_key", "").strip()
+    new_admin_key = request.form.get("admin_auth_key", "").strip()
+
+    if new_emp_key:
+        SystemSetting.set("EMPLOYEE_AUTH_KEY", new_emp_key)
+    if new_admin_key:
+        SystemSetting.set("ADMIN_AUTH_KEY", new_admin_key)
+
+    log_action("SECURITY_EVENT", user_id=current_user.id, description="Admin updated system master authorization keys")
+    db.session.commit()
+
+    flash("Master Registration Authorization Keys updated successfully!", "success")
+    return redirect(url_for("admin.security_center"))
 
 
 @admin_bp.route("/analytics")
