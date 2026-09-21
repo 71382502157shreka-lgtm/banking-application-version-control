@@ -50,17 +50,17 @@ def register_user(username, email, password, full_name=None, phone=None, role=Ro
 
 def authenticate(username, password):
     """
-    Verify credentials, enforcing lockout policy. Every attempt — success
-    or failure — is written to the audit log so the security/activity
-    pages have a real trail to show.
+    Verify credentials, enforcing lockout policy. Case-insensitive username lookup
+    ensures seamless login regardless of letter case.
     """
     max_attempts = current_app.config["MAX_FAILED_LOGIN_ATTEMPTS"]
     lockout_minutes = current_app.config["LOCKOUT_DURATION_MINUTES"]
 
-    user = User.query.filter_by(username=username).first()
+    clean_username = (username or "").strip()
+    user = User.query.filter(db.func.lower(User.username) == clean_username.lower()).first()
 
     if not user:
-        log_action(AuditAction.FAILED_LOGIN, description=f"Unknown username: {username}")
+        log_action(AuditAction.FAILED_LOGIN, description=f"Unknown username: {clean_username}")
         db.session.commit()
         raise AuthError("Invalid username or password")
 
@@ -98,6 +98,18 @@ def change_password(user: User, old_password: str, new_password: str):
     user.set_password(new_password)
     log_action(AuditAction.PASSWORD_CHANGED, user_id=user.id, description="Password changed")
     db.session.commit()
+
+
+def delete_user_account(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        raise AuthError("User not found")
+
+    username = user.username
+    log_action(AuditAction.SECURITY_EVENT, user_id=user.id, description=f"User account '{username}' (#{user.id}) deleted")
+    db.session.delete(user)
+    db.session.commit()
+    return True
 
 
 def update_profile(user: User, **changes):

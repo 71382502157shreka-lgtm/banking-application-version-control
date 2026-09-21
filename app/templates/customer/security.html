@@ -62,6 +62,15 @@
           </button>
         </form>
       </div>
+
+      <!-- Danger Zone - Delete Account -->
+      <div class="fin-card mt-4 border border-danger-subtle">
+        <h5 class="fw-bold mb-2 text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i> Danger Zone</h5>
+        <p class="text-muted small mb-3">Permanently close and delete your account and profile settings.</p>
+        <button type="button" class="btn btn-outline-danger btn-sm w-100 fw-bold" id="deleteAccountBtn" onclick="confirmDeleteAccount()">
+          <i class="bi bi-trash-fill me-1"></i> Delete My Account
+        </button>
+      </div>
     </div>
 
     <!-- Security Audit Logs Table -->
@@ -177,10 +186,41 @@
         btn.innerText = 'Update Password';
       }
     } catch (err) {
-      showToast('Network error changing password', 'danger');
       btn.disabled = false;
       btn.innerText = 'Update Password';
     }
   });
+
+  async function confirmDeleteAccount() {
+    if (!confirm('Are you sure you want to PERMANENTLY delete your account? This action cannot be undone.')) {
+      return;
+    }
+    const btn = document.getElementById('deleteAccountBtn');
+    btn.disabled = true;
+    btn.innerText = 'Deleting Account...';
+
+    try {
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token() }}'
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Account deleted successfully.', 'info');
+        setTimeout(() => window.location.href = '/login', 1200);
+      } else {
+        showToast(data.error || 'Failed to delete account', 'danger');
+        btn.disabled = false;
+        btn.innerText = 'Delete My Account';
+      }
+    } catch (e) {
+      showToast('Network error deleting account', 'danger');
+      btn.disabled = false;
+      btn.innerText = 'Delete My Account';
+    }
+  }
 </script>
 {% endblock %}

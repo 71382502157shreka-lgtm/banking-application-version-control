@@ -58,6 +58,25 @@ def manage_users():
     return render_template("admin/manage_users.html", users=users)
 
 
+@admin_bp.route("/users/<int:user_id>/delete", methods=["POST"])
+@login_required
+@roles_required(Role.ADMIN)
+def delete_user(user_id):
+    from flask import flash, redirect, url_for
+    if user_id == current_user.id:
+        flash("You cannot delete your own active Admin account.", "error")
+        return redirect(url_for("admin.manage_users"))
+
+    from app.services import auth_service
+    try:
+        auth_service.delete_user_account(user_id)
+        flash(f"User #{user_id} deleted successfully.", "success")
+    except Exception as e:
+        flash(f"Failed to delete user: {e}", "error")
+
+    return redirect(url_for("admin.manage_users"))
+
+
 @admin_bp.route("/audit-logs")
 @login_required
 @roles_required(Role.ADMIN)
