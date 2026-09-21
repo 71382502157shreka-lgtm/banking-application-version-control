@@ -65,7 +65,10 @@
                 <span class="input-group-text bg-danger-subtle text-danger"><i class="bi bi-key-fill"></i></span>
                 <input type="password" class="form-control border-danger-subtle" name="auth_key" placeholder="Enter {{ role_title }} secret authorization key" required>
               </div>
-              <div class="form-text text-muted small mt-1">Secret key required to grant {{ target_role|upper }} system permissions.</div>
+              <div class="form-text text-muted small mt-1 d-flex justify-content-between align-items-center">
+                <span>Secret key required to grant {{ target_role|upper }} system permissions.</span>
+                <span class="badge bg-light text-dark border ms-1 font-monospace">Key: {{ 'ChangeMe_Employee123!' if target_role == 'employee' else 'ChangeMe_Admin123!' }}</span>
+              </div>
             </div>
 
             <div class="row g-3 mb-3">
