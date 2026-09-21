@@ -40,6 +40,13 @@ def create_app(config_name=None):
     with flask_app.app_context():
         from app import models  # noqa: F401
         db.create_all()
+        from app.models.user import User
+        if User.query.first() is None:
+            try:
+                from seed import seed_database
+                seed_database(flask_app)
+            except Exception as e:
+                flask_app.logger.warning(f"Auto-seed skipped: {e}")
 
     return flask_app
 
