@@ -496,7 +496,7 @@ def download_transactions_csv():
             f"{tx.amount:.2f}",
             tx.status,
             tx.description or "",
-            f"{tx.balance_after:.2f}" if tx.balance_after is not none else "N/A"
+            f"{tx.balance_after:.2f}" if tx.balance_after is not None else "N/A"
         ])
 
     csv_data = output.getvalue()
