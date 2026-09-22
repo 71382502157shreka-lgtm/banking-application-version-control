@@ -62,7 +62,7 @@ class Transaction(db.Model):
             "counterparty_account_id": self.counterparty_account_id,
             "related_transaction_id": self.related_transaction_id,
             "balance_after": str(self.balance_after) if self.balance_after is not None else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": (self.created_at.isoformat() + "Z") if self.created_at and not str(self.created_at.isoformat()).endswith("Z") else (self.created_at.isoformat() if self.created_at else None),
         }
 
     def __repr__(self):

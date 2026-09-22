@@ -427,12 +427,18 @@
       function updateLiveClock() {
         const clockEl = document.getElementById('liveHeaderClock');
         const indexClockEl = document.getElementById('liveIndexClock');
-        if (!clockEl && !indexClockEl) return;
+        const greetingDateEl = document.getElementById('greetingDate');
+        const dateDisplays = document.querySelectorAll('.greeting-date-display');
+
         const now = new Date();
         const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
         const str = now.toLocaleString('en-US', options);
         if (clockEl) clockEl.textContent = str;
         if (indexClockEl) indexClockEl.textContent = str;
+
+        const fullDateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        if (greetingDateEl) greetingDateEl.textContent = fullDateStr;
+        dateDisplays.forEach(el => el.textContent = fullDateStr);
       }
       updateLiveClock();
       setInterval(updateLiveClock, 1000);
