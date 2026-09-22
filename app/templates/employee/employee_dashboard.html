@@ -108,7 +108,7 @@
             <tbody>
               {% for txn in recent_txns %}
               <tr>
-                <td><span class="small">{{ txn.created_at.strftime('%d %b %H:%M') if txn.created_at else 'Recent' }}</span></td>
+                <td><span class="small">{{ txn.created_at.strftime('%d %b %Y, %I:%M %p') if txn.created_at else 'Recent' }}</span></td>
                 <td><span class="font-monospace small">{{ txn.reference_number }}</span></td>
                 <td><span class="badge bg-light text-dark">{{ txn.transaction_type }}</span></td>
                 <td><span class="fw-bold">₹{{ "{:,.2f}".format(txn.amount) }}</span></td>

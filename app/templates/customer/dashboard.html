@@ -299,7 +299,7 @@
               {% for txn in recent_transactions %}
               <tr>
                 <td>
-                  <div class="fw-semibold">{{ txn.created_at.strftime('%d %b %Y') if txn.created_at else 'Recent' }}</div>
+                  <div class="fw-semibold">{{ txn.created_at.strftime('%d %b %Y, %I:%M %p') if txn.created_at else 'Recent' }}</div>
                   <div class="text-muted small font-monospace">{{ txn.reference_number }}</div>
                 </td>
                 <td>

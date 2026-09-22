@@ -150,7 +150,7 @@
             <tbody>
               {% for l in recent_logs %}
               <tr>
-                <td><span class="small">{{ l.created_at.strftime('%d %b %H:%M') if l.created_at else 'Recent' }}</span></td>
+                <td><span class="small">{{ l.created_at.strftime('%d %b %Y, %I:%M %p') if l.created_at else 'Recent' }}</span></td>
                 <td><span class="badge bg-light text-dark">{{ l.action }}</span></td>
                 <td><span class="small fw-medium text-truncate d-inline-block" style="max-width: 160px;">{{ l.description or '-' }}</span></td>
                 <td><span class="font-monospace small text-muted">{{ l.ip_address or '127.0.0.1' }}</span></td>
