@@ -71,12 +71,7 @@ def register():
             phone=form.get("phone", "").strip(),
             role=Role.CUSTOMER,
         )
-        session['recent_registered_user'] = {
-            'username': uname,
-            'password': raw_pass,
-            'role': 'customer',
-            'full_name': user.full_name
-        }
+
     except ValidationError as e:
         flash(e.message, "error")
         return render_template("auth/register.html", target_role="customer"), 400
@@ -165,12 +160,7 @@ def employee_register():
             phone=form.get("phone", "").strip(),
             role=Role.EMPLOYEE,
         )
-        session['recent_registered_user'] = {
-            'username': uname,
-            'password': raw_pass,
-            'role': 'employee',
-            'full_name': user.full_name
-        }
+
     except ValidationError as e:
         flash(e.message, "error")
         return render_template("auth/register_staff.html", role_title="Employee / Bank Officer", target_role=Role.EMPLOYEE, auth_key_hint=expected_key), 400
@@ -210,12 +200,7 @@ def admin_register():
             phone=form.get("phone", "").strip(),
             role=Role.ADMIN,
         )
-        session['recent_registered_user'] = {
-            'username': uname,
-            'password': raw_pass,
-            'role': 'admin',
-            'full_name': user.full_name
-        }
+
     except ValidationError as e:
         flash(e.message, "error")
         return render_template("auth/register_staff.html", role_title="System Administrator", target_role=Role.ADMIN, auth_key_hint=expected_key), 400
