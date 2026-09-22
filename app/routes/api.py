@@ -234,19 +234,41 @@ def compare_versions():
 @json_errors
 def restore_entity_version(entity_type, entity_id, version_number):
     entity_type = entity_type.upper()
+    from app.models.user import User
 
     def apply_beneficiary(snapshot):
         beneficiary = Beneficiary.query.get_or_404(entity_id)
-        beneficiary.name = snapshot["name"]
-        beneficiary.account_number = snapshot["account_number"]
-        beneficiary.bank_name = snapshot["bank_name"]
-        beneficiary.ifsc = snapshot["ifsc"]
-        beneficiary.status = snapshot["status"]
+        if "name" in snapshot: beneficiary.name = snapshot["name"]
+        if "account_number" in snapshot: beneficiary.account_number = snapshot["account_number"]
+        if "bank_name" in snapshot: beneficiary.bank_name = snapshot["bank_name"]
+        if "ifsc" in snapshot: beneficiary.ifsc = snapshot["ifsc"]
+        if "status" in snapshot: beneficiary.status = snapshot["status"]
         beneficiary.version_number += 1
         db.session.flush()
         return beneficiary.to_dict()
 
-    appliers = {"BENEFICIARY": apply_beneficiary}
+    def apply_account(snapshot):
+        account = Account.query.get_or_404(entity_id)
+        if "account_type" in snapshot: account.account_type = snapshot["account_type"]
+        if "status" in snapshot: account.status = snapshot["status"]
+        account.version_number += 1
+        db.session.flush()
+        return account.to_dict()
+
+    def apply_user_profile(snapshot):
+        user = User.query.get_or_404(entity_id)
+        if "full_name" in snapshot: user.full_name = snapshot["full_name"]
+        if "phone" in snapshot: user.phone = snapshot["phone"]
+        if "email" in snapshot: user.email = snapshot["email"]
+        if "status" in snapshot: user.status = snapshot["status"]
+        db.session.flush()
+        return user.to_dict()
+
+    appliers = {
+        "BENEFICIARY": apply_beneficiary,
+        "ACCOUNT": apply_account,
+        "USER_PROFILE": apply_user_profile,
+    }
     apply_fn = appliers.get(entity_type)
     if not apply_fn:
         return jsonify(error=f"Restoration is not supported for entity type {entity_type}"), 400
