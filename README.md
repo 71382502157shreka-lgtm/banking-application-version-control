@@ -1,11 +1,14 @@
 # BankVCS 2.0 – Secure Intelligent Banking & Database Version Control System
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7.svg?style=for-the-badge&logo=render&logoColor=white)](https://banking-application-version-control-4.onrender.com/)
 [![Python](https://img.shields.io/badge/Python-3.14-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-green.svg)](https://flask.palletsprojects.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red.svg)](https://www.sqlalchemy.org/)
-[![Tests](https://img.shields.io/badge/Tests-29%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-32%20Passed-brightgreen.svg)]()
 [![Security](https://img.shields.io/badge/SHA--256%20Hash%20Chain-Verified-success.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
+
+> 🚀 **Live Production Web Application**: [https://banking-application-version-control-4.onrender.com/](https://banking-application-version-control-4.onrender.com/)
 
 An enterprise-grade digital banking platform featuring **Git-like Entity Version Control**, **Field-Level Diffing**, **Tamper-Evident SHA-256 Audit Chaining**, **Transparent Rule-Based Risk Intelligence**, **Maker-Checker Approval Workflows**, **Active Session Management**, and **Complete Role-Based Portal Isolation**.
 
