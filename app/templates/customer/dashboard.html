@@ -328,7 +328,7 @@
                   <span class="badge bg-success-subtle text-success">{{ txn.status }}</span>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-icon" onclick="viewTransactionDetails('{{ txn.reference_number }}', '{{ txn.transaction_type }}', '{{ txn.amount }}', '{{ txn.description }}', '{{ txn.created_at }}', '{{ txn.status }}', '{{ txn.balance_after or '' }}')">
+                  <button class="btn btn-sm btn-icon" data-ref="{{ txn.reference_number }}" data-type="{{ txn.transaction_type }}" data-amount="{{ txn.amount }}" data-desc="{{ txn.description }}" data-date="{{ txn.created_at }}" data-status="{{ txn.status }}" data-balance="{{ txn.balance_after or '' }}" onclick="viewTransactionDetails(this)">
                     <i class="bi bi-receipt"></i>
                   </button>
                 </td>
@@ -610,6 +610,17 @@
 {% endblock %}
 
 {% block scripts %}
+<script id="dashboard-data" type="application/json">
+{
+  "monthlyReceived": {{ (monthly_received or 0) | tojson }},
+  "monthlySent": {{ (monthly_sent or 0) | tojson }},
+  "recentTxnTypes": [
+    {% for txn in recent_transactions %}
+    "{{ txn.transaction_type.name if txn.transaction_type.name is defined else txn.transaction_type }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
 <script>
   // 1. Dynamic Date Display & Handlers Setup
   document.addEventListener('DOMContentLoaded', () => {
@@ -631,17 +642,27 @@
     const cashFlowCtx = document.getElementById('cashFlowChart');
     const typeCtx = document.getElementById('transactionTypeChart');
 
-    const monthlyReceived = parseFloat("{{ monthly_received or 0 }}") || 0;
-    const monthlySent = parseFloat("{{ monthly_sent or 0 }}") || 0;
+    let monthlyReceived = 0;
+    let monthlySent = 0;
+    let recentTxnTypes = [];
+
+    try {
+      const dataEl = document.getElementById('dashboard-data');
+      if (dataEl) {
+        const d = JSON.parse(dataEl.textContent);
+        monthlyReceived = parseFloat(d.monthlyReceived) || 0;
+        monthlySent = parseFloat(d.monthlySent) || 0;
+        recentTxnTypes = d.recentTxnTypes || [];
+      }
+    } catch (e) {}
 
     let deposits = 0, withdrawals = 0, transfers = 0, reversals = 0;
-    {% for txn in recent_transactions %}
-      {% if txn.transaction_type == 'DEPOSIT' or (txn.transaction_type.name is defined and txn.transaction_type.name == 'DEPOSIT') %} deposits++;
-      {% elif txn.transaction_type == 'WITHDRAWAL' or (txn.transaction_type.name is defined and txn.transaction_type.name == 'WITHDRAWAL') %} withdrawals++;
-      {% elif txn.transaction_type == 'TRANSFER' or (txn.transaction_type.name is defined and txn.transaction_type.name == 'TRANSFER') %} transfers++;
-      {% else %} reversals++;
-      {% endif %}
-    {% endfor %}
+    recentTxnTypes.forEach(t => {
+      if (t === 'DEPOSIT') deposits++;
+      else if (t === 'WITHDRAWAL') withdrawals++;
+      else if (t === 'TRANSFER') transfers++;
+      else if (t) reversals++;
+    });
 
     if (cashFlowCtx) {
       new Chart(cashFlowCtx, {
@@ -864,6 +885,16 @@
 
   // 4. View Transaction Receipt Details
   function viewTransactionDetails(ref, type, amount, desc, date, status, balAfter) {
+    if (typeof ref === 'object' && ref !== null && ref.dataset) {
+      const d = ref.dataset;
+      ref = d.ref;
+      type = d.type;
+      amount = d.amount;
+      desc = d.desc;
+      date = d.date;
+      status = d.status;
+      balAfter = d.balance;
+    }
     document.getElementById('receiptRef').innerText = ref;
     document.getElementById('receiptType').innerText = type;
     document.getElementById('receiptAmount').innerText = '₹' + parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 });

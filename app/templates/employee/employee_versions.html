@@ -37,7 +37,7 @@
             <td><span class="small text-muted">User #{{ v.changed_by or 'System' }}</span></td>
             <td class="text-end">
               {% if v.version_number > 1 %}
-              <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="compareVersionsStaff('{{ v.entity_type }}', {{ v.entity_id }}, {{ v.version_number - 1 }}, {{ v.version_number }})">
+              <button class="btn btn-sm btn-outline-primary py-1 px-2" data-entity-type="{{ v.entity_type }}" data-entity-id="{{ v.entity_id }}" data-v1="{{ v.version_number - 1 }}" data-v2="{{ v.version_number }}" onclick="compareVersionsStaff(this.dataset.entityType, this.dataset.entityId, this.dataset.v1, this.dataset.v2)">
                 <i class="bi bi-file-diff me-1"></i> Diff v{{ v.version_number - 1 }} &harr; v{{ v.version_number }}
               </button>
               {% else %}

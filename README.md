@@ -8,9 +8,9 @@
 [![Security](https://img.shields.io/badge/SHA--256%20Hash%20Chain-Verified-success.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
-> 🚀 **Live Production Web Application**: [https://banking-application-version-control-4.onrender.com/](https://banking-application-version-control-4.onrender.com/)
+Live Demo: https://banking-application-version-control-4.onrender.com/
 
-An enterprise-grade digital banking platform featuring **Git-like Entity Version Control**, **Field-Level Diffing**, **Tamper-Evident SHA-256 Audit Chaining**, **Transparent Rule-Based Risk Intelligence**, **Maker-Checker Approval Workflows**, **Active Session Management**, and **Complete Role-Based Portal Isolation**.
+BankVCS 2.0 is a secure banking application with Git-like version control for important banking data changes. It provides Customer, Employee, and Admin portals with controlled versioning, audit tracking, authentication, transaction management, and safe restoration of previous data states. The system is designed to improve traceability, security, accountability, and controlled recovery of banking data.
 
 ---
 
@@ -263,7 +263,7 @@ Execute the Pytest test suite:
 ```bash
 .\.venv\Scripts\pytest -v
 ```
-**Results**: `29 passed in 5.90s` (100% pass rate).
+**Results**: `32 passed in 29.22s` (100% pass rate).
 
 ---
 
