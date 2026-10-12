@@ -235,6 +235,37 @@
     </div>
   </div>
 
+  <!-- 4. Spending Analytics & Visual Charts -->
+  <div class="row g-4 mb-4">
+    <div class="col-12 col-lg-8">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">Financial Analytics</h5>
+            <small class="text-muted">Real-time income vs expense flow</small>
+          </div>
+          <span class="badge bg-primary-subtle text-primary">Live Database Data</span>
+        </div>
+        <div style="height: 260px; position: relative;">
+          <canvas id="cashFlowChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <div class="fin-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">Activity Distribution</h5>
+            <small class="text-muted">Transaction types</small>
+          </div>
+        </div>
+        <div style="height: 260px; position: relative;" class="d-flex align-items-center justify-content-center">
+          <canvas id="transactionTypeChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- 5. Recent Transactions & Version Feed Row -->
   <div class="row g-4 mb-4">
