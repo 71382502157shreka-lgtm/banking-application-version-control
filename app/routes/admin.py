@@ -1,6 +1,5 @@
 from decimal import Decimal
-from flask import Blueprint, render_template, jsonify
-import requests
+from flask import Blueprint, render_template
 from flask_login import login_required, current_user
 
 from app import db
@@ -373,62 +372,4 @@ def export_audit_logs_csv():
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
-       return Response(
-        csv_data,
-        mimetype="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
-@admin_bp.route("/github-commits")
-@login_required
-@roles_required(Role.ADMIN)
-def github_commits():
-    owner = "71382502157shreka-lgtm"
-    repo = "banking-application-version-control"
-
-    api_url = f"https://api.github.com/repos/{owner}/{repo}/commits"
-
-    headers = {"Accept": "application/vnd.github+json"}
-
-    try:
-        response = requests.get(
-            api_url,
-            headers=headers,
-            params={"per_page": 10},
-            timeout=10
-        )
-        response.raise_for_status()
-
-        commits = response.json()
-        result = []
-
-        for commit in commits:
-            sha = commit.get("sha", "")
-            details = commit.get("commit", {})
-
-            files_response = requests.get(
-                f"{api_url}/{sha}",
-                headers=headers,
-                timeout=10
-            )
-            files_response.raise_for_status()
-            files_data = files_response.json()
-
-            result.append({
-                "sha": sha[:7],
-                "message": details.get("message", "").split("\n")[0],
-                "date": details.get("author", {}).get("date", ""),
-                "url": commit.get("html_url", ""),
-                "files": [
-                    item.get("filename", "")
-                    for item in files_data.get("files", [])
-                ]
-            })
-
-        return jsonify({"commits": result})
-
-    except requests.RequestException:
-        return jsonify({
-            "commits": [],
-            "error": "Unable to load GitHub commits. Please try again later."
-        }), 502
-
+      
